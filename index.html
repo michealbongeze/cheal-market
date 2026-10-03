@@ -4,7 +4,6 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Cheal Market</title>
-
   <link rel="stylesheet" href="styles.css">
 </head>
 
@@ -17,7 +16,6 @@
     <a href="#market">Market</a>
     <a href="#sell">Sell</a>
     <a href="#chat">Chat</a>
-
     <button id="login" type="button">Sign in</button>
     <button id="signup" type="button">Create account</button>
   </nav>
@@ -30,7 +28,6 @@
   <section class="hero">
 
     <div>
-
       <b>BUILT FOR CAMPUS LIFE</b>
 
       <h1>
@@ -46,24 +43,17 @@
 
       <a class="cta" href="#market">Browse products</a>
       <a class="ghost" href="#sell">Sell an item</a>
-
     </div>
 
-
     <div class="heroCard">
-
       🛍️
-
       <h2>Student-to-student marketplace</h2>
-
       <p>
         Discover deals around campus and chat with sellers before you buy.
       </p>
-
     </div>
 
   </section>
-
 
 
   <!-- MARKET -->
@@ -85,7 +75,6 @@
   </section>
 
 
-
   <!-- SELL -->
   <section id="sell">
 
@@ -96,7 +85,6 @@
       discover it.
     </p>
 
-
     <form id="sellForm">
 
       <input
@@ -105,7 +93,6 @@
         required
         placeholder="Product name"
       >
-
 
       <input
         id="price"
@@ -116,17 +103,13 @@
         placeholder="Price (UGX)"
       >
 
-
       <select id="cat" name="category" required>
-
         <option value="Phones">Phones</option>
         <option value="Clothes">Clothes</option>
         <option value="Books">Books</option>
         <option value="Electronics">Electronics</option>
         <option value="Other">Other</option>
-
       </select>
-
 
       <input
         id="seller"
@@ -135,7 +118,6 @@
         placeholder="Seller name"
       >
 
-
       <input
         id="campus"
         name="campus"
@@ -143,13 +125,11 @@
         placeholder="Campus / location"
       >
 
-
       <textarea
         id="desc"
         name="description"
         placeholder="Describe your product..."
       ></textarea>
-
 
       <button type="submit">
         List product
@@ -160,38 +140,75 @@
   </section>
 
 
-
   <!-- CHAT -->
   <section id="chat">
 
-    <h2>💬 Chat with sellers</h2>
-
-    <p>
-      Talk directly with buyers and sellers about products.
-    </p>
-
+    <div class="chatHeader">
+      <h2>💬 Chat with sellers</h2>
+      <p>
+        Talk directly with buyers and sellers about products.
+      </p>
+    </div>
 
     <div class="chat">
 
-      <aside>
+      <!-- CONVERSATION LIST -->
+      <aside class="chatSidebar">
 
-        <b>Sarah</b>
-        <small>iPhone 13 Pro</small>
+        <div class="chatSidebarTitle">
+          Messages
+        </div>
 
-        <hr>
+        <button class="conversation active" type="button">
 
-        <b>Brian</b>
-        <small>Campus Hoodie</small>
+          <span class="avatar">S</span>
 
-        <hr>
+          <span class="conversationInfo">
+            <strong>Sarah</strong>
+            <small>iPhone 13 Pro</small>
+          </span>
 
-        <b>Joan</b>
-        <small>Sneakers</small>
+        </button>
+
+
+        <button class="conversation" type="button">
+
+          <span class="avatar">B</span>
+
+          <span class="conversationInfo">
+            <strong>Brian</strong>
+            <small>Campus Hoodie</small>
+          </span>
+
+        </button>
+
+
+        <button class="conversation" type="button">
+
+          <span class="avatar">J</span>
+
+          <span class="conversationInfo">
+            <strong>Joan</strong>
+            <small>Sneakers</small>
+          </span>
+
+        </button>
 
       </aside>
 
 
-      <div>
+      <!-- CHAT WINDOW -->
+      <div class="chatWindow">
+
+        <div class="chatTop">
+
+          <div>
+            <strong>Sarah</strong>
+            <small>iPhone 13 Pro · KIU</small>
+          </div>
+
+        </div>
+
 
         <div id="messages">
 
@@ -230,8 +247,8 @@
 </main>
 
 
-
 <!-- ACCOUNT MODAL -->
+
 <div id="modal" class="modal hidden">
 
   <div class="box">
@@ -244,11 +261,9 @@
       ×
     </button>
 
-
     <h2 id="modalTitle">
       Create your Cheal Market account
     </h2>
-
 
     <form id="auth">
 
@@ -259,7 +274,6 @@
         autocomplete="name"
       >
 
-
       <input
         id="authEmail"
         required
@@ -268,16 +282,14 @@
         autocomplete="email"
       >
 
-
       <input
         id="authPassword"
         required
         type="password"
+        minlength="6"
         placeholder="Password"
         autocomplete="new-password"
-        minlength="6"
       >
-
 
       <select
         id="authCampus"
@@ -306,7 +318,6 @@
 
       </select>
 
-
       <button
         id="authSubmit"
         type="submit"
@@ -315,7 +326,6 @@
       </button>
 
     </form>
-
 
     <small id="authMessage">
       Your account will allow you to buy, sell and chat.
@@ -326,17 +336,12 @@
 </div>
 
 
-
 <footer>
   © 2026 Cheal Market · The student marketplace
 </footer>
 
 
-
-<!-- SUPABASE -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-
-<!-- YOUR APP -->
 <script src="app.js"></script>
 
 </body>
