@@ -1,5 +1,6 @@
 /* =========================================================
    CHEAL MARKET — APP.JS
+   Marketplace + Supabase Auth + Real Chat Inbox
 ========================================================= */
 
 
@@ -152,6 +153,19 @@ const demoProducts = [
 let products = [];
 
 let activeCategory = "All";
+
+
+/* =========================================================
+   CHAT STATE
+========================================================= */
+
+let conversations = [];
+
+let activeConversationId = null;
+
+let activeConversation = null;
+
+let messageChannel = null;
 
 
 /* =========================================================
@@ -519,6 +533,13 @@ function formatTime(dateValue) {
 
 function productCard(product) {
 
+  const canChat =
+    Boolean(
+      product.id &&
+      product.seller_id
+    );
+
+
   return `
     <article class="product">
 
@@ -604,13 +625,27 @@ function productCard(product) {
         </div>
 
 
-        <button
-          type="button"
-          class="productChatButton"
-          onclick="openProductChat()"
-        >
-          💬 Chat with seller
-        </button>
+        ${
+          canChat
+            ? `
+              <button
+                type="button"
+                class="productChatButton"
+                onclick="openProductChat(${Number(product.id)})"
+              >
+                💬 Chat with seller
+              </button>
+            `
+            : `
+              <button
+                type="button"
+                class="productChatButton"
+                onclick="openAuth('Sign in')"
+              >
+                💬 Chat with seller
+              </button>
+            `
+        }
 
       </div>
 
@@ -899,44 +934,6 @@ function toggleFavorite(
 
 
 /* =========================================================
-   PRODUCT CHAT
-========================================================= */
-
-function openProductChat() {
-
-  const chatSection =
-    document.querySelector(
-      "#chat"
-    );
-
-
-  if (!chatSection) return;
-
-
-  chatSection.scrollIntoView({
-    behavior: "smooth"
-  });
-
-
-  const input =
-    document.querySelector(
-      "#message"
-    );
-
-
-  if (input) {
-
-    setTimeout(
-      () => input.focus(),
-      500
-    );
-
-  }
-
-}
-
-
-/* =========================================================
    GET CURRENT USER
 ========================================================= */
 
@@ -1185,7 +1182,1180 @@ if (sellForm) {
 
 
 /* =========================================================
-   CHAT
+   CHAT — CREATE / OPEN CONVERSATION
+========================================================= */
+
+async function openProductChat(
+  productId
+) {
+
+  const user =
+    await getUser();
+
+
+  if (!user) {
+
+    alert(
+      "Please sign in to chat with a seller."
+    );
+
+
+    openAuth(
+      "Sign in"
+    );
+
+
+    return;
+
+  }
+
+
+  const product =
+    products.find(
+      (item) =>
+        Number(item.id) ===
+        Number(productId)
+    );
+
+
+  if (!product) {
+
+    alert(
+      "This product could not be found."
+    );
+
+
+    return;
+
+  }
+
+
+  if (!product.seller_id) {
+
+    alert(
+      "This demo listing does not have a real seller account yet."
+    );
+
+
+    return;
+
+  }
+
+
+  if (
+    product.seller_id ===
+    user.id
+  ) {
+
+    alert(
+      "You cannot chat with yourself about your own product."
+    );
+
+
+    return;
+
+  }
+
+
+  try {
+
+    let conversation =
+      await findConversation(
+        user.id,
+        product.seller_id,
+        product.id
+      );
+
+
+    if (!conversation) {
+
+      const {
+        data,
+        error
+      } =
+        await supabaseClient
+          .from("conversations")
+          .insert({
+
+            buyer_id:
+              user.id,
+
+            seller_id:
+              product.seller_id,
+
+            product_id:
+              product.id
+
+          })
+          .select()
+          .single();
+
+
+      if (error) {
+
+        console.error(
+          "Conversation creation error:",
+          error
+        );
+
+
+        alert(
+          "Could not start chat: " +
+          error.message
+        );
+
+
+        return;
+
+      }
+
+
+      conversation =
+        data;
+
+    }
+
+
+    await loadConversations();
+
+
+    await selectConversation(
+      conversation.id
+    );
+
+
+    const chatSection =
+      document.querySelector(
+        "#chat"
+      );
+
+
+    if (chatSection) {
+
+      chatSection.scrollIntoView({
+        behavior: "smooth"
+      });
+
+    }
+
+
+  }
+
+
+  catch (error) {
+
+    console.error(
+      "Open chat error:",
+      error
+    );
+
+
+    alert(
+      "Could not open the chat. Please try again."
+    );
+
+  }
+
+}
+
+
+/* =========================================================
+   FIND EXISTING CONVERSATION
+========================================================= */
+
+async function findConversation(
+  buyerId,
+  sellerId,
+  productId
+) {
+
+  const {
+    data,
+    error
+  } =
+    await supabaseClient
+      .from("conversations")
+      .select(
+        "id, buyer_id, seller_id, product_id, created_at"
+      )
+      .eq(
+        "buyer_id",
+        buyerId
+      )
+      .eq(
+        "seller_id",
+        sellerId
+      )
+      .eq(
+        "product_id",
+        productId
+      )
+      .maybeSingle();
+
+
+  if (error) {
+
+    console.error(
+      "Find conversation error:",
+      error
+    );
+
+
+    return null;
+
+  }
+
+
+  return data;
+
+}
+
+
+/* =========================================================
+   LOAD CHAT INBOX
+========================================================= */
+
+async function loadConversations() {
+
+  const user =
+    await getUser();
+
+
+  if (!user) {
+
+    conversations = [];
+
+    renderConversationInbox();
+
+    return;
+
+  }
+
+
+  try {
+
+    const {
+      data,
+      error
+    } =
+      await supabaseClient
+        .from("conversations")
+        .select(
+          "id, buyer_id, seller_id, product_id, created_at"
+        )
+        .or(
+          `buyer_id.eq.${user.id},seller_id.eq.${user.id}`
+        )
+        .order(
+          "created_at",
+          {
+            ascending: false
+          }
+        );
+
+
+    if (error) {
+
+      console.error(
+        "Conversation loading error:",
+        error
+      );
+
+
+      conversations = [];
+
+      renderConversationInbox();
+
+      return;
+
+    }
+
+
+    const rows =
+      data || [];
+
+
+    if (!rows.length) {
+
+      conversations = [];
+
+      renderConversationInbox();
+
+      return;
+
+    }
+
+
+    const profileIds =
+      [
+        ...new Set(
+          rows.flatMap(
+            (conversation) => [
+              conversation.buyer_id,
+              conversation.seller_id
+            ]
+          )
+        )
+      ];
+
+
+    const productIds =
+      [
+        ...new Set(
+          rows
+            .map(
+              (conversation) =>
+                conversation.product_id
+            )
+            .filter(Boolean)
+        )
+      ];
+
+
+    let profiles = [];
+
+    let productRows = [];
+
+
+    if (profileIds.length) {
+
+      const {
+        data:
+          profileData,
+        error:
+          profileError
+      } =
+        await supabaseClient
+          .from("profiles")
+          .select(
+            "id, full_name, campus"
+          )
+          .in(
+            "id",
+            profileIds
+          );
+
+
+      if (profileError) {
+
+        console.error(
+          "Profile loading error:",
+          profileError
+        );
+
+      }
+
+
+      profiles =
+        profileData || [];
+
+    }
+
+
+    if (productIds.length) {
+
+      const {
+        data:
+          productData,
+        error:
+          productError
+      } =
+        await supabaseClient
+          .from("products")
+          .select(
+            "id, name, price, seller_name"
+          )
+          .in(
+            "id",
+            productIds
+          );
+
+
+      if (productError) {
+
+        console.error(
+          "Chat product loading error:",
+          productError
+        );
+
+      }
+
+
+      productRows =
+        productData || [];
+
+    }
+
+
+    conversations =
+      rows.map(
+        (conversation) => {
+
+          const otherUserId =
+            conversation.buyer_id ===
+            user.id
+              ? conversation.seller_id
+              : conversation.buyer_id;
+
+
+          const otherProfile =
+            profiles.find(
+              (profile) =>
+                profile.id ===
+                otherUserId
+            );
+
+
+          const product =
+            productRows.find(
+              (item) =>
+                Number(item.id) ===
+                Number(
+                  conversation.product_id
+                )
+            );
+
+
+          return {
+
+            ...conversation,
+
+            otherUserId:
+
+              otherUserId,
+
+            otherName:
+
+              otherProfile
+                ?.full_name ||
+              "Student",
+
+            otherCampus:
+
+              otherProfile
+                ?.campus ||
+              "",
+
+            productName:
+
+              product
+                ?.name ||
+              "Marketplace item",
+
+            productPrice:
+
+              product
+                ?.price ||
+              0
+
+          };
+
+        }
+      );
+
+
+    renderConversationInbox();
+
+
+  }
+
+
+  catch (error) {
+
+    console.error(
+      "Conversation inbox error:",
+      error
+    );
+
+
+    conversations = [];
+
+    renderConversationInbox();
+
+  }
+
+}
+
+
+/* =========================================================
+   RENDER CONVERSATION INBOX
+========================================================= */
+
+function renderConversationInbox() {
+
+  const chatSection =
+    document.querySelector(
+      "#chat"
+    );
+
+
+  if (!chatSection) return;
+
+
+  let inbox =
+    document.querySelector(
+      "#chealChatInbox"
+    );
+
+
+  if (!inbox) {
+
+    inbox =
+      document.createElement(
+        "div"
+      );
+
+
+    inbox.id =
+      "chealChatInbox";
+
+
+    inbox.style.marginBottom =
+      "20px";
+
+
+    const chatFormElement =
+      document.querySelector(
+        "#chatForm"
+      );
+
+
+    if (
+      chatFormElement &&
+      chatFormElement.parentNode
+    ) {
+
+      chatFormElement.parentNode.insertBefore(
+        inbox,
+        chatFormElement
+      );
+
+    }
+
+    else {
+
+      chatSection.prepend(
+        inbox
+      );
+
+    }
+
+  }
+
+
+  const userPromise =
+    getUser();
+
+
+  userPromise.then(
+    (user) => {
+
+      if (!user) {
+
+        inbox.innerHTML = `
+          <div
+            style="
+              padding:18px;
+              border:1px solid #e5e7eb;
+              border-radius:14px;
+              background:#fff;
+            "
+          >
+            <strong>💬 Cheal Chat</strong>
+            <p style="margin:6px 0 0;color:#667085;">
+              Sign in to see your conversations.
+            </p>
+          </div>
+        `;
+
+        return;
+
+      }
+
+
+      if (!conversations.length) {
+
+        inbox.innerHTML = `
+          <div
+            style="
+              padding:18px;
+              border:1px solid #e5e7eb;
+              border-radius:14px;
+              background:#fff;
+            "
+          >
+            <div style="font-size:24px;margin-bottom:6px;">
+              💬
+            </div>
+
+            <strong>Cheal Chat</strong>
+
+            <p style="margin:6px 0 0;color:#667085;">
+              Your conversations will appear here when you chat with a seller.
+            </p>
+          </div>
+        `;
+
+        return;
+
+      }
+
+
+      inbox.innerHTML = `
+        <div
+          style="
+            border:1px solid #e5e7eb;
+            border-radius:14px;
+            background:#fff;
+            overflow:hidden;
+          "
+        >
+
+          <div
+            style="
+              padding:16px;
+              border-bottom:1px solid #e5e7eb;
+            "
+          >
+            <strong style="font-size:18px;">
+              💬 Cheal Chat
+            </strong>
+
+            <div
+              style="
+                color:#667085;
+                font-size:13px;
+                margin-top:3px;
+              "
+            >
+              Your conversations
+            </div>
+          </div>
+
+          <div>
+            ${conversations
+              .map(
+                (conversation) => {
+
+                  const active =
+                    Number(
+                      activeConversationId
+                    ) ===
+                    Number(
+                      conversation.id
+                    );
+
+
+                  return `
+                    <button
+                      type="button"
+                      onclick="selectConversation(${Number(conversation.id)})"
+                      style="
+                        width:100%;
+                        display:flex;
+                        align-items:center;
+                        gap:12px;
+                        text-align:left;
+                        padding:14px 16px;
+                        border:0;
+                        border-bottom:1px solid #f0f2f5;
+                        background:${
+                          active
+                            ? "#f0fdf4"
+                            : "#fff"
+                        };
+                        cursor:pointer;
+                      "
+                    >
+
+                      <div
+                        style="
+                          width:42px;
+                          height:42px;
+                          border-radius:50%;
+                          background:#16a34a;
+                          color:white;
+                          display:grid;
+                          place-items:center;
+                          font-weight:700;
+                          flex:none;
+                        "
+                      >
+                        ${escapeHTML(
+                          conversation.otherName
+                            .charAt(0)
+                            .toUpperCase()
+                        )}
+                      </div>
+
+                      <div style="min-width:0;flex:1;">
+
+                        <strong
+                          style="
+                            display:block;
+                            color:#172033;
+                          "
+                        >
+                          ${escapeHTML(
+                            conversation.otherName
+                          )}
+                        </strong>
+
+                        <span
+                          style="
+                            display:block;
+                            color:#667085;
+                            font-size:13px;
+                            white-space:nowrap;
+                            overflow:hidden;
+                            text-overflow:ellipsis;
+                          "
+                        >
+                          ${escapeHTML(
+                            conversation.productName
+                          )}
+                        </span>
+
+                      </div>
+
+                      <span
+                        style="
+                          color:#16a34a;
+                          font-size:18px;
+                        "
+                      >
+                        ›
+                      </span>
+
+                    </button>
+                  `;
+
+                }
+              )
+              .join("")}
+          </div>
+
+        </div>
+      `;
+
+    }
+
+  );
+
+}
+
+
+/* =========================================================
+   SELECT CONVERSATION
+========================================================= */
+
+async function selectConversation(
+  conversationId
+) {
+
+  const user =
+    await getUser();
+
+
+  if (!user) {
+
+    openAuth(
+      "Sign in"
+    );
+
+
+    return;
+
+  }
+
+
+  const conversation =
+    conversations.find(
+      (item) =>
+        Number(item.id) ===
+        Number(conversationId)
+    );
+
+
+  if (!conversation) {
+
+    await loadConversations();
+
+
+    const refreshed =
+      conversations.find(
+        (item) =>
+          Number(item.id) ===
+          Number(conversationId)
+      );
+
+
+    if (!refreshed) {
+
+      alert(
+        "Conversation could not be found."
+      );
+
+
+      return;
+
+    }
+
+  }
+
+
+  activeConversation =
+    conversations.find(
+      (item) =>
+        Number(item.id) ===
+        Number(conversationId)
+    );
+
+
+  activeConversationId =
+    Number(
+      conversationId
+    );
+
+
+  renderConversationInbox();
+
+
+  await loadMessages(
+    activeConversationId
+  );
+
+
+  subscribeToMessages(
+    activeConversationId
+  );
+
+
+  if (message) {
+
+    setTimeout(
+      () =>
+        message.focus(),
+      200
+    );
+
+  }
+
+}
+
+
+/* =========================================================
+   LOAD MESSAGES
+========================================================= */
+
+async function loadMessages(
+  conversationId
+) {
+
+  if (!messages) return;
+
+
+  messages.innerHTML = `
+    <div
+      style="
+        padding:20px;
+        text-align:center;
+        color:#667085;
+      "
+    >
+      Loading conversation...
+    </div>
+  `;
+
+
+  const {
+    data,
+    error
+  } =
+    await supabaseClient
+      .from("messages")
+      .select(
+        "id, conversation_id, sender_id, message, created_at"
+      )
+      .eq(
+        "conversation_id",
+        conversationId
+      )
+      .order(
+        "created_at",
+        {
+          ascending: true
+        }
+      );
+
+
+  if (error) {
+
+    console.error(
+      "Message loading error:",
+      error
+    );
+
+
+    messages.innerHTML = `
+      <div
+        style="
+          padding:20px;
+          color:#b42318;
+        "
+      >
+        Could not load messages.
+      </div>
+    `;
+
+
+    return;
+
+  }
+
+
+  const rows =
+    data || [];
+
+
+  if (!rows.length) {
+
+    messages.innerHTML = `
+      <div
+        style="
+          padding:25px;
+          text-align:center;
+          color:#667085;
+        "
+      >
+        <div style="font-size:30px;">
+          💬
+        </div>
+
+        <strong>Start the conversation</strong>
+
+        <p style="margin:5px 0 0;">
+          Send the seller a message about this product.
+        </p>
+      </div>
+    `;
+
+
+    return;
+
+  }
+
+
+  messages.innerHTML = "";
+
+
+  rows.forEach(
+    (row) =>
+      appendMessageBubble(
+        row,
+        false
+      )
+  );
+
+
+  messages.scrollTop =
+    messages.scrollHeight;
+
+}
+
+
+/* =========================================================
+   MESSAGE BUBBLE
+========================================================= */
+
+function appendMessageBubble(
+  row,
+  scroll = true
+) {
+
+  if (!messages) return;
+
+
+  const userId =
+    currentUserId();
+
+
+  const isMine =
+    row.sender_id ===
+    userId;
+
+
+  const bubble =
+    document.createElement(
+      "div"
+    );
+
+
+  bubble.className =
+    isMine
+      ? "buyerMsg"
+      : "sellerMsg";
+
+
+  bubble.style.marginBottom =
+    "10px";
+
+
+  bubble.style.padding =
+    "10px 13px";
+
+
+  bubble.style.borderRadius =
+    "12px";
+
+
+  bubble.style.maxWidth =
+    "80%";
+
+
+  bubble.style.width =
+    "fit-content";
+
+
+  bubble.style.marginLeft =
+    isMine
+      ? "auto"
+      : "0";
+
+
+  bubble.style.background =
+    isMine
+      ? "#dcfce7"
+      : "#f3f4f6";
+
+
+  bubble.style.color =
+    "#172033";
+
+
+  bubble.textContent =
+    row.message || "";
+
+
+  messages.appendChild(
+    bubble
+  );
+
+
+  if (scroll) {
+
+    messages.scrollTop =
+      messages.scrollHeight;
+
+  }
+
+}
+
+
+/* =========================================================
+   CURRENT USER ID
+========================================================= */
+
+function currentUserId() {
+
+  const sessionUser =
+    window.chealCurrentUser;
+
+
+  return sessionUser
+    ? sessionUser.id
+    : null;
+
+}
+
+
+/* =========================================================
+   REALTIME MESSAGE SUBSCRIPTION
+========================================================= */
+
+function subscribeToMessages(
+  conversationId
+) {
+
+  if (messageChannel) {
+
+    supabaseClient
+      .removeChannel(
+        messageChannel
+      );
+
+    messageChannel =
+      null;
+
+  }
+
+
+  messageChannel =
+    supabaseClient
+      .channel(
+        "cheal-chat-" +
+        conversationId
+      )
+      .on(
+        "postgres_changes",
+        {
+          event:
+            "INSERT",
+
+          schema:
+            "public",
+
+          table:
+            "messages",
+
+          filter:
+            `conversation_id=eq.${conversationId}`
+
+        },
+        (payload) => {
+
+          const row =
+            payload.new;
+
+
+          if (
+            !messages ||
+            Number(
+              row.conversation_id
+            ) !==
+            Number(
+              activeConversationId
+            )
+          ) {
+
+            return;
+
+          }
+
+
+          appendMessageBubble(
+            row,
+            true
+          );
+
+        }
+      )
+      .subscribe(
+        (status) => {
+
+          console.log(
+            "Cheal Chat realtime:",
+            status
+          );
+
+        }
+      );
+
+}
+
+
+/* =========================================================
+   SEND MESSAGE
 ========================================================= */
 
 if (chatForm) {
@@ -1217,6 +2387,18 @@ if (chatForm) {
       }
 
 
+      if (!activeConversationId) {
+
+        alert(
+          "Open a conversation first."
+        );
+
+
+        return;
+
+      }
+
+
       const text =
         message
           ? message.value.trim()
@@ -1226,30 +2408,139 @@ if (chatForm) {
       if (!text) return;
 
 
-      const bubble =
-        document.createElement(
-          "div"
+      const submitButton =
+        chatForm.querySelector(
+          'button[type="submit"]'
         );
 
 
-      bubble.className =
-        "buyerMsg";
+      if (submitButton) {
+
+        submitButton.disabled =
+          true;
+
+      }
 
 
-      bubble.textContent =
-        text;
+      try {
+
+        const {
+          error
+        } =
+          await supabaseClient
+            .from("messages")
+            .insert({
+
+              conversation_id:
+                activeConversationId,
+
+              sender_id:
+                user.id,
+
+              message:
+                text
+
+            });
 
 
-      messages.appendChild(
-        bubble
-      );
+        if (error) {
+
+          console.error(
+            "Message insert error:",
+            error
+          );
 
 
-      messages.scrollTop =
-        messages.scrollHeight;
+          alert(
+            "Could not send message: " +
+            error.message
+          );
 
 
-      message.value = "";
+          return;
+
+        }
+
+
+        message.value =
+          "";
+
+
+      }
+
+
+      catch (error) {
+
+        console.error(
+          "Send message error:",
+          error
+        );
+
+
+        alert(
+          "Could not send the message."
+        );
+
+      }
+
+
+      finally {
+
+        if (submitButton) {
+
+          submitButton.disabled =
+            false;
+
+        }
+
+      }
+
+    };
+
+}
+
+
+/* =========================================================
+   PRODUCT CHAT / INBOX BUTTON
+========================================================= */
+
+if (messagesButton) {
+
+  messagesButton.onclick =
+    async () => {
+
+      const user =
+        await getUser();
+
+
+      if (!user) {
+
+        openAuth(
+          "Sign in"
+        );
+
+
+        return;
+
+      }
+
+
+      await loadConversations();
+
+
+      const chatSection =
+        document.querySelector(
+          "#chat"
+        );
+
+
+      if (chatSection) {
+
+        chatSection.scrollIntoView({
+          behavior: "smooth"
+        });
+
+      }
 
     };
 
@@ -1406,28 +2697,6 @@ if (modal) {
 
 
 /* =========================================================
-   MESSAGES BUTTON
-========================================================= */
-
-if (messagesButton) {
-
-  messagesButton.onclick =
-    () => {
-
-      document
-        .querySelector(
-          "#chat"
-        )
-        ?.scrollIntoView({
-          behavior: "smooth"
-        });
-
-    };
-
-}
-
-
-/* =========================================================
    LOCATION BUTTON
 ========================================================= */
 
@@ -1526,7 +2795,9 @@ if (auth) {
           auth.reset();
 
 
-          updateAuthButtons();
+          await updateAuthButtons();
+
+          await loadConversations();
 
 
           return;
@@ -1662,7 +2933,9 @@ if (auth) {
         auth.reset();
 
 
-        updateAuthButtons();
+        await updateAuthButtons();
+
+        await loadConversations();
 
       }
 
@@ -1710,6 +2983,10 @@ async function updateAuthButtons() {
 
   const user =
     await getUser();
+
+
+  window.chealCurrentUser =
+    user;
 
 
   if (!login) return;
@@ -1767,9 +3044,54 @@ async function updateAuthButtons() {
 
 supabaseClient.auth
   .onAuthStateChange(
-    () => {
+    async (
+      event,
+      session
+    ) => {
 
-      updateAuthButtons();
+      window.chealCurrentUser =
+        session?.user ||
+        null;
+
+
+      await updateAuthButtons();
+
+
+      if (
+        session?.user
+      ) {
+
+        await loadConversations();
+
+      }
+
+      else {
+
+        conversations = [];
+
+        activeConversationId =
+          null;
+
+        activeConversation =
+          null;
+
+
+        if (messageChannel) {
+
+          supabaseClient
+            .removeChannel(
+              messageChannel
+            );
+
+          messageChannel =
+            null;
+
+        }
+
+
+        renderConversationInbox();
+
+      }
 
     }
   );
@@ -1779,8 +3101,14 @@ supabaseClient.auth
    START APPLICATION
 ========================================================= */
 
+window.chealCurrentUser =
+  null;
+
+
 createCategories();
 
 loadProducts();
 
 updateAuthButtons();
+
+loadConversations();
