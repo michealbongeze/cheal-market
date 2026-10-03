@@ -729,6 +729,8 @@ section {
   border: 1px solid var(--border);
   background: white;
   color: var(--text);
+   
+
 
   padding: 8px 14px;
   border-radius: 999px;
@@ -1869,4 +1871,32 @@ section {
     grid-column: auto;
   }
 
+}
+/* Product condition badge fix */
+
+.pic {
+  position: relative;
+  overflow: hidden;
+}
+
+.conditionBadge {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  display: inline-block;
+  width: auto;
+  max-width: fit-content;
+  padding: 4px 9px;
+  font-size: 11px;
+  line-height: 1.2;
+  font-weight: 700;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.95);
+  color: #222;
+  z-index: 2;
+}
+
+.productIcon {
+  font-size: 48px;
+  line-height: 1;
 }
