@@ -3,9 +3,9 @@
 // Main Application
 // ============================================================
 
-// ------------------------------------------------------------
+// ============================================================
 // SUPABASE CONFIGURATION
-// ------------------------------------------------------------
+// ============================================================
 
 const SUPABASE_URL =
   "https://qwlklqjfbrhythpynghr.supabase.co";
@@ -21,31 +21,48 @@ const supabaseClient =
 
 const BUCKET_NAME = "product-images";
 
-// ------------------------------------------------------------
+
+// ============================================================
 // APP STATE
-// ------------------------------------------------------------
+// ============================================================
 
 let currentUser = null;
 let currentProfile = null;
+
 let currentProduct = null;
 let currentConversation = null;
+
 let messageChannel = null;
 
 let selectedImages = [];
 let allProducts = [];
 
-const SAVED_KEY = "cheal_market_saved";
+let currentCategory = "All";
+let currentSort = "latest";
 
-// ------------------------------------------------------------
-// HELPERS
-// ------------------------------------------------------------
+const SAVED_KEY =
+  "cheal_market_saved";
+
+
+// ============================================================
+// DOM HELPER
+// ============================================================
 
 function $(id) {
   return document.getElementById(id);
 }
 
+
+// ============================================================
+// HTML ESCAPING
+// ============================================================
+
 function escapeHTML(value) {
-  if (value === null || value === undefined) {
+
+  if (
+    value === null ||
+    value === undefined
+  ) {
     return "";
   }
 
@@ -57,71 +74,149 @@ function escapeHTML(value) {
     .replaceAll("'", "&#039;");
 }
 
+
+// ============================================================
+// PRICE FORMAT
+// ============================================================
+
 function formatPrice(price) {
-  return `UGX ${Number(price || 0).toLocaleString("en-UG")}`;
+
+  return `UGX ${Number(
+    price || 0
+  ).toLocaleString("en-UG")}`;
 }
 
+
+// ============================================================
+// MESSAGE
+// ============================================================
+
 function showMessage(message) {
+
   alert(message);
 }
 
-// ------------------------------------------------------------
+
+// ============================================================
 // SAVED PRODUCTS
-// ------------------------------------------------------------
+// ============================================================
 
 function getSavedProducts() {
+
   try {
+
     return JSON.parse(
-      localStorage.getItem(SAVED_KEY)
+      localStorage.getItem(
+        SAVED_KEY
+      )
     ) || [];
+
   } catch {
+
     return [];
   }
 }
 
+
 function setSavedProducts(products) {
+
   localStorage.setItem(
     SAVED_KEY,
     JSON.stringify(products)
   );
 }
 
+
 function isSaved(productId) {
+
   return getSavedProducts().includes(
     Number(productId)
   );
 }
 
-function toggleSaved(productId) {
-  const id = Number(productId);
 
-  let saved = getSavedProducts();
+function toggleSaved(productId) {
+
+  const id =
+    Number(productId);
+
+  let saved =
+    getSavedProducts();
 
   if (saved.includes(id)) {
-    saved = saved.filter(
-      item => item !== id
-    );
+
+    saved =
+      saved.filter(
+        item => item !== id
+      );
+
   } else {
+
     saved.push(id);
   }
 
   setSavedProducts(saved);
 
-  renderProducts(allProducts);
+  renderProducts(
+    getVisibleProducts()
+  );
+
+  renderSavedProducts();
 
   if (
-    window.location.hash === "#saved"
+    currentProduct &&
+    Number(currentProduct.id) === id
   ) {
-    renderSavedProducts();
+    openProduct(id, false);
   }
 }
 
-// ------------------------------------------------------------
+
+// ============================================================
 // NAVIGATION
-// ------------------------------------------------------------
+// ============================================================
 
 function navigate(screen) {
-  window.location.hash = screen;
+
+  if (!screen) {
+    screen = "home";
+  }
+
+  screen =
+    String(screen)
+      .replace("#", "")
+      .trim();
+
+  if (
+    screen === "listings"
+  ) {
+    screen = "my-listings";
+  }
+
+  const validScreens = [
+    "home",
+    "saved",
+    "sell",
+    "messages",
+    "chat",
+    "account",
+    "my-listings",
+    "product"
+  ];
+
+  if (
+    !validScreens.includes(screen)
+  ) {
+    screen = "home";
+  }
+
+  if (
+    window.location.hash !==
+    `#${screen}`
+  ) {
+    window.location.hash =
+      screen;
+  }
 
   showScreen(screen);
 
@@ -131,69 +226,215 @@ function navigate(screen) {
   });
 }
 
+
 function showScreen(screen) {
+
   const screens =
-    document.querySelectorAll(".screen");
+    document.querySelectorAll(
+      ".screen"
+    );
 
   screens.forEach(element => {
-    element.classList.remove("active");
+
+    element.classList.add(
+      "hidden"
+    );
+
+    element.classList.remove(
+      "active"
+    );
+
   });
 
+
+  let targetId;
+
+  switch (screen) {
+
+    case "home":
+      targetId =
+        "homeScreen";
+      break;
+
+    case "saved":
+      targetId =
+        "savedScreen";
+      break;
+
+    case "sell":
+      targetId =
+        "sellScreen";
+      break;
+
+    case "messages":
+      targetId =
+        "messagesScreen";
+      break;
+
+    case "chat":
+      targetId =
+        "chatScreen";
+      break;
+
+    case "account":
+      targetId =
+        "accountScreen";
+      break;
+
+    case "my-listings":
+      targetId =
+        "myListingsScreen";
+      break;
+
+    case "product":
+      targetId =
+        "productScreen";
+      break;
+
+    default:
+      targetId =
+        "homeScreen";
+  }
+
+
   const target =
-    document.getElementById(
-      `${screen}-screen`
-    );
+    $(targetId);
 
   if (target) {
-    target.classList.add("active");
-  }
 
-  document
-    .querySelectorAll(".bottom-nav button")
-    .forEach(button => {
-      button.classList.remove("active");
-    });
-
-  const activeButton =
-    document.querySelector(
-      `.bottom-nav button[data-screen="${screen}"]`
+    target.classList.remove(
+      "hidden"
     );
 
-  if (activeButton) {
-    activeButton.classList.add("active");
+    target.classList.add(
+      "active"
+    );
   }
+
+
+  // Bottom navigation
+
+  document
+    .querySelectorAll(
+      ".bottom-nav .nav-item"
+    )
+    .forEach(item => {
+
+      item.classList.remove(
+        "active"
+      );
+
+      const route =
+        item.dataset.nav;
+
+      if (
+        route === screen
+      ) {
+        item.classList.add(
+          "active"
+        );
+      }
+
+    });
+
+
+  // Special handling for account
+
+  if (
+    screen === "account"
+  ) {
+    updateAccountScreen();
+  }
+
+
+  // Saved
+
+  if (
+    screen === "saved"
+  ) {
+    renderSavedProducts();
+  }
+
+
+  // Messages
+
+  if (
+    screen === "messages"
+  ) {
+    loadConversations();
+  }
+
+
+  // My listings
+
+  if (
+    screen === "my-listings"
+  ) {
+    loadMyListings();
+  }
+
 
   closeMenu();
 }
 
-// ------------------------------------------------------------
+
+// ============================================================
+// HASH NAVIGATION
+// ============================================================
+
+function handleHashChange() {
+
+  let screen =
+    window.location.hash
+      .replace("#", "")
+      .trim();
+
+  if (!screen) {
+    screen = "home";
+  }
+
+  showScreen(screen);
+}
+
+
+// ============================================================
 // PRODUCTS
-// ------------------------------------------------------------
+// ============================================================
 
 async function loadProducts() {
-  const grid = $("products-grid");
+
+  const grid =
+    $("productGrid");
 
   if (!grid) {
     return;
   }
 
   grid.innerHTML = `
-    <div class="loading">
-      Loading products...
+    <div class="loading-card">
+      <div class="spinner"></div>
+      <p>Loading products...</p>
     </div>
   `;
+
 
   const {
     data,
     error
-  } = await supabaseClient
-    .from("products")
-    .select("*")
-    .order("created_at", {
-      ascending: false
-    });
+  } =
+    await supabaseClient
+      .from("products")
+      .select("*")
+      .order(
+        "created_at",
+        {
+          ascending: false
+        }
+      );
+
 
   if (error) {
+
     console.error(
       "Products error:",
       error
@@ -201,273 +442,701 @@ async function loadProducts() {
 
     grid.innerHTML = `
       <div class="empty-state">
-        <h3>Unable to load products</h3>
-        <p>${escapeHTML(error.message)}</p>
+
+        <div class="empty-icon">
+          ⚠️
+        </div>
+
+        <h2>
+          Unable to load products
+        </h2>
+
+        <p>
+          ${escapeHTML(
+            error.message
+          )}
+        </p>
+
+        <button
+          type="button"
+          class="primary-button"
+          onclick="loadProducts()"
+        >
+          Try again
+        </button>
+
       </div>
     `;
 
     return;
   }
 
-  allProducts = data || [];
 
-  renderProducts(allProducts);
+  allProducts =
+    data || [];
+
+  renderProducts(
+    getVisibleProducts()
+  );
 }
 
-function renderProducts(products) {
-  const grid = $("products-grid");
+
+// ============================================================
+// GET VISIBLE PRODUCTS
+// ============================================================
+
+function getVisibleProducts() {
+
+  let products =
+    [...allProducts];
+
+
+  // Category filter
+
+  if (
+    currentCategory &&
+    currentCategory !== "All"
+  ) {
+
+    products =
+      products.filter(
+        product =>
+          String(
+            product.category || ""
+          ).toLowerCase() ===
+          String(
+            currentCategory
+          ).toLowerCase()
+      );
+  }
+
+
+  // Search
+
+  const searchInput =
+    $("searchInput");
+
+  const search =
+    searchInput
+      ?.value
+      ?.toLowerCase()
+      ?.trim() || "";
+
+
+  if (search) {
+
+    products =
+      products.filter(
+        product => {
+
+          const name =
+            String(
+              product.name || ""
+            ).toLowerCase();
+
+          const description =
+            String(
+              product.description || ""
+            ).toLowerCase();
+
+          const category =
+            String(
+              product.category || ""
+            ).toLowerCase();
+
+          const campus =
+            String(
+              product.campus || ""
+            ).toLowerCase();
+
+          return (
+            name.includes(search) ||
+            description.includes(search) ||
+            category.includes(search) ||
+            campus.includes(search)
+          );
+        }
+      );
+  }
+
+
+  // Sort
+
+  if (
+    currentSort === "price-low"
+  ) {
+
+    products.sort(
+      (a, b) =>
+        Number(a.price || 0) -
+        Number(b.price || 0)
+    );
+
+  } else if (
+    currentSort === "price-high"
+  ) {
+
+    products.sort(
+      (a, b) =>
+        Number(b.price || 0) -
+        Number(a.price || 0)
+    );
+
+  } else {
+
+    products.sort(
+      (a, b) =>
+        new Date(
+          b.created_at || 0
+        ) -
+        new Date(
+          a.created_at || 0
+        )
+    );
+  }
+
+
+  return products;
+}
+
+
+// ============================================================
+// RENDER PRODUCTS
+// ============================================================
+
+function renderProducts(
+  products
+) {
+
+  const grid =
+    $("productGrid");
 
   if (!grid) {
     return;
   }
 
+
   if (!products.length) {
+
     grid.innerHTML = `
       <div class="empty-state">
-        <h3>No products found</h3>
-        <p>Be the first student to list something.</p>
+
+        <div class="empty-icon">
+          🔎
+        </div>
+
+        <h2>
+          No products found
+        </h2>
+
+        <p>
+          Try another search or category.
+        </p>
+
+        <button
+          type="button"
+          class="primary-button"
+          onclick="clearFilters()"
+        >
+          Show all products
+        </button>
+
       </div>
     `;
 
+    updateProductTitle();
+
     return;
   }
 
-  grid.innerHTML = products
-    .map(product => {
-      const images =
-        Array.isArray(product.image_urls)
-          ? product.image_urls
-          : [];
 
-      const image =
-        images[0] ||
-        "https://placehold.co/600x450?text=Cheal+Market";
+  grid.innerHTML =
+    products
+      .map(product => {
 
-      return `
-        <article class="product-card">
+        const images =
+          Array.isArray(
+            product.image_urls
+          )
+            ? product.image_urls
+            : [];
 
-          <button
-            class="save-button"
-            onclick="toggleSaved(${product.id})"
-            aria-label="Save product"
+
+        const image =
+          images[0] ||
+          "https://placehold.co/600x450?text=Cheal+Market";
+
+
+        return `
+          <article
+            class="product-card"
+            data-product-id="${product.id}"
           >
-            ${isSaved(product.id) ? "♥" : "♡"}
-          </button>
 
-          <div
-            class="product-image"
-            onclick="openProduct(${product.id})"
-          >
-            <img
-              src="${escapeHTML(image)}"
-              alt="${escapeHTML(product.name)}"
-            />
-          </div>
+            <button
+              type="button"
+              class="save-button"
+              data-action="save"
+              data-product-id="${product.id}"
+              aria-label="Save product"
+            >
+              ${
+                isSaved(product.id)
+                  ? "♥"
+                  : "♡"
+              }
+            </button>
 
-          <div
-            class="product-info"
-            onclick="openProduct(${product.id})"
-          >
-            <h3>
-              ${escapeHTML(product.name)}
-            </h3>
 
-            <strong>
-              ${formatPrice(product.price)}
-            </strong>
+            <div
+              class="product-image"
+              data-action="open-product"
+              data-product-id="${product.id}"
+            >
 
-            <p>
-              📍 ${escapeHTML(
-                product.campus || "Uganda"
-              )}
-            </p>
+              <img
+                src="${escapeHTML(image)}"
+                alt="${escapeHTML(
+                  product.name
+                )}"
+                loading="lazy"
+              >
 
-            <span>
-              ${escapeHTML(
-                product.category || "Other"
-              )}
-            </span>
-          </div>
+            </div>
 
-        </article>
-      `;
-    })
-    .join("");
+
+            <div
+              class="product-info"
+              data-action="open-product"
+              data-product-id="${product.id}"
+            >
+
+              <h3>
+                ${escapeHTML(
+                  product.name
+                )}
+              </h3>
+
+              <strong>
+                ${formatPrice(
+                  product.price
+                )}
+              </strong>
+
+              <p>
+                📍 ${escapeHTML(
+                  product.campus ||
+                  "Uganda"
+                )}
+              </p>
+
+              <span>
+                ${escapeHTML(
+                  product.category ||
+                  "Other"
+                )}
+              </span>
+
+            </div>
+
+          </article>
+        `;
+      })
+      .join("");
+
+
+  updateProductTitle();
 }
 
-// ------------------------------------------------------------
-// SEARCH
-// ------------------------------------------------------------
 
-function searchProducts() {
-  const input = $("search-input");
+// ============================================================
+// PRODUCT TITLE
+// ============================================================
 
-  if (!input) {
+function updateProductTitle() {
+
+  const title =
+    $("productSectionTitle");
+
+  if (!title) {
     return;
   }
+
 
   const search =
-    input.value
-      .toLowerCase()
-      .trim();
+    $("searchInput")
+      ?.value
+      ?.trim();
 
-  if (!search) {
-    renderProducts(allProducts);
-    return;
+
+  if (
+    currentCategory !== "All"
+  ) {
+
+    title.textContent =
+      currentCategory;
+
+  } else if (search) {
+
+    title.textContent =
+      `Results for "${search}"`;
+
+  } else {
+
+    title.textContent =
+      "Latest listings";
   }
-
-  const filtered =
-    allProducts.filter(product => {
-
-      const name =
-        String(product.name || "")
-          .toLowerCase();
-
-      const description =
-        String(product.description || "")
-          .toLowerCase();
-
-      const category =
-        String(product.category || "")
-          .toLowerCase();
-
-      const campus =
-        String(product.campus || "")
-          .toLowerCase();
-
-      return (
-        name.includes(search) ||
-        description.includes(search) ||
-        category.includes(search) ||
-        campus.includes(search)
-      );
-    });
-
-  renderProducts(filtered);
 }
 
-// ------------------------------------------------------------
-// CATEGORY
-// ------------------------------------------------------------
 
-function filterCategory(category) {
+// ============================================================
+// SEARCH
+// ============================================================
+
+function searchProducts() {
+
+  const clearButton =
+    $("clearSearch");
+
+  const searchInput =
+    $("searchInput");
+
+
   if (
-    !category ||
-    category === "All"
+    clearButton &&
+    searchInput
   ) {
-    renderProducts(allProducts);
-    navigate("home");
-    return;
+
+    clearButton.classList.toggle(
+      "hidden",
+      !searchInput.value
+    );
   }
 
-  const filtered =
-    allProducts.filter(product =>
-      String(product.category || "")
-        .toLowerCase() ===
-      String(category)
-        .toLowerCase()
+
+  currentCategory =
+    "All";
+
+  renderProducts(
+    getVisibleProducts()
+  );
+}
+
+
+function clearSearch() {
+
+  const input =
+    $("searchInput");
+
+  if (input) {
+    input.value = "";
+  }
+
+  const clear =
+    $("clearSearch");
+
+  if (clear) {
+    clear.classList.add(
+      "hidden"
     );
+  }
+
+  currentCategory =
+    "All";
+
+  renderProducts(
+    getVisibleProducts()
+  );
+}
+
+
+// ============================================================
+// CATEGORY FILTER
+// ============================================================
+
+function filterCategory(
+  category
+) {
+
+  currentCategory =
+    category || "All";
+
+
+  const searchInput =
+    $("searchInput");
+
+  if (searchInput) {
+    searchInput.value = "";
+  }
+
+
+  const clear =
+    $("clearSearch");
+
+  if (clear) {
+    clear.classList.add(
+      "hidden"
+    );
+  }
+
 
   navigate("home");
 
-  renderProducts(filtered);
+  renderProducts(
+    getVisibleProducts()
+  );
 }
 
-// ------------------------------------------------------------
+
+// ============================================================
+// CLEAR FILTERS
+// ============================================================
+
+function clearFilters() {
+
+  currentCategory =
+    "All";
+
+  const input =
+    $("searchInput");
+
+  if (input) {
+    input.value = "";
+  }
+
+  const clear =
+    $("clearSearch");
+
+  if (clear) {
+    clear.classList.add(
+      "hidden"
+    );
+  }
+
+  renderProducts(
+    getVisibleProducts()
+  );
+}
+
+
+// ============================================================
+// SORT
+// ============================================================
+
+function changeSort() {
+
+  if (
+    currentSort === "latest"
+  ) {
+
+    currentSort =
+      "price-low";
+
+  } else if (
+    currentSort === "price-low"
+  ) {
+
+    currentSort =
+      "price-high";
+
+  } else {
+
+    currentSort =
+      "latest";
+  }
+
+
+  const button =
+    $("sortButton");
+
+  if (button) {
+
+    if (
+      currentSort === "price-low"
+    ) {
+
+      button.textContent =
+        "Price ↑";
+
+    } else if (
+      currentSort === "price-high"
+    ) {
+
+      button.textContent =
+        "Price ↓";
+
+    } else {
+
+      button.textContent =
+        "Latest ▾";
+    }
+  }
+
+
+  renderProducts(
+    getVisibleProducts()
+  );
+}
+
+
+// ============================================================
 // SAVED SCREEN
-// ------------------------------------------------------------
+// ============================================================
 
 function renderSavedProducts() {
+
   const container =
-    $("saved-products");
+    $("savedGrid");
 
   if (!container) {
     return;
   }
 
+
   const saved =
     getSavedProducts();
 
+
   const products =
-    allProducts.filter(product =>
-      saved.includes(
-        Number(product.id)
-      )
+    allProducts.filter(
+      product =>
+        saved.includes(
+          Number(product.id)
+        )
     );
 
+
   if (!products.length) {
+
     container.innerHTML = `
       <div class="empty-state">
-        <h3>No saved products</h3>
+
+        <div class="empty-icon">
+          ♡
+        </div>
+
+        <h2>
+          No saved items
+        </h2>
+
         <p>
-          Products you save will appear here.
+          Tap the heart on a product to save it here.
         </p>
+
+        <button
+          type="button"
+          class="primary-button"
+          data-route="home"
+        >
+          Browse products
+        </button>
+
       </div>
     `;
 
     return;
   }
 
+
   container.innerHTML =
-    products.map(product => {
+    products
+      .map(product => {
 
-      const images =
-        Array.isArray(product.image_urls)
-          ? product.image_urls
-          : [];
+        const images =
+          Array.isArray(
+            product.image_urls
+          )
+            ? product.image_urls
+            : [];
 
-      const image =
-        images[0] ||
-        "https://placehold.co/600x450?text=Cheal+Market";
 
-      return `
-        <article class="product-card">
+        const image =
+          images[0] ||
+          "https://placehold.co/600x450?text=Cheal+Market";
 
-          <button
-            class="save-button"
-            onclick="toggleSaved(${product.id})"
+
+        return `
+          <article
+            class="product-card"
           >
-            ♥
-          </button>
 
-          <div
-            class="product-image"
-            onclick="openProduct(${product.id})"
-          >
-            <img
-              src="${escapeHTML(image)}"
-              alt="${escapeHTML(product.name)}"
-            />
-          </div>
+            <button
+              type="button"
+              class="save-button"
+              data-action="save"
+              data-product-id="${product.id}"
+            >
+              ♥
+            </button>
 
-          <div class="product-info">
 
-            <h3>
-              ${escapeHTML(product.name)}
-            </h3>
+            <div
+              class="product-image"
+              data-action="open-product"
+              data-product-id="${product.id}"
+            >
 
-            <strong>
-              ${formatPrice(product.price)}
-            </strong>
+              <img
+                src="${escapeHTML(image)}"
+                alt="${escapeHTML(
+                  product.name
+                )}"
+                loading="lazy"
+              >
 
-            <p>
-              📍 ${escapeHTML(
-                product.campus || "Uganda"
-              )}
-            </p>
+            </div>
 
-          </div>
 
-        </article>
-      `;
-    }).join("");
+            <div
+              class="product-info"
+              data-action="open-product"
+              data-product-id="${product.id}"
+            >
+
+              <h3>
+                ${escapeHTML(
+                  product.name
+                )}
+              </h3>
+
+              <strong>
+                ${formatPrice(
+                  product.price
+                )}
+              </strong>
+
+              <p>
+                📍 ${escapeHTML(
+                  product.campus ||
+                  "Uganda"
+                )}
+              </p>
+
+              <span>
+                ${escapeHTML(
+                  product.category ||
+                  "Other"
+                )}
+              </span>
+
+            </div>
+
+          </article>
+        `;
+      })
+      .join("");
 }
 
-// ------------------------------------------------------------
-// PRODUCT DETAILS
-// ------------------------------------------------------------
 
-function openProduct(productId) {
+// ============================================================
+// PRODUCT DETAILS
+// ============================================================
+
+function openProduct(
+  productId,
+  shouldNavigate = true
+) {
+
   const product =
     allProducts.find(
       item =>
@@ -475,37 +1144,96 @@ function openProduct(productId) {
         Number(productId)
     );
 
+
   if (!product) {
+    showMessage(
+      "Product could not be found."
+    );
     return;
   }
 
-  currentProduct = product;
+
+  currentProduct =
+    product;
+
 
   const container =
-    $("product-details");
+    $("productDetails");
 
   if (!container) {
     return;
   }
 
+
   const images =
-    Array.isArray(product.image_urls)
+    Array.isArray(
+      product.image_urls
+    )
       ? product.image_urls
       : [];
+
 
   const mainImage =
     images[0] ||
     "https://placehold.co/800x600?text=Cheal+Market";
 
+
+  const gallery =
+    images.length
+      ? images
+      : [mainImage];
+
+
   container.innerHTML = `
+
+    <div class="page-header">
+
+      <button
+        type="button"
+        class="back-button"
+        data-route="home"
+      >
+        ← Back to products
+      </button>
+
+    </div>
+
+
     <div class="details-gallery">
 
       <img
         src="${escapeHTML(mainImage)}"
-        alt="${escapeHTML(product.name)}"
-      />
+        alt="${escapeHTML(
+          product.name
+        )}"
+      >
 
     </div>
+
+
+    ${
+      gallery.length > 1
+        ? `
+          <div class="image-preview-grid">
+
+            ${gallery
+              .map(
+                image => `
+                  <img
+                    src="${escapeHTML(image)}"
+                    alt="${escapeHTML(
+                      product.name
+                    )}"
+                  >
+                `
+              )
+              .join("")}
+
+          </div>
+        `
+        : ""
+    }
+
 
     <div class="details-content">
 
@@ -515,37 +1243,48 @@ function openProduct(productId) {
 
           <span>
             ${escapeHTML(
-              product.category || "Other"
+              product.category ||
+              "Other"
             )}
           </span>
 
           <h1>
-            ${escapeHTML(product.name)}
+            ${escapeHTML(
+              product.name
+            )}
           </h1>
 
           <h2>
-            ${formatPrice(product.price)}
+            ${formatPrice(
+              product.price
+            )}
           </h2>
 
         </div>
 
+
         <button
+          type="button"
           class="save-button large"
-          onclick="
-            toggleSaved(${product.id});
-            openProduct(${product.id});
-          "
+          data-action="save"
+          data-product-id="${product.id}"
         >
-          ${isSaved(product.id) ? "♥" : "♡"}
+          ${
+            isSaved(product.id)
+              ? "♥"
+              : "♡"
+          }
         </button>
 
       </div>
+
 
       <div class="details-meta">
 
         <p>
           📍 ${escapeHTML(
-            product.campus || "Uganda"
+            product.campus ||
+            "Uganda"
           )}
         </p>
 
@@ -554,6 +1293,7 @@ function openProduct(productId) {
         </p>
 
       </div>
+
 
       <div class="details-description">
 
@@ -570,133 +1310,232 @@ function openProduct(productId) {
 
       </div>
 
+
       ${
         currentUser &&
-        product.seller_id === currentUser.id
+        product.seller_id ===
+          currentUser.id
+
           ? `
+
             <button
+              type="button"
               class="secondary-button"
-              onclick="navigate('listings')"
+              data-route="my-listings"
             >
-              My listing
+              📦 My listing
             </button>
+
           `
+
           : `
+
             <button
-              class="primary-button"
-              onclick="
-                startChatWithSeller(${product.id})
-              "
+              type="button"
+              class="primary-button full-button"
+              data-action="chat-seller"
+              data-product-id="${product.id}"
             >
               💬 Chat with seller
             </button>
+
           `
       }
 
     </div>
   `;
 
-  navigate("product");
+
+  if (shouldNavigate) {
+    navigate("product");
+  }
 }
 
-// ------------------------------------------------------------
-// IMAGE SELECTION
-// ------------------------------------------------------------
 
-function handleImageSelection(event) {
+// ============================================================
+// IMAGE SELECTION
+// ============================================================
+
+function handleImageSelection(
+  event
+) {
+
   const files =
     Array.from(
       event.target.files || []
     );
 
+
   if (!files.length) {
     return;
   }
 
+
   if (files.length > 5) {
+
     showMessage(
       "You can upload a maximum of 5 images."
     );
 
-    event.target.value = "";
+    event.target.value =
+      "";
 
     return;
   }
 
-  for (const file of files) {
 
-    if (!file.type.startsWith("image/")) {
+  for (
+    const file of files
+  ) {
+
+    if (
+      !file.type.startsWith(
+        "image/"
+      )
+    ) {
+
       showMessage(
         "Only image files are allowed."
       );
 
-      event.target.value = "";
+      event.target.value =
+        "";
 
       return;
     }
+
 
     if (
       file.size >
       10 * 1024 * 1024
     ) {
+
       showMessage(
         "Each image must be 10 MB or smaller."
       );
 
-      event.target.value = "";
+      event.target.value =
+        "";
 
       return;
     }
   }
 
-  selectedImages = files;
+
+  selectedImages =
+    files;
+
 
   renderImagePreviews();
 }
 
+
+// ============================================================
+// IMAGE PREVIEWS
+// ============================================================
+
 function renderImagePreviews() {
+
   const container =
-    $("image-preview");
+    $("imagePreview");
 
   if (!container) {
     return;
   }
 
-  container.innerHTML = "";
 
-  selectedImages.forEach(file => {
+  container.innerHTML =
+    "";
 
-    const reader =
-      new FileReader();
 
-    reader.onload = event => {
+  selectedImages.forEach(
+    (file, index) => {
 
-      const wrapper =
-        document.createElement("div");
+      const reader =
+        new FileReader();
 
-      wrapper.className =
-        "image-preview-item";
 
-      wrapper.innerHTML = `
-        <img
-          src="${event.target.result}"
-          alt="Product image preview"
-        />
-      `;
+      reader.onload =
+        event => {
 
-      container.appendChild(wrapper);
-    };
+          const wrapper =
+            document.createElement(
+              "div"
+            );
 
-    reader.readAsDataURL(file);
-  });
+          wrapper.className =
+            "image-preview-item";
+
+
+          wrapper.innerHTML = `
+
+            <img
+              src="${event.target.result}"
+              alt="Product image ${index + 1}"
+            >
+
+            <button
+              type="button"
+              class="image-remove-button"
+              data-action="remove-image"
+              data-image-index="${index}"
+              aria-label="Remove image"
+            >
+              ×
+            </button>
+
+          `;
+
+
+          container.appendChild(
+            wrapper
+          );
+        };
+
+
+      reader.readAsDataURL(file);
+    }
+  );
 }
 
-// ------------------------------------------------------------
-// UPLOAD IMAGES
-// ------------------------------------------------------------
 
-async function uploadProductImages(userId) {
+// ============================================================
+// REMOVE SELECTED IMAGE
+// ============================================================
+
+function removeSelectedImage(
+  index
+) {
+
+  selectedImages =
+    selectedImages.filter(
+      (_, i) =>
+        i !== Number(index)
+    );
+
+
+  const input =
+    $("productImages");
+
+  if (input) {
+    input.value = "";
+  }
+
+
+  renderImagePreviews();
+}
+
+
+// ============================================================
+// UPLOAD PRODUCT IMAGES
+// ============================================================
+
+async function uploadProductImages(
+  userId
+) {
+
   const urls = [];
+
 
   for (
     const file of selectedImages
@@ -709,8 +1548,10 @@ async function uploadProductImages(userId) {
         ?.toLowerCase() ||
       "jpg";
 
+
     const fileName =
       `${userId}/${crypto.randomUUID()}.${extension}`;
+
 
     const {
       error
@@ -721,20 +1562,20 @@ async function uploadProductImages(userId) {
           fileName,
           file,
           {
-            cacheControl: "3600",
-            upsert: false,
-            contentType: file.type
+            cacheControl:
+              "3600",
+            upsert:
+              false,
+            contentType:
+              file.type
           }
         );
 
-    if (error) {
-      console.error(
-        "Image upload error:",
-        error
-      );
 
+    if (error) {
       throw error;
     }
+
 
     const {
       data
@@ -745,48 +1586,63 @@ async function uploadProductImages(userId) {
           fileName
         );
 
+
     urls.push(
       data.publicUrl
     );
   }
 
+
   return urls;
 }
 
-// ------------------------------------------------------------
-// SELL PRODUCT
-// ------------------------------------------------------------
 
-async function submitProduct(event) {
+// ============================================================
+// SELL PRODUCT
+// ============================================================
+
+async function submitProduct(
+  event
+) {
+
   event.preventDefault();
 
+
   if (!currentUser) {
+
     openAuth("login");
+
     return;
   }
 
+
   const name =
-    $("product-name")
+    $("productName")
       ?.value
-      .trim();
+      ?.trim();
+
 
   const price =
-    $("product-price")
+    $("productPrice")
       ?.value;
+
 
   const category =
-    $("product-category")
+    $("productCategory")
       ?.value;
 
+
   const campus =
-    $("product-campus")
+    $("productCampus")
       ?.value
-      .trim();
+      ?.trim();
+
 
   const description =
-    $("product-description")
+    $("productDescription")
       ?.value
-      .trim();
+      ?.trim();
+
 
   if (
     !name ||
@@ -794,6 +1650,7 @@ async function submitProduct(event) {
     !category ||
     !campus
   ) {
+
     showMessage(
       "Please complete all required fields."
     );
@@ -801,27 +1658,36 @@ async function submitProduct(event) {
     return;
   }
 
+
   const button =
     event.submitter;
 
+
   if (button) {
-    button.disabled = true;
+
+    button.disabled =
+      true;
+
     button.textContent =
       "Publishing...";
   }
+
 
   try {
 
     let imageUrls = [];
 
+
     if (
       selectedImages.length
     ) {
+
       imageUrls =
         await uploadProductImages(
           currentUser.id
         );
     }
+
 
     const {
       error
@@ -829,34 +1695,52 @@ async function submitProduct(event) {
       await supabaseClient
         .from("products")
         .insert({
+
           name,
-          price: Number(price),
+
+          price:
+            Number(price),
+
           category,
+
           campus,
+
           description,
+
           seller_id:
             currentUser.id,
+
           image_urls:
             imageUrls
+
         });
+
 
     if (error) {
       throw error;
     }
 
+
     showMessage(
       "Your product has been listed successfully!"
     );
 
+
     event.target.reset();
 
-    selectedImages = [];
+
+    selectedImages =
+      [];
+
 
     renderImagePreviews();
 
+
     await loadProducts();
 
+
     navigate("home");
+
 
   } catch (error) {
 
@@ -865,128 +1749,279 @@ async function submitProduct(event) {
       error
     );
 
+
     showMessage(
       `Unable to publish product: ${error.message}`
     );
 
+
   } finally {
 
     if (button) {
-      button.disabled = false;
+
+      button.disabled =
+        false;
+
       button.textContent =
         "Publish listing";
     }
   }
 }
 
-// ------------------------------------------------------------
+
+// ============================================================
 // AUTH MODAL
-// ------------------------------------------------------------
+// ============================================================
 
-function openAuth(mode = "login") {
-  const modal =
-    $("auth-modal");
+let authMode =
+  "login";
 
-  if (!modal) {
+
+function openAuth(
+  mode = "login"
+) {
+
+  authMode =
+    mode;
+
+
+  const overlay =
+    $("authOverlay");
+
+  if (!overlay) {
     return;
   }
 
-  modal.classList.add("active");
 
-  const loginForm =
-    $("login-form");
+  overlay.classList.remove(
+    "hidden"
+  );
 
-  const signupForm =
-    $("signup-form");
 
-  if (mode === "signup") {
+  const signupFields =
+    $("signupFields");
 
-    if (loginForm) {
-      loginForm.style.display =
-        "none";
+  const title =
+    $("authTitle");
+
+  const subtitle =
+    $("authSubtitle");
+
+  const submitText =
+    $("authSubmitText");
+
+  const switchButton =
+    $("authSwitch");
+
+  const message =
+    $("authMessage");
+
+
+  if (message) {
+    message.textContent =
+      "";
+  }
+
+
+  if (
+    mode === "signup"
+  ) {
+
+    if (signupFields) {
+      signupFields.classList.remove(
+        "hidden"
+      );
     }
 
-    if (signupForm) {
-      signupForm.style.display =
-        "block";
+
+    if (title) {
+      title.textContent =
+        "Create your account";
     }
+
+
+    if (subtitle) {
+      subtitle.textContent =
+        "Join Cheal Market and start buying or selling.";
+    }
+
+
+    if (submitText) {
+      submitText.textContent =
+        "Create account";
+    }
+
+
+    if (switchButton) {
+      switchButton.innerHTML =
+        "Already have an account? <strong>Sign in</strong>";
+    }
+
 
   } else {
 
-    if (loginForm) {
-      loginForm.style.display =
-        "block";
+    if (signupFields) {
+      signupFields.classList.add(
+        "hidden"
+      );
     }
 
-    if (signupForm) {
-      signupForm.style.display =
-        "none";
+
+    if (title) {
+      title.textContent =
+        "Welcome to Cheal Market";
+    }
+
+
+    if (subtitle) {
+      subtitle.textContent =
+        "Sign in to buy, sell and chat.";
+    }
+
+
+    if (submitText) {
+      submitText.textContent =
+        "Sign in";
+    }
+
+
+    if (switchButton) {
+      switchButton.innerHTML =
+        "Don't have an account? <strong>Sign up</strong>";
     }
   }
 }
 
-function closeAuth() {
-  const modal =
-    $("auth-modal");
 
-  if (modal) {
-    modal.classList.remove(
-      "active"
+function closeAuth() {
+
+  const overlay =
+    $("authOverlay");
+
+  if (overlay) {
+
+    overlay.classList.add(
+      "hidden"
     );
   }
 }
 
-function switchAuth(mode) {
-  openAuth(mode);
+
+function switchAuth() {
+
+  if (
+    authMode === "login"
+  ) {
+
+    openAuth("signup");
+
+  } else {
+
+    openAuth("login");
+  }
 }
 
-// ------------------------------------------------------------
-// SIGN UP
-// ------------------------------------------------------------
 
-async function signUp(event) {
+// ============================================================
+// AUTH FORM
+// ============================================================
+
+async function handleAuthSubmit(
+  event
+) {
+
   event.preventDefault();
 
+
+  if (
+    authMode === "signup"
+  ) {
+
+    await signUp(
+      event
+    );
+
+  } else {
+
+    await signIn(
+      event
+    );
+  }
+}
+
+
+// ============================================================
+// SIGN UP
+// ============================================================
+
+async function signUp(
+  event
+) {
+
   const fullName =
-    $("signup-name")
+    $("authName")
       ?.value
-      .trim();
+      ?.trim();
+
 
   const campus =
-    $("signup-campus")
+    $("authCampus")
       ?.value
-      .trim();
+      ?.trim();
+
 
   const email =
-    $("signup-email")
+    $("authEmail")
       ?.value
-      .trim();
+      ?.trim();
+
 
   const password =
-    $("signup-password")
+    $("authPassword")
       ?.value;
+
+
+  const message =
+    $("authMessage");
+
 
   if (
     !fullName ||
     !email ||
     !password
   ) {
-    showMessage(
-      "Please complete all required fields."
-    );
+
+    if (message) {
+      message.textContent =
+        "Please complete all required fields.";
+    }
 
     return;
   }
+
 
   if (
     password.length < 6
   ) {
-    showMessage(
-      "Password must contain at least 6 characters."
-    );
+
+    if (message) {
+      message.textContent =
+        "Password must contain at least 6 characters.";
+    }
 
     return;
   }
+
+
+  const submit =
+    $("authSubmitText");
+
+
+  if (submit) {
+    submit.textContent =
+      "Creating account...";
+  }
+
 
   try {
 
@@ -996,29 +2031,36 @@ async function signUp(event) {
     } =
       await supabaseClient.auth
         .signUp({
+
           email,
+
           password,
+
           options: {
+
             data: {
+
               full_name:
                 fullName,
+
               campus:
                 campus || null
             }
           }
         });
 
+
     if (error) {
       throw error;
     }
 
+
     if (!data.user) {
-      showMessage(
+      throw new Error(
         "Account could not be created."
       );
-
-      return;
     }
+
 
     if (data.session) {
 
@@ -1027,20 +2069,25 @@ async function signUp(event) {
 
       await loadCurrentProfile();
 
+      closeAuth();
+
+      updateAccountScreen();
+
+      navigate("account");
+
       showMessage(
         "Account created successfully!"
       );
 
-      closeAuth();
-
-      navigate("account");
 
     } else {
 
-      showMessage(
-        "Account created. Please confirm your email before signing in."
-      );
+      if (message) {
+        message.textContent =
+          "Account created. If email confirmation is enabled, check your email before signing in.";
+      }
     }
+
 
   } catch (error) {
 
@@ -1049,35 +2096,72 @@ async function signUp(event) {
       error
     );
 
-    showMessage(
-      `Sign up failed: ${error.message}`
-    );
+
+    if (message) {
+      message.textContent =
+        error.message;
+    }
+
+
+  } finally {
+
+    if (submit) {
+
+      submit.textContent =
+        authMode === "signup"
+          ? "Create account"
+          : "Sign in";
+    }
   }
 }
 
-// ------------------------------------------------------------
-// SIGN IN
-// ------------------------------------------------------------
 
-async function signIn(event) {
-  event.preventDefault();
+// ============================================================
+// SIGN IN
+// ============================================================
+
+async function signIn(
+  event
+) {
 
   const email =
-    $("login-email")
+    $("authEmail")
       ?.value
-      .trim();
+      ?.trim();
+
 
   const password =
-    $("login-password")
+    $("authPassword")
       ?.value;
 
-  if (!email || !password) {
-    showMessage(
-      "Enter your email and password."
-    );
+
+  const message =
+    $("authMessage");
+
+
+  if (
+    !email ||
+    !password
+  ) {
+
+    if (message) {
+      message.textContent =
+        "Enter your email and password.";
+    }
 
     return;
   }
+
+
+  const submit =
+    $("authSubmitText");
+
+
+  if (submit) {
+    submit.textContent =
+      "Signing in...";
+  }
+
 
   try {
 
@@ -1087,26 +2171,38 @@ async function signIn(event) {
     } =
       await supabaseClient.auth
         .signInWithPassword({
+
           email,
+
           password
         });
+
 
     if (error) {
       throw error;
     }
 
+
     currentUser =
       data.user;
 
+
     await loadCurrentProfile();
+
+
+    closeAuth();
+
+
+    updateAccountScreen();
+
+
+    navigate("account");
+
 
     showMessage(
       "Welcome back!"
     );
 
-    closeAuth();
-
-    navigate("account");
 
   } catch (error) {
 
@@ -1115,45 +2211,89 @@ async function signIn(event) {
       error
     );
 
-    showMessage(
-      `Login failed: ${error.message}`
-    );
+
+    if (message) {
+      message.textContent =
+        error.message;
+    }
+
+
+  } finally {
+
+    if (submit) {
+      submit.textContent =
+        "Sign in";
+    }
   }
 }
 
-// ------------------------------------------------------------
-// CURRENT USER
-// ------------------------------------------------------------
+
+// ============================================================
+// LOAD CURRENT USER
+// ============================================================
 
 async function loadCurrentUser() {
 
-  const {
-    data: {
-      user
+  try {
+
+    const {
+      data,
+      error
+    } =
+      await supabaseClient.auth
+        .getUser();
+
+
+    if (error) {
+
+      currentUser =
+        null;
+
+      currentProfile =
+        null;
+
+      return;
     }
-  } =
-    await supabaseClient.auth
-      .getUser();
 
-  currentUser =
-    user || null;
 
-  if (currentUser) {
-    await loadCurrentProfile();
+    currentUser =
+      data.user || null;
+
+
+    if (currentUser) {
+      await loadCurrentProfile();
+    } else {
+      currentProfile =
+        null;
+    }
+
+
+  } catch (error) {
+
+    console.error(
+      "Current user error:",
+      error
+    );
+
+    currentUser =
+      null;
+
+    currentProfile =
+      null;
   }
-
-  updateAuthUI();
 }
 
-// ------------------------------------------------------------
-// PROFILE
-// ------------------------------------------------------------
+
+// ============================================================
+// LOAD PROFILE
+// ============================================================
 
 async function loadCurrentProfile() {
 
   if (!currentUser) {
     return;
   }
+
 
   const {
     data,
@@ -1168,6 +2308,7 @@ async function loadCurrentProfile() {
       )
       .maybeSingle();
 
+
   if (error) {
 
     console.error(
@@ -1178,170 +2319,270 @@ async function loadCurrentProfile() {
     return;
   }
 
+
   currentProfile =
     data;
 }
 
-// ------------------------------------------------------------
-// AUTH UI
-// ------------------------------------------------------------
 
-function updateAuthUI() {
+// ============================================================
+// ACCOUNT SCREEN
+// ============================================================
 
-  const accountName =
-    $("account-name");
+function updateAccountScreen() {
 
-  const accountEmail =
-    $("account-email");
+  const loggedOut =
+    $("accountLoggedOut");
 
-  if (currentUser) {
+  const loggedIn =
+    $("accountLoggedIn");
 
-    if (accountName) {
-      accountName.textContent =
-        currentProfile?.full_name ||
-        currentUser.email ||
-        "My Account";
-    }
+  const name =
+    $("profileName");
 
-    if (accountEmail) {
-      accountEmail.textContent =
-        currentUser.email ||
-        "";
-    }
+  const email =
+    $("profileEmail");
 
-  } else {
+  const avatar =
+    $("profileAvatar");
 
-    if (accountName) {
-      accountName.textContent =
-        "Sign in";
-    }
-
-    if (accountEmail) {
-      accountEmail.textContent =
-        "";
-    }
-  }
-}
-
-// ------------------------------------------------------------
-// ACCOUNT
-// ------------------------------------------------------------
-
-async function loadAccount() {
-
-  await loadCurrentUser();
-
-  updateAuthUI();
-
-  const signedOut =
-    $("signed-out-account");
-
-  const signedIn =
-    $("signed-in-account");
 
   if (!currentUser) {
 
-    if (signedOut) {
-      signedOut.style.display =
-        "block";
+    if (loggedOut) {
+      loggedOut.classList.remove(
+        "hidden"
+      );
     }
 
-    if (signedIn) {
-      signedIn.style.display =
-        "none";
+    if (loggedIn) {
+      loggedIn.classList.add(
+        "hidden"
+      );
     }
 
-  } else {
-
-    if (signedOut) {
-      signedOut.style.display =
-        "none";
+    if (name) {
+      name.textContent =
+        "Welcome";
     }
 
-    if (signedIn) {
-      signedIn.style.display =
-        "block";
+    if (email) {
+      email.textContent =
+        "Sign in to manage your account.";
     }
-  }
-}
 
-// ------------------------------------------------------------
-// LOGOUT
-// ------------------------------------------------------------
-
-async function logout() {
-
-  const {
-    error
-  } =
-    await supabaseClient.auth
-      .signOut();
-
-  if (error) {
-
-    showMessage(
-      `Logout failed: ${error.message}`
-    );
+    if (avatar) {
+      avatar.textContent =
+        "M";
+    }
 
     return;
   }
 
-  currentUser = null;
-  currentProfile = null;
 
-  updateAuthUI();
+  if (loggedOut) {
+    loggedOut.classList.add(
+      "hidden"
+    );
+  }
 
-  navigate("home");
+  if (loggedIn) {
+    loggedIn.classList.remove(
+      "hidden"
+    );
+  }
+
+
+  const fullName =
+    currentProfile?.full_name ||
+    currentUser.email ||
+    "Cheal Market User";
+
+
+  if (name) {
+    name.textContent =
+      fullName;
+  }
+
+
+  if (email) {
+    email.textContent =
+      currentUser.email ||
+      "";
+  }
+
+
+  if (avatar) {
+
+    avatar.textContent =
+      fullName
+        .charAt(0)
+        .toUpperCase();
+  }
+}
+
+
+// ============================================================
+// ACCOUNT LOGIN BUTTON
+// ============================================================
+
+function handleAccountLogin() {
+
+  openAuth("login");
+}
+
+
+// ============================================================
+// SETTINGS
+// ============================================================
+
+function openSettings() {
+
+  if (!currentUser) {
+
+    openAuth("login");
+
+    return;
+  }
+
 
   showMessage(
-    "You have been signed out."
+    "Account settings will be added here."
   );
 }
 
-// ------------------------------------------------------------
+
+// ============================================================
+// LOGOUT
+// ============================================================
+
+async function logout() {
+
+  try {
+
+    const {
+      error
+    } =
+      await supabaseClient.auth
+        .signOut();
+
+
+    if (error) {
+      throw error;
+    }
+
+
+    currentUser =
+      null;
+
+    currentProfile =
+      null;
+
+    currentConversation =
+      null;
+
+
+    if (messageChannel) {
+
+      await supabaseClient
+        .removeChannel(
+          messageChannel
+        );
+
+      messageChannel =
+        null;
+    }
+
+
+    updateAccountScreen();
+
+
+    navigate("home");
+
+
+    showMessage(
+      "You have been signed out."
+    );
+
+
+  } catch (error) {
+
+    console.error(
+      "Logout error:",
+      error
+    );
+
+
+    showMessage(
+      `Logout failed: ${error.message}`
+    );
+  }
+}
+
+
+// ============================================================
 // MY LISTINGS
-// ------------------------------------------------------------
+// ============================================================
 
 async function loadMyListings() {
 
   const container =
-    $("my-listings");
+    $("myListingsGrid");
+
 
   if (!container) {
     return;
   }
 
+
   if (!currentUser) {
 
     container.innerHTML = `
+
       <div class="empty-state">
 
-        <h3>
-          Please sign in
-        </h3>
+        <div class="empty-icon">
+          👤
+        </div>
+
+        <h2>
+          Sign in required
+        </h2>
 
         <p>
-          You need an account to view your listings.
+          Sign in to see your listings.
         </p>
 
         <button
+          type="button"
           class="primary-button"
-          onclick="openAuth('login')"
+          data-action="login"
         >
           Sign in
         </button>
 
       </div>
+
     `;
 
     return;
   }
 
+
   container.innerHTML = `
-    <div class="loading">
-      Loading your listings...
+
+    <div class="loading-card">
+
+      <div class="spinner"></div>
+
+      <p>
+        Loading your listings...
+      </p>
+
     </div>
+
   `;
+
 
   const {
     data,
@@ -1361,112 +2602,162 @@ async function loadMyListings() {
         }
       );
 
+
   if (error) {
 
     container.innerHTML = `
+
       <div class="empty-state">
 
-        <h3>
+        <h2>
           Unable to load listings
-        </h3>
+        </h2>
 
         <p>
-          ${escapeHTML(error.message)}
+          ${escapeHTML(
+            error.message
+          )}
         </p>
 
       </div>
+
     `;
 
     return;
   }
 
-  if (!data.length) {
+
+  if (!data?.length) {
 
     container.innerHTML = `
+
       <div class="empty-state">
 
-        <h3>
+        <div class="empty-icon">
+          📦
+        </div>
+
+        <h2>
           No listings yet
-        </h3>
+        </h2>
 
         <p>
           Products you sell will appear here.
         </p>
 
         <button
+          type="button"
           class="primary-button"
-          onclick="navigate('sell')"
+          data-route="sell"
         >
-          Sell something
+          Sell an item
         </button>
 
       </div>
+
     `;
 
     return;
   }
 
+
   container.innerHTML =
-    data.map(product => {
+    data
+      .map(product => {
 
-      const images =
-        Array.isArray(product.image_urls)
-          ? product.image_urls
-          : [];
+        const images =
+          Array.isArray(
+            product.image_urls
+          )
+            ? product.image_urls
+            : [];
 
-      const image =
-        images[0] ||
-        "https://placehold.co/600x450?text=Cheal+Market";
 
-      return `
-        <article class="product-card">
+        const image =
+          images[0] ||
+          "https://placehold.co/600x450?text=Cheal+Market";
 
-          <div class="product-image">
 
-            <img
-              src="${escapeHTML(image)}"
-              alt="${escapeHTML(product.name)}"
-            />
+        return `
 
-          </div>
+          <article
+            class="product-card"
+          >
 
-          <div class="product-info">
+            <div
+              class="product-image"
+              data-action="open-product"
+              data-product-id="${product.id}"
+            >
 
-            <h3>
-              ${escapeHTML(product.name)}
-            </h3>
+              <img
+                src="${escapeHTML(image)}"
+                alt="${escapeHTML(
+                  product.name
+                )}"
+                loading="lazy"
+              >
 
-            <strong>
-              ${formatPrice(product.price)}
-            </strong>
+            </div>
 
-            <p>
-              ${escapeHTML(
-                product.category ||
-                "Other"
-              )}
-            </p>
 
-          </div>
+            <div
+              class="product-info"
+              data-action="open-product"
+              data-product-id="${product.id}"
+            >
 
-        </article>
-      `;
+              <h3>
+                ${escapeHTML(
+                  product.name
+                )}
+              </h3>
 
-    }).join("");
+              <strong>
+                ${formatPrice(
+                  product.price
+                )}
+              </strong>
+
+              <p>
+                📍 ${escapeHTML(
+                  product.campus ||
+                  "Uganda"
+                )}
+              </p>
+
+              <span>
+                ${escapeHTML(
+                  product.category ||
+                  "Other"
+                )}
+              </span>
+
+            </div>
+
+          </article>
+
+        `;
+      })
+      .join("");
 }
 
-// ------------------------------------------------------------
-// START CHAT
-// ------------------------------------------------------------
+
+// ============================================================
+// START CHAT WITH SELLER
+// ============================================================
 
 async function startChatWithSeller(
   productId
 ) {
 
   if (!currentUser) {
+
     openAuth("login");
+
     return;
   }
+
 
   const product =
     allProducts.find(
@@ -1475,9 +2766,15 @@ async function startChatWithSeller(
         Number(productId)
     );
 
+
   if (!product) {
+    showMessage(
+      "Product not found."
+    );
+
     return;
   }
+
 
   if (
     product.seller_id ===
@@ -1491,6 +2788,7 @@ async function startChatWithSeller(
     return;
   }
 
+
   try {
 
     const {
@@ -1501,6 +2799,7 @@ async function startChatWithSeller(
         .from("conversations")
         .upsert(
           {
+
             buyer_id:
               currentUser.id,
 
@@ -1509,25 +2808,35 @@ async function startChatWithSeller(
 
             product_id:
               product.id
+
           },
           {
+
             onConflict:
-              "buyer_id,seller_id,product_id"
+              "buyer_id,seller_id,product_id",
+
+            ignoreDuplicates:
+              false
+
           }
         )
         .select()
         .single();
 
+
     if (error) {
       throw error;
     }
 
+
     currentConversation =
       data;
+
 
     await openConversation(
       data.id
     );
+
 
   } catch (error) {
 
@@ -1536,46 +2845,62 @@ async function startChatWithSeller(
       error
     );
 
+
     showMessage(
       `Unable to start chat: ${error.message}`
     );
   }
 }
 
-// ------------------------------------------------------------
-// CONVERSATIONS
-// ------------------------------------------------------------
+
+// ============================================================
+// LOAD CONVERSATIONS
+// ============================================================
 
 async function loadConversations() {
 
   const container =
-    $("conversations-list");
+    $("conversationList");
+
 
   if (!container) {
     return;
   }
 
+
   if (!currentUser) {
 
     container.innerHTML = `
+
       <div class="empty-state">
 
-        <h3>
+        <div class="empty-icon">
+          👤
+        </div>
+
+        <h2>
           Sign in to view messages
-        </h3>
+        </h2>
+
+        <p>
+          Your private conversations will appear here.
+        </p>
 
         <button
+          type="button"
           class="primary-button"
-          onclick="openAuth('login')"
+          data-action="login"
         >
           Sign in
         </button>
 
       </div>
+
     `;
 
     return;
   }
+
 
   const {
     data,
@@ -1594,6 +2919,7 @@ async function loadConversations() {
         }
       );
 
+
   if (error) {
 
     console.error(
@@ -1601,43 +2927,69 @@ async function loadConversations() {
       error
     );
 
+
     container.innerHTML = `
+
       <div class="empty-state">
 
-        <h3>
+        <div class="empty-icon">
+          ⚠️
+        </div>
+
+        <h2>
           Unable to load messages
-        </h3>
+        </h2>
 
         <p>
-          ${escapeHTML(error.message)}
+          ${escapeHTML(
+            error.message
+          )}
         </p>
 
       </div>
+
     `;
 
     return;
   }
 
-  if (!data.length) {
+
+  if (!data?.length) {
 
     container.innerHTML = `
+
       <div class="empty-state">
 
-        <h3>
-          No messages yet
-        </h3>
+        <div class="empty-icon">
+          💬
+        </div>
+
+        <h2>
+          No conversations yet
+        </h2>
 
         <p>
-          Your private conversations will appear here.
+          When you message a seller, your conversation will appear here.
         </p>
 
+        <button
+          type="button"
+          class="primary-button"
+          data-route="home"
+        >
+          Find products
+        </button>
+
       </div>
+
     `;
 
     return;
   }
+
 
   const rows = [];
+
 
   for (
     const conversation of data
@@ -1646,8 +2998,11 @@ async function loadConversations() {
     const otherUserId =
       conversation.buyer_id ===
       currentUser.id
+
         ? conversation.seller_id
+
         : conversation.buyer_id;
+
 
     const {
       data: profile
@@ -1663,79 +3018,113 @@ async function loadConversations() {
         )
         .maybeSingle();
 
+
+    const product =
+      allProducts.find(
+        item =>
+          Number(item.id) ===
+          Number(
+            conversation.product_id
+          )
+      );
+
+
     rows.push({
+
       conversation,
-      profile
+
+      profile,
+
+      product
+
     });
   }
 
+
   container.innerHTML =
-    rows.map(
-      ({
-        conversation,
-        profile
-      }) => {
+    rows
+      .map(
+        ({
+          conversation,
+          profile,
+          product
+        }) => {
 
-        const initial =
-          (
-            profile?.full_name ||
-            "U"
-          )
-            .charAt(0)
-            .toUpperCase();
+          const initial =
+            (
+              profile?.full_name ||
+              "U"
+            )
+              .charAt(0)
+              .toUpperCase();
 
-        return `
-          <button
-            class="conversation-item"
-            onclick="
-              openConversation(
-                ${conversation.id}
-              )
-            "
-          >
 
-            <div
-              class="conversation-avatar"
+          return `
+
+            <button
+              type="button"
+              class="conversation-item"
+              data-action="open-conversation"
+              data-conversation-id="${conversation.id}"
             >
-              ${escapeHTML(initial)}
-            </div>
 
-            <div>
-
-              <strong>
+              <div
+                class="conversation-avatar"
+              >
                 ${escapeHTML(
-                  profile?.full_name ||
-                  "User"
+                  initial
                 )}
-              </strong>
+              </div>
 
-              <span>
-                ${escapeHTML(
-                  profile?.campus ||
-                  ""
-                )}
-              </span>
 
-            </div>
+              <div>
 
-          </button>
-        `;
-      }
-    ).join("");
+                <strong>
+                  ${escapeHTML(
+                    profile?.full_name ||
+                    "User"
+                  )}
+                </strong>
+
+                <span>
+                  ${
+                    product
+                      ? escapeHTML(
+                          product.name
+                        )
+                      : escapeHTML(
+                          profile?.campus ||
+                          ""
+                        )
+                  }
+                </span>
+
+              </div>
+
+            </button>
+
+          `;
+        }
+      )
+      .join("");
 }
 
-// ------------------------------------------------------------
+
+// ============================================================
 // OPEN CONVERSATION
-// ------------------------------------------------------------
+// ============================================================
 
 async function openConversation(
   conversationId
 ) {
 
   if (!currentUser) {
+
     openAuth("login");
+
     return;
   }
+
 
   const {
     data,
@@ -1750,6 +3139,7 @@ async function openConversation(
       )
       .single();
 
+
   if (error) {
 
     showMessage(
@@ -1759,14 +3149,19 @@ async function openConversation(
     return;
   }
 
+
   currentConversation =
     data;
+
 
   const otherUserId =
     data.buyer_id ===
     currentUser.id
+
       ? data.seller_id
+
       : data.buyer_id;
+
 
   const {
     data: profile
@@ -1782,40 +3177,85 @@ async function openConversation(
       )
       .maybeSingle();
 
-  const title =
-    $("chat-user-name");
 
-  if (title) {
-    title.textContent =
+  const chatName =
+    $("chatName");
+
+
+  if (chatName) {
+
+    chatName.textContent =
       profile?.full_name ||
       "User";
   }
+
+
+  const chatProduct =
+    $("chatProduct");
+
+
+  if (chatProduct) {
+
+    const product =
+      allProducts.find(
+        item =>
+          Number(item.id) ===
+          Number(
+            data.product_id
+          )
+      );
+
+
+    chatProduct.textContent =
+      product?.name || "";
+  }
+
 
   await loadMessages(
     conversationId
   );
 
+
   navigate("chat");
+
 
   subscribeToMessages(
     conversationId
   );
 }
 
-// ------------------------------------------------------------
-// MESSAGES
-// ------------------------------------------------------------
+
+// ============================================================
+// LOAD MESSAGES
+// ============================================================
 
 async function loadMessages(
   conversationId
 ) {
 
   const container =
-    $("chat-messages");
+    $("chatMessages");
+
 
   if (!container) {
     return;
   }
+
+
+  container.innerHTML = `
+
+    <div class="empty-state">
+
+      <div class="spinner"></div>
+
+      <p>
+        Loading messages...
+      </p>
+
+    </div>
+
+  `;
+
 
   const {
     data,
@@ -1835,6 +3275,7 @@ async function loadMessages(
         }
       );
 
+
   if (error) {
 
     console.error(
@@ -1842,143 +3283,223 @@ async function loadMessages(
       error
     );
 
+
     container.innerHTML = `
+
       <div class="empty-state">
+
+        <h2>
+          Unable to load messages
+        </h2>
+
         <p>
-          ${escapeHTML(error.message)}
+          ${escapeHTML(
+            error.message
+          )}
         </p>
+
       </div>
+
     `;
 
     return;
   }
+
 
   renderMessages(
     data || []
   );
 }
 
+
+// ============================================================
+// RENDER MESSAGES
+// ============================================================
+
 function renderMessages(
   messages
 ) {
 
   const container =
-    $("chat-messages");
+    $("chatMessages");
+
 
   if (!container) {
     return;
   }
 
+
   if (!messages.length) {
 
     container.innerHTML = `
+
       <div class="empty-state">
+
+        <div class="empty-icon">
+          💬
+        </div>
 
         <p>
           Start the conversation.
         </p>
 
       </div>
+
     `;
 
     return;
   }
 
+
   container.innerHTML =
-    messages.map(message => {
+    messages
+      .map(message => {
 
-      const mine =
-        message.sender_id ===
-        currentUser?.id;
+        const mine =
+          message.sender_id ===
+          currentUser?.id;
 
-      return `
-        <div
-          class="
-            message-row
-            ${mine ? "mine" : "theirs"}
-          "
-        >
+
+        return `
 
           <div
-            class="message-bubble"
+            class="
+              message-row
+              ${mine ? "mine" : "theirs"}
+            "
           >
-            ${escapeHTML(
-              message.message
-            )}
+
+            <div
+              class="message-bubble"
+            >
+              ${escapeHTML(
+                message.message
+              )}
+            </div>
+
           </div>
 
-        </div>
-      `;
+        `;
+      })
+      .join("");
 
-    }).join("");
 
   container.scrollTop =
     container.scrollHeight;
 }
 
-// ------------------------------------------------------------
-// SEND MESSAGE
-// ------------------------------------------------------------
 
-async function sendMessage(event) {
+// ============================================================
+// SEND MESSAGE
+// ============================================================
+
+async function sendMessage(
+  event
+) {
 
   event.preventDefault();
+
 
   if (
     !currentUser ||
     !currentConversation
   ) {
+
+    if (!currentUser) {
+      openAuth("login");
+    }
+
     return;
   }
 
+
   const input =
-    $("message-input");
+    $("chatInput");
+
 
   if (!input) {
     return;
   }
 
+
   const message =
     input.value.trim();
+
 
   if (!message) {
     return;
   }
 
-  const {
-    error
-  } =
-    await supabaseClient
-      .from("messages")
-      .insert({
-        conversation_id:
-          currentConversation.id,
 
-        sender_id:
-          currentUser.id,
+  const sendButton =
+    event.submitter;
 
-        message
-      });
 
-  if (error) {
+  if (sendButton) {
+    sendButton.disabled =
+      true;
+  }
+
+
+  try {
+
+    const {
+      error
+    } =
+      await supabaseClient
+        .from("messages")
+        .insert({
+
+          conversation_id:
+            currentConversation.id,
+
+          sender_id:
+            currentUser.id,
+
+          message
+
+        });
+
+
+    if (error) {
+      throw error;
+    }
+
+
+    input.value = "";
+
+
+    await loadMessages(
+      currentConversation.id
+    );
+
+
+  } catch (error) {
+
+    console.error(
+      "Send message error:",
+      error
+    );
+
 
     showMessage(
       `Message failed: ${error.message}`
     );
 
-    return;
+
+  } finally {
+
+    if (sendButton) {
+      sendButton.disabled =
+        false;
+    }
   }
-
-  input.value = "";
-
-  await loadMessages(
-    currentConversation.id
-  );
 }
 
-// ------------------------------------------------------------
+
+// ============================================================
 // REALTIME CHAT
-// ------------------------------------------------------------
+// ============================================================
 
 function subscribeToMessages(
   conversationId
@@ -1990,21 +3511,33 @@ function subscribeToMessages(
       .removeChannel(
         messageChannel
       );
+
+    messageChannel =
+      null;
   }
+
 
   messageChannel =
     supabaseClient
       .channel(
-        `conversation-${conversationId}`
+        `cheal-chat-${conversationId}-${Date.now()}`
       )
       .on(
         "postgres_changes",
         {
-          event: "INSERT",
-          schema: "public",
-          table: "messages",
+
+          event:
+            "INSERT",
+
+          schema:
+            "public",
+
+          table:
+            "messages",
+
           filter:
             `conversation_id=eq.${conversationId}`
+
         },
         async () => {
 
@@ -2016,152 +3549,715 @@ function subscribeToMessages(
       .subscribe();
 }
 
-// ------------------------------------------------------------
+
+// ============================================================
 // MENU
-// ------------------------------------------------------------
+// ============================================================
 
 function openMenu() {
 
-  const menu =
-    $("menu-drawer");
+  const overlay =
+    $("menuOverlay");
 
-  if (menu) {
-    menu.classList.add(
-      "active"
+
+  if (!overlay) {
+    return;
+  }
+
+
+  overlay.classList.remove(
+    "hidden"
+  );
+
+
+  const button =
+    $("menuButton");
+
+
+  if (button) {
+    button.setAttribute(
+      "aria-expanded",
+      "true"
     );
   }
 }
+
 
 function closeMenu() {
 
-  const menu =
-    $("menu-drawer");
+  const overlay =
+    $("menuOverlay");
 
-  if (menu) {
-    menu.classList.remove(
-      "active"
+
+  if (!overlay) {
+    return;
+  }
+
+
+  overlay.classList.add(
+    "hidden"
+  );
+
+
+  const button =
+    $("menuButton");
+
+
+  if (button) {
+    button.setAttribute(
+      "aria-expanded",
+      "false"
     );
   }
 }
 
-// ------------------------------------------------------------
-// AUTH STATE
-// ------------------------------------------------------------
 
-supabaseClient.auth.onAuthStateChange(
-  async (
-    event,
-    session
-  ) => {
+function toggleMenu() {
 
-    currentUser =
-      session?.user || null;
+  const overlay =
+    $("menuOverlay");
 
-    if (currentUser) {
-      await loadCurrentProfile();
-    } else {
-      currentProfile = null;
-    }
 
-    updateAuthUI();
+  if (
+    overlay?.classList.contains(
+      "hidden"
+    )
+  ) {
+
+    openMenu();
+
+  } else {
+
+    closeMenu();
   }
+}
+
+
+// ============================================================
+// LOCATION
+// ============================================================
+
+function handleLocation() {
+
+  showMessage(
+    "Location selection will be added next. Your current marketplace location is Kampala."
+  );
+}
+
+
+// ============================================================
+// EVENT DELEGATION
+// ============================================================
+//
+// This is important.
+// Instead of relying on hundreds of individual onclick
+// attributes, one listener handles the touch/click controls.
+// It works on iPhone, Android and desktop.
+// ============================================================
+
+function setupGlobalEvents() {
+
+  document.addEventListener(
+    "click",
+    async event => {
+
+      const routeElement =
+        event.target.closest(
+          "[data-route]"
+        );
+
+
+      if (routeElement) {
+
+        event.preventDefault();
+
+        const route =
+          routeElement.dataset.route;
+
+        navigate(route);
+
+        return;
+      }
+
+
+      const actionElement =
+        event.target.closest(
+          "[data-action]"
+        );
+
+
+      if (!actionElement) {
+        return;
+      }
+
+
+      const action =
+        actionElement.dataset.action;
+
+
+      // Save
+
+      if (
+        action === "save"
+      ) {
+
+        event.preventDefault();
+
+        toggleSaved(
+          actionElement.dataset.productId
+        );
+
+        return;
+      }
+
+
+      // Open product
+
+      if (
+        action === "open-product"
+      ) {
+
+        event.preventDefault();
+
+        openProduct(
+          actionElement.dataset.productId
+        );
+
+        return;
+      }
+
+
+      // Chat seller
+
+      if (
+        action === "chat-seller"
+      ) {
+
+        event.preventDefault();
+
+        await startChatWithSeller(
+          actionElement.dataset.productId
+        );
+
+        return;
+      }
+
+
+      // Open conversation
+
+      if (
+        action ===
+        "open-conversation"
+      ) {
+
+        event.preventDefault();
+
+        await openConversation(
+          actionElement.dataset.conversationId
+        );
+
+        return;
+      }
+
+
+      // Remove image
+
+      if (
+        action ===
+        "remove-image"
+      ) {
+
+        event.preventDefault();
+
+        removeSelectedImage(
+          actionElement.dataset.imageIndex
+        );
+
+        return;
+      }
+
+
+      // Login
+
+      if (
+        action === "login"
+      ) {
+
+        event.preventDefault();
+
+        openAuth("login");
+
+        return;
+      }
+
+    }
+  );
+
+
+  // Menu
+
+  const menuButton =
+    $("menuButton");
+
+
+  if (menuButton) {
+
+    menuButton.addEventListener(
+      "click",
+      toggleMenu
+    );
+  }
+
+
+  // Close menu
+
+  const closeMenuButton =
+    $("closeMenu");
+
+
+  if (closeMenuButton) {
+
+    closeMenuButton.addEventListener(
+      "click",
+      closeMenu
+    );
+  }
+
+
+  // Close menu by tapping outside
+
+  const menuOverlay =
+    $("menuOverlay");
+
+
+  if (menuOverlay) {
+
+    menuOverlay.addEventListener(
+      "click",
+      event => {
+
+        if (
+          event.target ===
+          menuOverlay
+        ) {
+          closeMenu();
+        }
+
+      }
+    );
+  }
+
+
+  // Top account
+
+  const topAccount =
+    $("topAccountButton");
+
+
+  if (topAccount) {
+
+    topAccount.addEventListener(
+      "click",
+      () => navigate("account")
+    );
+  }
+
+
+  // Location
+
+  const locationButton =
+    $("locationButton");
+
+
+  if (locationButton) {
+
+    locationButton.addEventListener(
+      "click",
+      handleLocation
+    );
+  }
+
+
+  // Search
+
+  const searchInput =
+    $("searchInput");
+
+
+  if (searchInput) {
+
+    searchInput.addEventListener(
+      "input",
+      searchProducts
+    );
+  }
+
+
+  // Clear search
+
+  const clearButton =
+    $("clearSearch");
+
+
+  if (clearButton) {
+
+    clearButton.addEventListener(
+      "click",
+      clearSearch
+    );
+  }
+
+
+  // Sort
+
+  const sortButton =
+    $("sortButton");
+
+
+  if (sortButton) {
+
+    sortButton.addEventListener(
+      "click",
+      changeSort
+    );
+  }
+
+
+  // Category buttons
+
+  document
+    .querySelectorAll(
+      ".category-card"
+    )
+    .forEach(button => {
+
+      button.addEventListener(
+        "click",
+        () => {
+
+          filterCategory(
+            button.dataset.category
+          );
+
+        }
+      );
+
+    });
+
+
+  // Auth
+
+  const authForm =
+    $("authForm");
+
+
+  if (authForm) {
+
+    authForm.addEventListener(
+      "submit",
+      handleAuthSubmit
+    );
+  }
+
+
+  // Close auth
+
+  const closeAuthButton =
+    $("closeAuth");
+
+
+  if (closeAuthButton) {
+
+    closeAuthButton.addEventListener(
+      "click",
+      closeAuth
+    );
+  }
+
+
+  // Auth switch
+
+  const authSwitch =
+    $("authSwitch");
+
+
+  if (authSwitch) {
+
+    authSwitch.addEventListener(
+      "click",
+      switchAuth
+    );
+  }
+
+
+  // Close auth when tapping outside
+
+  const authOverlay =
+    $("authOverlay");
+
+
+  if (authOverlay) {
+
+    authOverlay.addEventListener(
+      "click",
+      event => {
+
+        if (
+          event.target ===
+          authOverlay
+        ) {
+
+          closeAuth();
+        }
+
+      }
+    );
+  }
+
+
+  // Account login
+
+  const accountLogin =
+    $("accountLoginButton");
+
+
+  if (accountLogin) {
+
+    accountLogin.addEventListener(
+      "click",
+      () => openAuth("login")
+    );
+  }
+
+
+  // Settings
+
+  const settings =
+    $("settingsButton");
+
+
+  if (settings) {
+
+    settings.addEventListener(
+      "click",
+      openSettings
+    );
+  }
+
+
+  // Logout
+
+  const logoutButton =
+    $("logoutButton");
+
+
+  if (logoutButton) {
+
+    logoutButton.addEventListener(
+      "click",
+      logout
+    );
+  }
+
+
+  // Sell form
+
+  const sellForm =
+    $("sellForm");
+
+
+  if (sellForm) {
+
+    sellForm.addEventListener(
+      "submit",
+      submitProduct
+    );
+  }
+
+
+  // Image upload
+
+  const imageInput =
+    $("productImages");
+
+
+  if (imageInput) {
+
+    imageInput.addEventListener(
+      "change",
+      handleImageSelection
+    );
+  }
+
+
+  // Chat form
+
+  const chatForm =
+    $("chatForm");
+
+
+  if (chatForm) {
+
+    chatForm.addEventListener(
+      "submit",
+      sendMessage
+    );
+  }
+}
+
+
+// ============================================================
+// KEYBOARD / ESCAPE
+// ============================================================
+
+function setupEscapeKey() {
+
+  document.addEventListener(
+    "keydown",
+    event => {
+
+      if (
+        event.key !==
+        "Escape"
+      ) {
+        return;
+      }
+
+
+      closeMenu();
+
+      closeAuth();
+    }
+  );
+}
+
+
+// ============================================================
+// AUTH STATE LISTENER
+// ============================================================
+
+function setupAuthListener() {
+
+  supabaseClient.auth.onAuthStateChange(
+    (event, session) => {
+
+      currentUser =
+        session?.user ||
+        null;
+
+
+      if (!currentUser) {
+
+        currentProfile =
+          null;
+
+      } else {
+
+        // Load profile without blocking
+        // the auth callback.
+
+        loadCurrentProfile()
+          .then(() => {
+
+            updateAccountScreen();
+
+          })
+          .catch(error => {
+
+            console.error(
+              "Profile loading error:",
+              error
+            );
+
+          });
+      }
+
+
+      updateAccountScreen();
+    }
+  );
+}
+
+
+// ============================================================
+// START APPLICATION
+// ============================================================
+
+async function startApp() {
+
+  console.log(
+    "Cheal Market starting..."
+  );
+
+
+  setupGlobalEvents();
+
+  setupEscapeKey();
+
+  setupAuthListener();
+
+
+  await loadCurrentUser();
+
+
+  updateAccountScreen();
+
+
+  let initialScreen =
+    window.location.hash
+      .replace("#", "")
+      .trim();
+
+
+  if (!initialScreen) {
+    initialScreen =
+      "home";
+  }
+
+
+  showScreen(
+    initialScreen
+  );
+
+
+  await loadProducts();
+
+
+  console.log(
+    "Cheal Market ready."
+  );
+}
+
+
+// ============================================================
+// HASH CHANGE
+// ============================================================
+
+window.addEventListener(
+  "hashchange",
+  handleHashChange
 );
 
-// ------------------------------------------------------------
-// START APPLICATION
-// ------------------------------------------------------------
+
+// ============================================================
+// START WHEN PAGE LOADS
+// ============================================================
 
 document.addEventListener(
   "DOMContentLoaded",
-  async () => {
-
-    const productForm =
-      $("sell-form");
-
-    if (productForm) {
-
-      productForm.addEventListener(
-        "submit",
-        submitProduct
-      );
-    }
-
-    const loginForm =
-      $("login-form");
-
-    if (loginForm) {
-
-      loginForm.addEventListener(
-        "submit",
-        signIn
-      );
-    }
-
-    const signupForm =
-      $("signup-form");
-
-    if (signupForm) {
-
-      signupForm.addEventListener(
-        "submit",
-        signUp
-      );
-    }
-
-    const imageInput =
-      $("product-images");
-
-    if (imageInput) {
-
-      imageInput.addEventListener(
-        "change",
-        handleImageSelection
-      );
-    }
-
-    const messageForm =
-      $("message-form");
-
-    if (messageForm) {
-
-      messageForm.addEventListener(
-        "submit",
-        sendMessage
-      );
-    }
-
-    const searchInput =
-      $("search-input");
-
-    if (searchInput) {
-
-      searchInput.addEventListener(
-        "input",
-        searchProducts
-      );
-    }
-
-    await loadCurrentUser();
-
-    const initialScreen =
-      window.location.hash
-        .replace("#", "") ||
-      "home";
-
-    showScreen(
-      initialScreen
-    );
-
-    await loadProducts();
-  }
+  startApp
 );
 
-// ------------------------------------------------------------
-// EXPOSE FUNCTIONS TO HTML
-// ------------------------------------------------------------
+
+// ============================================================
+// EXPOSE FUNCTIONS
+// ============================================================
 
 window.navigate =
   navigate;
+
+window.showScreen =
+  showScreen;
 
 window.openAuth =
   openAuth;
@@ -2184,6 +4280,15 @@ window.openProduct =
 window.filterCategory =
   filterCategory;
 
+window.clearSearch =
+  clearSearch;
+
+window.clearFilters =
+  clearFilters;
+
+window.changeSort =
+  changeSort;
+
 window.startChatWithSeller =
   startChatWithSeller;
 
@@ -2196,14 +4301,26 @@ window.openMenu =
 window.closeMenu =
   closeMenu;
 
-window.loadMyListings =
-  loadMyListings;
+window.toggleMenu =
+  toggleMenu;
+
+window.loadProducts =
+  loadProducts;
 
 window.loadConversations =
   loadConversations;
+
+window.loadMyListings =
+  loadMyListings;
 
 window.sendMessage =
   sendMessage;
 
 window.handleImageSelection =
   handleImageSelection;
+
+window.removeSelectedImage =
+  removeSelectedImage;
+
+window.updateAccountScreen =
+  updateAccountScreen;
