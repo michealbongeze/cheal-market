@@ -1,331 +1,184 @@
 /* =========================================================
-   CHEAL MARKET — APP.JS
-   Marketplace + Supabase Auth + Real Chat Inbox
+   CHEAL MARKET — REAL MULTI-USER MARKETPLACE
+   Supabase Products + Private Chats + Real-Time Messages
 ========================================================= */
-
-
 /* =========================================================
-   SUPABASE CONFIGURATION
+   SUPABASE
 ========================================================= */
-
 const SUPABASE_URL =
   "https://qwlklqjfbrhythpynghr.supabase.co";
-
 const SUPABASE_KEY =
-  "sb_publishable_HVAjJNZAQIiyf1aFosvH0A_fnYoFpHx";
-
+  "sb_publishable_HVAjJNZAQIiyf1AosvH0A_fnYoFpHx";
 const supabaseClient =
   window.supabase.createClient(
     SUPABASE_URL,
     SUPABASE_KEY
   );
-
-
 /* =========================================================
-   DEMO FALLBACK PRODUCTS
+   APPLICATION STATE
 ========================================================= */
-
-const demoProducts = [
-
-  {
-    name: "iPhone 13 Pro",
-    price: 1850000,
-    category: "Phones",
-    seller: "Sarah",
-    campus: "KIU",
-    icon: "📱",
-    time: "2 hours ago"
-  },
-
-  {
-    name: "Samsung Galaxy A55",
-    price: 980000,
-    category: "Phones",
-    seller: "Daniel",
-    campus: "Makerere",
-    icon: "📱",
-    time: "3 hours ago"
-  },
-
-  {
-    name: "HP EliteBook Laptop",
-    price: 1250000,
-    category: "Computers",
-    seller: "Michael",
-    campus: "KIU",
-    icon: "💻",
-    time: "5 hours ago"
-  },
-
-  {
-    name: "Campus Hoodie",
-    price: 35000,
-    category: "Clothes",
-    seller: "Brian",
-    campus: "KIU",
-    icon: "👕",
-    time: "1 hour ago"
-  },
-
-  {
-    name: "Nike Sneakers",
-    price: 85000,
-    category: "Clothes",
-    seller: "Joan",
-    campus: "Kyambogo",
-    icon: "👟",
-    time: "4 hours ago"
-  },
-
-  {
-    name: "Calculus Textbook",
-    price: 45000,
-    category: "Books",
-    seller: "Irene",
-    campus: "KIU",
-    icon: "📚",
-    time: "30 minutes ago"
-  },
-
-  {
-    name: "Wireless Headphones",
-    price: 120000,
-    category: "Electronics",
-    seller: "Kevin",
-    campus: "Makerere",
-    icon: "🎧",
-    time: "6 hours ago"
-  },
-
-  {
-    name: "Scientific Calculator",
-    price: 55000,
-    category: "Other",
-    seller: "Amina",
-    campus: "KIU",
-    icon: "🧮",
-    time: "1 day ago"
-  },
-
-  {
-    name: "Laptop Stand",
-    price: 65000,
-    category: "Electronics",
-    seller: "Mark",
-    campus: "KIU",
-    icon: "💻",
-    time: "2 hours ago"
-  },
-
-  {
-    name: "Gaming Controller",
-    price: 95000,
-    category: "Gaming",
-    seller: "Alex",
-    campus: "Makerere",
-    icon: "🎮",
-    time: "8 hours ago"
-  },
-
-  {
-    name: "Study Desk",
-    price: 180000,
-    category: "Home",
-    seller: "David",
-    campus: "KIU",
-    icon: "🪑",
-    time: "1 day ago"
-  },
-
-  {
-    name: "USB Flash Drive 64GB",
-    price: 25000,
-    category: "Electronics",
-    seller: "Grace",
-    campus: "Kyambogo",
-    icon: "💾",
-    time: "3 hours ago"
-  }
-
-];
-
-
 let products = [];
-
-let activeCategory = "All";
-
-
-/* =========================================================
-   CHAT STATE
-========================================================= */
-
 let conversations = [];
-
+let activeCategory = "All";
 let activeConversationId = null;
-
-let activeConversation = null;
-
 let messageChannel = null;
-
-
 /* =========================================================
    ELEMENTS
 ========================================================= */
-
 const productsEl =
   document.querySelector("#products");
-
 const search =
   document.querySelector("#search");
-
 const cats =
   document.querySelector("#cats");
-
 const sort =
   document.querySelector("#sort");
-
 const sellForm =
   document.querySelector("#sellForm");
-
 const chatForm =
   document.querySelector("#chatForm");
-
 const message =
   document.querySelector("#message");
-
 const messages =
   document.querySelector("#messages");
-
 const modal =
   document.querySelector("#modal");
-
 const modalTitle =
   document.querySelector("#modalTitle");
-
 const auth =
   document.querySelector("#auth");
-
 const authName =
   document.querySelector("#authName");
-
 const authEmail =
   document.querySelector("#authEmail");
-
 const authPassword =
   document.querySelector("#authPassword");
-
 const authCampus =
   document.querySelector("#authCampus");
-
 const authSubmit =
   document.querySelector("#authSubmit");
-
 const authMessage =
   document.querySelector("#authMessage");
-
 const login =
   document.querySelector("#login");
-
 const signup =
   document.querySelector("#signup");
-
 const close =
   document.querySelector("#close");
-
 const searchButton =
   document.querySelector("#searchButton");
-
 const messagesButton =
   document.querySelector("#messagesButton");
-
 const locationButton =
   document.querySelector("#locationButton");
-
-
 /* =========================================================
-   MONEY FORMAT
+   HELPERS
 ========================================================= */
-
 function money(value) {
-
   return (
     "UGX " +
     Number(value || 0)
       .toLocaleString("en-UG")
   );
-
 }
-
-
-/* =========================================================
-   ESCAPE HTML
-========================================================= */
-
 function escapeHTML(value) {
-
   return String(value ?? "")
     .replaceAll("&", "&amp;")
     .replaceAll("<", "&lt;")
     .replaceAll(">", "&gt;")
     .replaceAll('"', "&quot;")
     .replaceAll("'", "&#039;");
-
 }
-
-
-/* =========================================================
-   CATEGORY ICON
-========================================================= */
-
-function categoryIcon(category) {
-
-  const icons = {
-
-    Phones: "📱",
-
-    Computers: "💻",
-
-    Clothes: "👕",
-
-    Books: "📚",
-
-    Electronics: "🎧",
-
-    Home: "🏠",
-
-    Gaming: "🎮",
-
-    Other: "🛍️"
-
-  };
-
-
-  return icons[category] || "🛍️";
-
-}
-
-
-/* =========================================================
-   LOAD PRODUCTS
-========================================================= */
-
-async function loadProducts() {
-
-  if (productsEl) {
-
-    productsEl.innerHTML = `
-      <div class="emptyProducts">
-        <div>⏳</div>
-        <h3>Loading listings...</h3>
-        <p>Please wait.</p>
-      </div>
-    `;
-
+function formatTime(dateValue) {
+  if (!dateValue) {
+    return "Recently";
   }
-
-
+  const date =
+    new Date(dateValue);
+  if (
+    Number.isNaN(
+      date.getTime()
+    )
+  ) {
+    return "Recently";
+  }
+  const seconds =
+    Math.floor(
+      (
+        Date.now() -
+        date.getTime()
+      ) / 1000
+    );
+  if (seconds < 60) {
+    return "Just now";
+  }
+  const minutes =
+    Math.floor(
+      seconds / 60
+    );
+  if (minutes < 60) {
+    return `${minutes}m ago`;
+  }
+  const hours =
+    Math.floor(
+      minutes / 60
+    );
+  if (hours < 24) {
+    return `${hours}h ago`;
+  }
+  const days =
+    Math.floor(
+      hours / 24
+    );
+  return `${days}d ago`;
+}
+function categoryIcon(category) {
+  const icons = {
+    Phones: "📱",
+    Computers: "💻",
+    Fashion: "👕",
+    Clothes: "👕",
+    Books: "📚",
+    Electronics: "🎧",
+    Home: "🏠",
+    Gaming: "🎮",
+    Other: "🛍️"
+  };
+  return (
+    icons[category] ||
+    "🛍️"
+  );
+}
+async function getUser() {
+  const {
+    data,
+    error
+  } =
+    await supabaseClient
+      .auth
+      .getUser();
+  if (error) {
+    console.error(
+      "User error:",
+      error
+    );
+    return null;
+  }
+  return data.user;
+}
+/* =========================================================
+   PRODUCTS — REAL SUPABASE PRODUCTS ONLY
+========================================================= */
+async function loadProducts() {
+  if (!productsEl) return;
+  productsEl.innerHTML = `
+    <div class="emptyProducts">
+      <div>⏳</div>
+      <h3>Loading marketplace...</h3>
+      <p>Getting real student listings.</p>
+    </div>
+  `;
   try {
-
     const {
       data,
       error
@@ -341,293 +194,147 @@ async function loadProducts() {
             ascending: false
           }
         );
-
-
     if (error) {
-
       console.error(
-        "Supabase product error:",
+        "Products error:",
         error
       );
-
-
-      products = [
-        ...demoProducts
-      ];
-
-
+      products = [];
       render();
-
       return;
-
     }
-
-
-    if (
-      data &&
-      data.length > 0
-    ) {
-
-      products =
-        data.map(
-          (item) => ({
-
+    products =
+      (data || [])
+        .map(
+          product => ({
             id:
-              item.id,
-
+              product.id,
             seller_id:
-              item.seller_id,
-
+              product.seller_id,
             name:
-              item.name,
-
+              product.name,
             price:
-              item.price,
-
+              product.price,
             category:
-              item.category,
-
+              product.category,
             seller:
-              item.seller_name ||
+              product.seller_name ||
               "Student",
-
             campus:
-              item.campus ||
+              product.campus ||
               "Uganda",
-
             description:
-              item.description ||
+              product.description ||
               "",
-
             icon:
               categoryIcon(
-                item.category
+                product.category
               ),
-
             time:
               formatTime(
-                item.created_at
+                product.created_at
               )
-
           })
         );
-
-    } else {
-
-      products = [
-        ...demoProducts
-      ];
-
-    }
-
-
     render();
-
   }
-
-
   catch (error) {
-
     console.error(
-      "Product loading error:",
+      "Product loading failed:",
       error
     );
-
-
-    products = [
-      ...demoProducts
-    ];
-
-
+    products = [];
     render();
-
   }
-
 }
-
-
-/* =========================================================
-   TIME FORMAT
-========================================================= */
-
-function formatTime(dateValue) {
-
-  if (!dateValue) {
-
-    return "Recently";
-
-  }
-
-
-  const date =
-    new Date(dateValue);
-
-
-  if (
-    Number.isNaN(
-      date.getTime()
-    )
-  ) {
-
-    return "Recently";
-
-  }
-
-
-  const seconds =
-    Math.floor(
-      (
-        Date.now() -
-        date.getTime()
-      ) / 1000
-    );
-
-
-  if (seconds < 60) {
-
-    return "Just now";
-
-  }
-
-
-  const minutes =
-    Math.floor(
-      seconds / 60
-    );
-
-
-  if (minutes < 60) {
-
-    return `${minutes}m ago`;
-
-  }
-
-
-  const hours =
-    Math.floor(
-      minutes / 60
-    );
-
-
-  if (hours < 24) {
-
-    return `${hours}h ago`;
-
-  }
-
-
-  const days =
-    Math.floor(
-      hours / 24
-    );
-
-
-  return `${days}d ago`;
-
-}
-
-
 /* =========================================================
    PRODUCT CARD
 ========================================================= */
-
 function productCard(product) {
-
-  const canChat =
-    Boolean(
-      product.id &&
-      product.seller_id
-    );
-
-
+  const currentUser =
+    window.chealCurrentUser;
+  const ownProduct =
+    currentUser &&
+    product.seller_id ===
+      currentUser.id;
   return `
     <article class="product">
-
       <div class="pic">
-
         <span class="productIcon">
-          ${product.icon || "🛍️"}
+          ${product.icon}
         </span>
-
         <button
           type="button"
           class="favoriteButton"
-          aria-label="Add to favorites"
+          aria-label="Favorite"
           onclick="toggleFavorite(this)"
         >
           ♡
         </button>
-
       </div>
-
-
       <div class="productBody">
-
         <div class="productCategory">
           ${escapeHTML(
-            product.category || "Other"
+            product.category
           )}
         </div>
-
-
         <h3>
           ${escapeHTML(
             product.name
           )}
         </h3>
-
-
         <div class="productPrice">
           ${money(
             product.price
           )}
         </div>
-
-
         <div class="productLocation">
           📍 ${escapeHTML(
             product.campus
           )}
         </div>
-
-
         <div class="productSeller">
-
           <div class="sellerAvatar">
             ${escapeHTML(
-              product.seller
-                ? product.seller
-                    .charAt(0)
-                    .toUpperCase()
-                : "U"
+              (
+                product.seller ||
+                "S"
+              )
+                .charAt(0)
+                .toUpperCase()
             )}
           </div>
-
-
           <div>
-
             <strong>
               ${escapeHTML(
-                product.seller ||
-                "Student"
+                product.seller
               )}
             </strong>
-
             <span>
               ${escapeHTML(
-                product.time ||
-                "Recently"
+                product.time
               )}
             </span>
-
           </div>
-
         </div>
-
-
         ${
-          canChat
+          ownProduct
             ? `
+              <div
+                style="
+                  margin-top:12px;
+                  padding:9px;
+                  border-radius:10px;
+                  background:#f3f4f6;
+                  color:#667085;
+                  text-align:center;
+                  font-size:13px;
+                "
+              >
+                Your listing
+              </div>
+            `
+            : `
               <button
                 type="button"
                 class="productChatButton"
@@ -636,182 +343,110 @@ function productCard(product) {
                 💬 Chat with seller
               </button>
             `
-            : `
-              <button
-                type="button"
-                class="productChatButton"
-                onclick="openAuth('Sign in')"
-              >
-                💬 Chat with seller
-              </button>
-            `
         }
-
       </div>
-
     </article>
   `;
-
 }
-
-
 /* =========================================================
    RENDER PRODUCTS
 ========================================================= */
-
 function render() {
-
   if (!productsEl) return;
-
-
   const query =
     search
       ? search.value
           .toLowerCase()
           .trim()
       : "";
-
-
   let filtered =
     products.filter(
-      (product) => {
-
+      product => {
         const categoryMatch =
           activeCategory === "All" ||
           product.category ===
             activeCategory;
-
-
-        const searchableText = [
-
+        const text = [
           product.name,
           product.category,
           product.seller,
           product.campus,
           product.description
-
         ]
           .join(" ")
           .toLowerCase();
-
-
-        const searchMatch =
-          searchableText
-            .includes(query);
-
-
         return (
           categoryMatch &&
-          searchMatch
+          text.includes(query)
         );
-
       }
     );
-
-
   if (sort) {
-
     if (
       sort.value ===
       "priceLow"
     ) {
-
       filtered.sort(
         (a, b) =>
           Number(a.price) -
           Number(b.price)
       );
-
     }
-
-
     if (
       sort.value ===
       "priceHigh"
     ) {
-
       filtered.sort(
         (a, b) =>
           Number(b.price) -
           Number(a.price)
       );
-
     }
-
   }
-
-
   if (!filtered.length) {
-
     productsEl.innerHTML = `
       <div class="emptyProducts">
-
-        <div>🔎</div>
-
+        <div>🛍️</div>
         <h3>
-          No products found
+          No products listed yet
         </h3>
-
         <p>
-          Try another search or category.
+          Be the first student to list something on Cheal Market.
         </p>
-
       </div>
     `;
-
     return;
-
   }
-
-
   productsEl.innerHTML =
     filtered
       .map(productCard)
       .join("");
-
 }
-
-
 /* =========================================================
    CATEGORIES
 ========================================================= */
-
 const categories = [
-
   "All",
   "Phones",
   "Computers",
-  "Clothes",
+  "Fashion",
   "Books",
   "Electronics",
   "Home",
   "Gaming",
   "Other"
-
 ];
-
-
 function createCategories() {
-
   if (!cats) return;
-
-
   cats.innerHTML = "";
-
-
   categories.forEach(
-    (category) => {
-
+    category => {
       const button =
         document.createElement(
           "button"
         );
-
-
       button.type =
         "button";
-
-
       button.className =
         "cat" +
         (
@@ -820,455 +455,239 @@ function createCategories() {
             ? " active"
             : ""
         );
-
-
       button.textContent =
         category;
-
-
       button.onclick =
         () => {
-
           activeCategory =
             category;
-
-
           document
             .querySelectorAll(
               ".cat"
             )
             .forEach(
-              (item) =>
+              item =>
                 item.classList
                   .remove(
                     "active"
                   )
             );
-
-
           button.classList
             .add("active");
-
-
           render();
-
         };
-
-
       cats.appendChild(
         button
       );
-
     }
   );
-
 }
-
-
 /* =========================================================
-   SEARCH
+   SEARCH / SORT
 ========================================================= */
-
 if (search) {
-
   search.addEventListener(
     "input",
     render
   );
-
 }
-
-
 if (searchButton) {
-
   searchButton.onclick =
     () => {
-
       render();
-
-
       document
         .querySelector(
           "#market"
         )
         ?.scrollIntoView({
-          behavior: "smooth"
+          behavior:
+            "smooth"
         });
-
     };
-
 }
-
-
 if (sort) {
-
   sort.addEventListener(
     "change",
     render
   );
-
 }
-
-
 /* =========================================================
    FAVORITES
 ========================================================= */
-
-function toggleFavorite(
-  button
-) {
-
+function toggleFavorite(button) {
   button.classList.toggle(
     "favoriteActive"
   );
-
-
   button.textContent =
     button.classList.contains(
       "favoriteActive"
     )
       ? "♥"
       : "♡";
-
 }
-
-
 /* =========================================================
-   GET CURRENT USER
+   SELL — REAL DATABASE INSERT
 ========================================================= */
-
-async function getUser() {
-
-  const {
-    data,
-    error
-  } =
-    await supabaseClient
-      .auth
-      .getUser();
-
-
-  if (error) {
-
-    console.error(
-      "Get user error:",
-      error
-    );
-
-
-    return null;
-
-  }
-
-
-  return data.user;
-
-}
-
-
-/* =========================================================
-   SELL PRODUCT
-========================================================= */
-
 if (sellForm) {
-
   sellForm.onsubmit =
-    async (event) => {
-
+    async event => {
       event.preventDefault();
-
-
       const user =
         await getUser();
-
-
       if (!user) {
-
         alert(
-          "Please create an account or sign in before listing a product."
+          "Please sign in before listing a product."
         );
-
-
         openAuth(
-          "Create account"
+          "Sign in"
         );
-
-
         return;
-
       }
-
-
       const productName =
         document
           .querySelector("#name")
           .value
           .trim();
-
-
       const price =
         Number(
           document
             .querySelector("#price")
             .value
         );
-
-
       const category =
         document
           .querySelector("#cat")
           .value;
-
-
       const sellerName =
         document
           .querySelector("#seller")
           .value
           .trim();
-
-
       const campus =
         document
           .querySelector("#campus")
           .value
           .trim();
-
-
       const description =
         document
           .querySelector("#desc")
           .value
           .trim();
-
-
       if (
         !productName ||
         !price ||
-        !category
+        !category ||
+        !sellerName ||
+        !campus
       ) {
-
         alert(
-          "Please complete the required product details."
+          "Please complete all required product details."
         );
-
-
         return;
-
       }
-
-
       try {
-
         const {
-          data,
           error
         } =
           await supabaseClient
             .from("products")
             .insert({
-
               seller_id:
                 user.id,
-
               name:
                 productName,
-
               price:
                 price,
-
               category:
                 category,
-
               seller_name:
                 sellerName,
-
               campus:
                 campus,
-
               description:
                 description
-
-            })
-            .select()
-            .single();
-
-
+            });
         if (error) {
-
           console.error(
             "Product insert error:",
             error
           );
-
-
           alert(
-            "Could not list the product: " +
+            "Could not list product: " +
             error.message
           );
-
-
           return;
-
         }
-
-
-        products.unshift({
-
-          id:
-            data?.id,
-
-          seller_id:
-            user.id,
-
-          name:
-            productName,
-
-          price:
-            price,
-
-          category:
-            category,
-
-          seller:
-            sellerName,
-
-          campus:
-            campus,
-
-          description:
-            description,
-
-          icon:
-            categoryIcon(
-              category
-            ),
-
-          time:
-            "Just now"
-
-        });
-
-
-        render();
-
-
         sellForm.reset();
-
-
+        await loadProducts();
         alert(
           "Your product has been listed successfully!"
         );
-
+        document
+          .querySelector(
+            "#market"
+          )
+          ?.scrollIntoView({
+            behavior:
+              "smooth"
+          });
       }
-
-
       catch (error) {
-
         console.error(
-          "Product publishing error:",
+          "Listing error:",
           error
         );
-
-
         alert(
-          "Something went wrong. Please try again."
+          "Something went wrong while listing the product."
         );
-
       }
-
     };
-
 }
-
-
 /* =========================================================
-   CHAT — CREATE / OPEN CONVERSATION
+   CHAT — FIND OR CREATE CONVERSATION
 ========================================================= */
-
 async function openProductChat(
   productId
 ) {
-
   const user =
     await getUser();
-
-
   if (!user) {
-
-    alert(
-      "Please sign in to chat with a seller."
-    );
-
-
     openAuth(
       "Sign in"
     );
-
-
     return;
-
   }
-
-
   const product =
     products.find(
-      (item) =>
+      item =>
         Number(item.id) ===
         Number(productId)
     );
-
-
   if (!product) {
-
     alert(
-      "This product could not be found."
+      "Product not found."
     );
-
-
     return;
-
   }
-
-
-  if (!product.seller_id) {
-
-    alert(
-      "This demo listing does not have a real seller account yet."
-    );
-
-
-    return;
-
-  }
-
-
   if (
     product.seller_id ===
     user.id
   ) {
-
     alert(
-      "You cannot chat with yourself about your own product."
+      "This is your own listing."
     );
-
-
     return;
-
   }
-
-
   try {
-
+    /* Find existing conversation */
     let conversation =
       await findConversation(
         user.id,
         product.seller_id,
         product.id
       );
-
-
+    /* Create conversation if necessary */
     if (!conversation) {
-
       const {
         data,
         error
@@ -1276,99 +695,62 @@ async function openProductChat(
         await supabaseClient
           .from("conversations")
           .insert({
-
             buyer_id:
               user.id,
-
             seller_id:
               product.seller_id,
-
             product_id:
               product.id
-
           })
-          .select()
+          .select(
+            "id, buyer_id, seller_id, product_id, created_at"
+          )
           .single();
-
-
       if (error) {
-
         console.error(
           "Conversation creation error:",
           error
         );
-
-
         alert(
           "Could not start chat: " +
           error.message
         );
-
-
         return;
-
       }
-
-
       conversation =
         data;
-
     }
-
-
     await loadConversations();
-
-
     await selectConversation(
       conversation.id
     );
-
-
-    const chatSection =
-      document.querySelector(
+    document
+      .querySelector(
         "#chat"
-      );
-
-
-    if (chatSection) {
-
-      chatSection.scrollIntoView({
-        behavior: "smooth"
+      )
+      ?.scrollIntoView({
+        behavior:
+          "smooth"
       });
-
-    }
-
-
   }
-
-
   catch (error) {
-
     console.error(
       "Open chat error:",
       error
     );
-
-
     alert(
-      "Could not open the chat. Please try again."
+      "Could not open chat."
     );
-
   }
-
 }
-
-
 /* =========================================================
-   FIND EXISTING CONVERSATION
+   FIND CONVERSATION
 ========================================================= */
-
 async function findConversation(
   buyerId,
   sellerId,
   productId
 ) {
-
   const {
     data,
     error
@@ -1391,49 +773,27 @@ async function findConversation(
         productId
       )
       .maybeSingle();
-
-
   if (error) {
-
     console.error(
-      "Find conversation error:",
+      "Conversation lookup error:",
       error
     );
-
-
     return null;
-
   }
-
-
   return data;
-
 }
-
-
 /* =========================================================
-   LOAD CHAT INBOX
+   LOAD CONVERSATIONS FOR CURRENT USER
 ========================================================= */
-
 async function loadConversations() {
-
   const user =
     await getUser();
-
-
   if (!user) {
-
     conversations = [];
-
-    renderConversationInbox();
-
+    renderChatInbox();
     return;
-
   }
-
-
   try {
-
     const {
       data,
       error
@@ -1452,78 +812,50 @@ async function loadConversations() {
             ascending: false
           }
         );
-
-
     if (error) {
-
       console.error(
         "Conversation loading error:",
         error
       );
-
-
       conversations = [];
-
-      renderConversationInbox();
-
+      renderChatInbox();
       return;
-
     }
-
-
     const rows =
       data || [];
-
-
     if (!rows.length) {
-
       conversations = [];
-
-      renderConversationInbox();
-
+      renderChatInbox();
       return;
-
     }
-
-
     const profileIds =
       [
         ...new Set(
           rows.flatMap(
-            (conversation) => [
-              conversation.buyer_id,
-              conversation.seller_id
+            row => [
+              row.buyer_id,
+              row.seller_id
             ]
           )
         )
       ];
-
-
     const productIds =
       [
         ...new Set(
           rows
             .map(
-              (conversation) =>
-                conversation.product_id
+              row =>
+                row.product_id
             )
             .filter(Boolean)
         )
       ];
-
-
     let profiles = [];
-
     let productRows = [];
-
-
     if (profileIds.length) {
-
       const {
         data:
-          profileData,
-        error:
-          profileError
+          profileData
       } =
         await supabaseClient
           .from("profiles")
@@ -1534,527 +866,494 @@ async function loadConversations() {
             "id",
             profileIds
           );
-
-
-      if (profileError) {
-
-        console.error(
-          "Profile loading error:",
-          profileError
-        );
-
-      }
-
-
       profiles =
         profileData || [];
-
     }
-
-
     if (productIds.length) {
-
       const {
         data:
-          productData,
-        error:
-          productError
+          productData
       } =
         await supabaseClient
           .from("products")
           .select(
-            "id, name, price, seller_name"
+            "id, name, price"
           )
           .in(
             "id",
             productIds
           );
-
-
-      if (productError) {
-
-        console.error(
-          "Chat product loading error:",
-          productError
-        );
-
-      }
-
-
       productRows =
         productData || [];
-
     }
-
-
     conversations =
       rows.map(
-        (conversation) => {
-
+        row => {
           const otherUserId =
-            conversation.buyer_id ===
+            row.buyer_id ===
             user.id
-              ? conversation.seller_id
-              : conversation.buyer_id;
-
-
+              ? row.seller_id
+              : row.buyer_id;
           const otherProfile =
             profiles.find(
-              (profile) =>
+              profile =>
                 profile.id ===
                 otherUserId
             );
-
-
           const product =
             productRows.find(
-              (item) =>
+              item =>
                 Number(item.id) ===
                 Number(
-                  conversation.product_id
+                  row.product_id
                 )
             );
-
-
           return {
-
-            ...conversation,
-
+            ...row,
             otherUserId:
-
               otherUserId,
-
             otherName:
-
               otherProfile
                 ?.full_name ||
               "Student",
-
             otherCampus:
-
               otherProfile
                 ?.campus ||
               "",
-
             productName:
-
               product
                 ?.name ||
               "Marketplace item",
-
             productPrice:
-
               product
                 ?.price ||
               0
-
           };
-
         }
       );
-
-
-    renderConversationInbox();
-
-
+    renderChatInbox();
   }
-
-
   catch (error) {
-
     console.error(
-      "Conversation inbox error:",
+      "Inbox error:",
       error
     );
-
-
     conversations = [];
-
-    renderConversationInbox();
-
+    renderChatInbox();
   }
-
 }
-
-
 /* =========================================================
-   RENDER CONVERSATION INBOX
+   CHAT INBOX UI
 ========================================================= */
-
-function renderConversationInbox() {
-
+function renderChatInbox() {
   const chatSection =
     document.querySelector(
       "#chat"
     );
-
-
   if (!chatSection) return;
-
-
   let inbox =
     document.querySelector(
       "#chealChatInbox"
     );
-
-
   if (!inbox) {
-
     inbox =
       document.createElement(
         "div"
       );
-
-
     inbox.id =
       "chealChatInbox";
-
-
-    inbox.style.marginBottom =
-      "20px";
-
-
-    const chatFormElement =
-      document.querySelector(
-        "#chatForm"
+    const heading =
+      chatSection.querySelector(
+        "h2, h3"
       );
-
-
     if (
-      chatFormElement &&
-      chatFormElement.parentNode
+      heading &&
+      heading.parentNode
     ) {
-
-      chatFormElement.parentNode.insertBefore(
-        inbox,
-        chatFormElement
-      );
-
+      heading.parentNode
+        .insertBefore(
+          inbox,
+          heading.nextSibling
+        );
     }
-
     else {
-
       chatSection.prepend(
         inbox
       );
-
     }
-
   }
-
-
-  const userPromise =
-    getUser();
-
-
-  userPromise.then(
-    (user) => {
-
-      if (!user) {
-
-        inbox.innerHTML = `
-          <div
-            style="
-              padding:18px;
-              border:1px solid #e5e7eb;
-              border-radius:14px;
-              background:#fff;
-            "
-          >
-            <strong>💬 Cheal Chat</strong>
-            <p style="margin:6px 0 0;color:#667085;">
-              Sign in to see your conversations.
-            </p>
-          </div>
-        `;
-
-        return;
-
-      }
-
-
-      if (!conversations.length) {
-
-        inbox.innerHTML = `
-          <div
-            style="
-              padding:18px;
-              border:1px solid #e5e7eb;
-              border-radius:14px;
-              background:#fff;
-            "
-          >
-            <div style="font-size:24px;margin-bottom:6px;">
-              💬
-            </div>
-
-            <strong>Cheal Chat</strong>
-
-            <p style="margin:6px 0 0;color:#667085;">
-              Your conversations will appear here when you chat with a seller.
-            </p>
-          </div>
-        `;
-
-        return;
-
-      }
-
-
-      inbox.innerHTML = `
-        <div
+  const user =
+    window.chealCurrentUser;
+  if (!user) {
+    inbox.innerHTML = `
+      <div
+        style="
+          padding:18px;
+          margin-bottom:18px;
+          border:1px solid #e5e7eb;
+          border-radius:14px;
+          background:#fff;
+        "
+      >
+        <strong>
+          💬 Cheal Chat
+        </strong>
+        <p
           style="
-            border:1px solid #e5e7eb;
-            border-radius:14px;
-            background:#fff;
-            overflow:hidden;
+            margin:6px 0 0;
+            color:#667085;
           "
         >
-
-          <div
-            style="
-              padding:16px;
-              border-bottom:1px solid #e5e7eb;
-            "
-          >
-            <strong style="font-size:18px;">
-              💬 Cheal Chat
-            </strong>
-
-            <div
-              style="
-                color:#667085;
-                font-size:13px;
-                margin-top:3px;
-              "
-            >
-              Your conversations
-            </div>
-          </div>
-
-          <div>
-            ${conversations
-              .map(
-                (conversation) => {
-
-                  const active =
-                    Number(
-                      activeConversationId
-                    ) ===
-                    Number(
-                      conversation.id
-                    );
-
-
-                  return `
-                    <button
-                      type="button"
-                      onclick="selectConversation(${Number(conversation.id)})"
+          Sign in to access your private conversations.
+        </p>
+      </div>
+    `;
+    return;
+  }
+  if (!conversations.length) {
+    inbox.innerHTML = `
+      <div
+        style="
+          padding:20px;
+          margin-bottom:18px;
+          border:1px solid #e5e7eb;
+          border-radius:14px;
+          background:#fff;
+        "
+      >
+        <div
+          style="
+            font-size:26px;
+            margin-bottom:6px;
+          "
+        >
+          💬
+        </div>
+        <strong>
+          Cheal Chat
+        </strong>
+        <p
+          style="
+            margin:6px 0 0;
+            color:#667085;
+          "
+        >
+          Your private conversations will appear here.
+        </p>
+      </div>
+    `;
+    return;
+  }
+  inbox.innerHTML = `
+    <div
+      style="
+        margin-bottom:18px;
+        border:1px solid #e5e7eb;
+        border-radius:14px;
+        background:#fff;
+        overflow:hidden;
+      "
+    >
+      <div
+        style="
+          padding:16px;
+          border-bottom:1px solid #e5e7eb;
+        "
+      >
+        <strong
+          style="
+            font-size:18px;
+          "
+        >
+          💬 Cheal Chat
+        </strong>
+        <div
+          style="
+            margin-top:3px;
+            color:#667085;
+            font-size:13px;
+          "
+        >
+          Private conversations
+        </div>
+      </div>
+      ${
+        conversations
+          .map(
+            conversation => {
+              const active =
+                Number(
+                  activeConversationId
+                ) ===
+                Number(
+                  conversation.id
+                );
+              const initial =
+                (
+                  conversation
+                    .otherName ||
+                  "S"
+                )
+                  .charAt(0)
+                  .toUpperCase();
+              return `
+                <button
+                  type="button"
+                  onclick="selectConversation(${Number(conversation.id)})"
+                  style="
+                    width:100%;
+                    display:flex;
+                    align-items:center;
+                    gap:12px;
+                    padding:14px 16px;
+                    border:0;
+                    border-bottom:1px solid #f0f2f5;
+                    background:${
+                      active
+                        ? "#f0fdf4"
+                        : "#fff"
+                    };
+                    text-align:left;
+                    cursor:pointer;
+                  "
+                >
+                  <div
+                    style="
+                      width:42px;
+                      height:42px;
+                      border-radius:50%;
+                      background:#16a34a;
+                      color:#fff;
+                      display:grid;
+                      place-items:center;
+                      font-weight:700;
+                      flex:none;
+                    "
+                  >
+                    ${escapeHTML(
+                      initial
+                    )}
+                  </div>
+                  <div
+                    style="
+                      min-width:0;
+                      flex:1;
+                    "
+                  >
+                    <strong
                       style="
-                        width:100%;
-                        display:flex;
-                        align-items:center;
-                        gap:12px;
-                        text-align:left;
-                        padding:14px 16px;
-                        border:0;
-                        border-bottom:1px solid #f0f2f5;
-                        background:${
-                          active
-                            ? "#f0fdf4"
-                            : "#fff"
-                        };
-                        cursor:pointer;
+                        display:block;
+                        color:#172033;
                       "
                     >
-
-                      <div
-                        style="
-                          width:42px;
-                          height:42px;
-                          border-radius:50%;
-                          background:#16a34a;
-                          color:white;
-                          display:grid;
-                          place-items:center;
-                          font-weight:700;
-                          flex:none;
-                        "
-                      >
-                        ${escapeHTML(
-                          conversation.otherName
-                            .charAt(0)
-                            .toUpperCase()
-                        )}
-                      </div>
-
-                      <div style="min-width:0;flex:1;">
-
-                        <strong
-                          style="
-                            display:block;
-                            color:#172033;
-                          "
-                        >
-                          ${escapeHTML(
-                            conversation.otherName
-                          )}
-                        </strong>
-
-                        <span
-                          style="
-                            display:block;
-                            color:#667085;
-                            font-size:13px;
-                            white-space:nowrap;
-                            overflow:hidden;
-                            text-overflow:ellipsis;
-                          "
-                        >
-                          ${escapeHTML(
-                            conversation.productName
-                          )}
-                        </span>
-
-                      </div>
-
-                      <span
-                        style="
-                          color:#16a34a;
-                          font-size:18px;
-                        "
-                      >
-                        ›
-                      </span>
-
-                    </button>
-                  `;
-
-                }
-              )
-              .join("")}
-          </div>
-
-        </div>
-      `;
-
-    }
-
-  );
-
+                      ${escapeHTML(
+                        conversation
+                          .otherName
+                      )}
+                    </strong>
+                    <span
+                      style="
+                        display:block;
+                        margin-top:2px;
+                        color:#667085;
+                        font-size:13px;
+                        white-space:nowrap;
+                        overflow:hidden;
+                        text-overflow:ellipsis;
+                      "
+                    >
+                      ${escapeHTML(
+                        conversation
+                          .productName
+                      )}
+                    </span>
+                  </div>
+                  <span
+                    style="
+                      color:#16a34a;
+                      font-size:20px;
+                    "
+                  >
+                    ›
+                  </span>
+                </button>
+              `;
+            }
+          )
+          .join("")
+      }
+    </div>
+  `;
 }
-
-
 /* =========================================================
-   SELECT CONVERSATION
+   SELECT CHAT
 ========================================================= */
-
 async function selectConversation(
   conversationId
 ) {
-
   const user =
     await getUser();
-
-
   if (!user) {
-
     openAuth(
       "Sign in"
     );
-
-
     return;
-
   }
-
-
-  const conversation =
+  let conversation =
     conversations.find(
-      (item) =>
+      item =>
         Number(item.id) ===
         Number(conversationId)
     );
-
-
   if (!conversation) {
-
     await loadConversations();
-
-
-    const refreshed =
+    conversation =
       conversations.find(
-        (item) =>
+        item =>
           Number(item.id) ===
           Number(conversationId)
       );
-
-
-    if (!refreshed) {
-
-      alert(
-        "Conversation could not be found."
-      );
-
-
-      return;
-
-    }
-
   }
-
-
-  activeConversation =
-    conversations.find(
-      (item) =>
-        Number(item.id) ===
-        Number(conversationId)
+  if (!conversation) {
+    alert(
+      "Conversation not found."
     );
-
-
+    return;
+  }
   activeConversationId =
     Number(
       conversationId
     );
-
-
-  renderConversationInbox();
-
-
+  renderChatInbox();
+  await renderActiveChatHeader(
+    conversation
+  );
   await loadMessages(
     activeConversationId
   );
-
-
   subscribeToMessages(
     activeConversationId
   );
-
-
   if (message) {
-
     setTimeout(
       () =>
         message.focus(),
       200
     );
-
   }
-
 }
-
-
+/* =========================================================
+   ACTIVE CHAT HEADER
+========================================================= */
+async function renderActiveChatHeader(
+  conversation
+) {
+  const chatSection =
+    document.querySelector(
+      "#chat"
+    );
+  if (!chatSection) return;
+  let header =
+    document.querySelector(
+      "#chealActiveChat"
+    );
+  if (!header) {
+    header =
+      document.createElement(
+        "div"
+      );
+    header.id =
+      "chealActiveChat";
+    const chatFormElement =
+      document.querySelector(
+        "#chatForm"
+      );
+    if (
+      chatFormElement &&
+      chatFormElement.parentNode
+    ) {
+      chatFormElement.parentNode
+        .insertBefore(
+          header,
+          chatFormElement
+        );
+    }
+    else {
+      chatSection.appendChild(
+        header
+      );
+    }
+  }
+  header.innerHTML = `
+    <div
+      style="
+        margin-bottom:12px;
+        padding:14px 16px;
+        border:1px solid #e5e7eb;
+        border-radius:14px;
+        background:#fff;
+      "
+    >
+      <div
+        style="
+          display:flex;
+          align-items:center;
+          gap:12px;
+        "
+      >
+        <div
+          style="
+            width:42px;
+            height:42px;
+            border-radius:50%;
+            background:#16a34a;
+            color:white;
+            display:grid;
+            place-items:center;
+            font-weight:700;
+          "
+        >
+          ${escapeHTML(
+            (
+              conversation
+                .otherName ||
+              "S"
+            )
+              .charAt(0)
+              .toUpperCase()
+          )}
+        </div>
+        <div>
+          <strong>
+            ${escapeHTML(
+              conversation
+                .otherName
+            )}
+          </strong>
+          <div
+            style="
+              color:#667085;
+              font-size:13px;
+              margin-top:2px;
+            "
+          >
+            ${escapeHTML(
+              conversation
+                .productName
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
+  `;
+}
 /* =========================================================
    LOAD MESSAGES
 ========================================================= */
-
 async function loadMessages(
   conversationId
 ) {
-
   if (!messages) return;
-
-
   messages.innerHTML = `
     <div
       style="
@@ -2063,11 +1362,9 @@ async function loadMessages(
         color:#667085;
       "
     >
-      Loading conversation...
+      Loading messages...
     </div>
   `;
-
-
   const {
     data,
     error
@@ -2084,19 +1381,14 @@ async function loadMessages(
       .order(
         "created_at",
         {
-          ascending: true
+          ascending:true
         }
       );
-
-
   if (error) {
-
     console.error(
-      "Message loading error:",
+      "Messages error:",
       error
     );
-
-
     messages.innerHTML = `
       <div
         style="
@@ -2107,19 +1399,11 @@ async function loadMessages(
         Could not load messages.
       </div>
     `;
-
-
     return;
-
   }
-
-
   const rows =
     data || [];
-
-
   if (!rows.length) {
-
     messages.innerHTML = `
       <div
         style="
@@ -2128,695 +1412,390 @@ async function loadMessages(
           color:#667085;
         "
       >
-        <div style="font-size:30px;">
+        <div
+          style="
+            font-size:30px;
+          "
+        >
           💬
         </div>
-
-        <strong>Start the conversation</strong>
-
-        <p style="margin:5px 0 0;">
-          Send the seller a message about this product.
+        <strong>
+          Start the conversation
+        </strong>
+        <p
+          style="
+            margin:5px 0 0;
+          "
+        >
+          Send a private message about the product.
         </p>
       </div>
     `;
-
-
     return;
-
   }
-
-
   messages.innerHTML = "";
-
-
   rows.forEach(
-    (row) =>
+    row =>
       appendMessageBubble(
         row,
         false
       )
   );
-
-
   messages.scrollTop =
     messages.scrollHeight;
-
 }
-
-
 /* =========================================================
    MESSAGE BUBBLE
 ========================================================= */
-
 function appendMessageBubble(
   row,
   scroll = true
 ) {
-
   if (!messages) return;
-
-
   const userId =
-    currentUserId();
-
-
-  const isMine =
+    window.chealCurrentUser?.id;
+  const mine =
     row.sender_id ===
     userId;
-
-
   const bubble =
     document.createElement(
       "div"
     );
-
-
-  bubble.className =
-    isMine
-      ? "buyerMsg"
-      : "sellerMsg";
-
-
   bubble.style.marginBottom =
     "10px";
-
-
   bubble.style.padding =
     "10px 13px";
-
-
   bubble.style.borderRadius =
-    "12px";
-
-
+    "14px";
   bubble.style.maxWidth =
     "80%";
-
-
   bubble.style.width =
     "fit-content";
-
-
   bubble.style.marginLeft =
-    isMine
+    mine
       ? "auto"
       : "0";
-
-
   bubble.style.background =
-    isMine
+    mine
       ? "#dcfce7"
       : "#f3f4f6";
-
-
   bubble.style.color =
     "#172033";
-
-
+  bubble.style.whiteSpace =
+    "pre-wrap";
   bubble.textContent =
     row.message || "";
-
-
   messages.appendChild(
     bubble
   );
-
-
   if (scroll) {
-
     messages.scrollTop =
       messages.scrollHeight;
-
   }
-
 }
-
-
 /* =========================================================
-   CURRENT USER ID
+   REAL-TIME CHAT
 ========================================================= */
-
-function currentUserId() {
-
-  const sessionUser =
-    window.chealCurrentUser;
-
-
-  return sessionUser
-    ? sessionUser.id
-    : null;
-
-}
-
-
-/* =========================================================
-   REALTIME MESSAGE SUBSCRIPTION
-========================================================= */
-
 function subscribeToMessages(
   conversationId
 ) {
-
   if (messageChannel) {
-
     supabaseClient
       .removeChannel(
         messageChannel
       );
-
     messageChannel =
       null;
-
   }
-
-
   messageChannel =
     supabaseClient
       .channel(
-        "cheal-chat-" +
-        conversationId
+        "cheal-private-chat-" +
+        conversationId +
+        "-" +
+        Date.now()
       )
       .on(
         "postgres_changes",
         {
           event:
             "INSERT",
-
           schema:
             "public",
-
           table:
             "messages",
-
           filter:
             `conversation_id=eq.${conversationId}`
-
         },
-        (payload) => {
-
-          const row =
-            payload.new;
-
-
+        payload => {
           if (
-            !messages ||
             Number(
-              row.conversation_id
+              payload.new
+                .conversation_id
             ) !==
             Number(
               activeConversationId
             )
           ) {
-
             return;
-
           }
-
-
           appendMessageBubble(
-            row,
+            payload.new,
             true
           );
-
         }
       )
       .subscribe(
-        (status) => {
-
+        status => {
           console.log(
-            "Cheal Chat realtime:",
+            "Cheal Chat:",
             status
           );
-
         }
       );
-
 }
-
-
 /* =========================================================
    SEND MESSAGE
 ========================================================= */
-
 if (chatForm) {
-
   chatForm.onsubmit =
-    async (event) => {
-
+    async event => {
       event.preventDefault();
-
-
       const user =
         await getUser();
-
-
       if (!user) {
-
-        alert(
-          "Please sign in to send messages."
-        );
-
-
         openAuth(
           "Sign in"
         );
-
-
         return;
-
       }
-
-
       if (!activeConversationId) {
-
         alert(
-          "Open a conversation first."
+          "Select a conversation first."
         );
-
-
         return;
-
       }
-
-
       const text =
         message
           ? message.value.trim()
           : "";
-
-
       if (!text) return;
-
-
-      const submitButton =
+      const sendButton =
         chatForm.querySelector(
           'button[type="submit"]'
         );
-
-
-      if (submitButton) {
-
-        submitButton.disabled =
+      if (sendButton) {
+        sendButton.disabled =
           true;
-
       }
-
-
       try {
-
         const {
           error
         } =
           await supabaseClient
             .from("messages")
             .insert({
-
               conversation_id:
                 activeConversationId,
-
               sender_id:
                 user.id,
-
               message:
                 text
-
             });
-
-
         if (error) {
-
           console.error(
-            "Message insert error:",
+            "Send message error:",
             error
           );
-
-
           alert(
             "Could not send message: " +
             error.message
           );
-
-
           return;
-
         }
-
-
         message.value =
           "";
-
-
       }
-
-
       catch (error) {
-
         console.error(
-          "Send message error:",
+          "Message error:",
           error
         );
-
-
         alert(
-          "Could not send the message."
+          "Could not send message."
         );
-
       }
-
-
       finally {
-
-        if (submitButton) {
-
-          submitButton.disabled =
+        if (sendButton) {
+          sendButton.disabled =
             false;
-
         }
-
       }
-
     };
-
 }
-
-
 /* =========================================================
-   PRODUCT CHAT / INBOX BUTTON
+   MESSAGES BUTTON
 ========================================================= */
-
 if (messagesButton) {
-
   messagesButton.onclick =
     async () => {
-
       const user =
         await getUser();
-
-
       if (!user) {
-
         openAuth(
           "Sign in"
         );
-
-
         return;
-
       }
-
-
       await loadConversations();
-
-
-      const chatSection =
-        document.querySelector(
+      document
+        .querySelector(
           "#chat"
-        );
-
-
-      if (chatSection) {
-
-        chatSection.scrollIntoView({
-          behavior: "smooth"
+        )
+        ?.scrollIntoView({
+          behavior:
+            "smooth"
         });
-
-      }
-
     };
-
 }
-
-
 /* =========================================================
-   AUTH MODAL
+   AUTH
 ========================================================= */
-
 let authMode =
   "signup";
-
-
 function openAuth(title) {
-
   if (!modal) return;
-
-
   modalTitle.textContent =
     title;
-
-
   modal.classList.remove(
     "hidden"
   );
-
-
   if (
     title ===
     "Sign in"
   ) {
-
     authMode =
       "signin";
-
-
     authSubmit.textContent =
       "Sign in";
-
-
     authMessage.textContent =
       "Sign in to buy, sell and chat.";
-
-
     authName.style.display =
       "none";
-
-
     authCampus.style.display =
       "none";
-
-
     authName.required =
       false;
-
-
     authCampus.required =
       false;
-
   }
-
-
   else {
-
     authMode =
       "signup";
-
-
     authSubmit.textContent =
       "Create account";
-
-
     authMessage.textContent =
-      "Your account will allow you to buy, sell and chat.";
-
-
+      "Create your Cheal Market account.";
     authName.style.display =
       "";
-
-
     authCampus.style.display =
       "";
-
-
     authName.required =
       true;
-
-
     authCampus.required =
       true;
-
   }
-
 }
-
-
-/* =========================================================
-   AUTH BUTTONS
-========================================================= */
-
 if (login) {
-
   login.onclick =
     () =>
       openAuth(
         "Sign in"
       );
-
 }
-
-
 if (signup) {
-
   signup.onclick =
     () =>
       openAuth(
         "Create account"
       );
-
 }
-
-
 if (close) {
-
   close.onclick =
     () =>
       modal.classList.add(
         "hidden"
       );
-
 }
-
-
 if (modal) {
-
   modal.onclick =
-    (event) => {
-
+    event => {
       if (
         event.target ===
         modal
       ) {
-
         modal.classList.add(
           "hidden"
         );
-
       }
-
     };
-
 }
-
-
 /* =========================================================
-   LOCATION BUTTON
+   AUTH SUBMISSION
 ========================================================= */
-
-if (locationButton) {
-
-  locationButton.onclick =
-    () => {
-
-      alert(
-        "Campus locations will be available as Cheal Market grows."
-      );
-
-    };
-
-}
-
-
-/* =========================================================
-   AUTH SUBMIT
-========================================================= */
-
 if (auth) {
-
   auth.onsubmit =
-    async (event) => {
-
+    async event => {
       event.preventDefault();
-
-
       const email =
         authEmail.value.trim();
-
-
       const password =
         authPassword.value;
-
-
       authSubmit.disabled =
         true;
-
-
       authSubmit.textContent =
         "Please wait...";
-
-
       try {
-
-        /* =================================================
-           SIGN IN
-        ================================================= */
-
+        /* SIGN IN */
         if (
           authMode ===
           "signin"
         ) {
-
           const {
             error
           } =
             await supabaseClient
               .auth
               .signInWithPassword({
-
                 email:
                   email,
-
                 password:
                   password
-
               });
-
-
           if (error) {
-
             alert(
               "Sign in failed: " +
               error.message
             );
-
-
             return;
-
           }
-
-
-          alert(
-            "Welcome back!"
-          );
-
-
           modal.classList.add(
             "hidden"
           );
-
-
           auth.reset();
-
-
           await updateAuthButtons();
-
+          await loadProducts();
           await loadConversations();
-
-
+          alert(
+            "Welcome back!"
+          );
           return;
-
         }
-
-
-        /* =================================================
-           CREATE ACCOUNT
-        ================================================= */
-
+        /* SIGN UP */
         const fullName =
           authName.value.trim();
-
-
         const campus =
           authCampus.value.trim();
-
-
         const {
           data,
           error
@@ -2824,52 +1803,31 @@ if (auth) {
           await supabaseClient
             .auth
             .signUp({
-
               email:
                 email,
-
               password:
                 password,
-
               options: {
-
                 data: {
-
                   full_name:
                     fullName,
-
                   campus:
                     campus
-
                 }
-
               }
-
             });
-
-
         if (error) {
-
           alert(
             "Account creation failed: " +
             error.message
           );
-
-
           return;
-
         }
-
-
-        /* =================================================
-           CREATE PROFILE
-        ================================================= */
-
+        /* If email confirmation is disabled */
         if (
           data.user &&
           data.session
         ) {
-
           const {
             error:
               profileError
@@ -2877,238 +1835,146 @@ if (auth) {
             await supabaseClient
               .from("profiles")
               .upsert({
-
                 id:
                   data.user.id,
-
                 full_name:
                   fullName,
-
                 campus:
                   campus
-
               });
-
-
           if (profileError) {
-
             console.error(
-              "Profile creation error:",
+              "Profile error:",
               profileError
             );
-
           }
-
         }
-
-
-        /* =================================================
-           SUCCESS MESSAGE
-        ================================================= */
-
-        if (
-          !data.session
-        ) {
-
-          alert(
-            "Account created! Please check your email to confirm your account, then sign in."
-          );
-
-        }
-
-        else {
-
-          alert(
-            "Account created successfully!"
-          );
-
-        }
-
-
         modal.classList.add(
           "hidden"
         );
-
-
         auth.reset();
-
-
-        await updateAuthButtons();
-
-        await loadConversations();
-
+        if (
+          data.session
+        ) {
+          alert(
+            "Account created successfully!"
+          );
+        }
+        else {
+          alert(
+            "Account created! Check your email to confirm your account, then sign in."
+          );
+        }
       }
-
-
       catch (error) {
-
         console.error(
           "Authentication error:",
           error
         );
-
-
         alert(
           "Something went wrong: " +
           error.message
         );
-
       }
-
-
       finally {
-
         authSubmit.disabled =
           false;
-
-
         authSubmit.textContent =
           authMode ===
           "signin"
             ? "Sign in"
             : "Create account";
-
       }
-
     };
-
 }
-
-
 /* =========================================================
-   UPDATE AUTH BUTTONS
+   AUTH BUTTONS
 ========================================================= */
-
 async function updateAuthButtons() {
-
   const user =
     await getUser();
-
-
   window.chealCurrentUser =
     user;
-
-
   if (!login) return;
-
-
   if (user) {
-
     login.innerHTML = `
       <span>👤</span>
-
       <div>
         <small>Account</small>
         <strong>Signed in</strong>
       </div>
     `;
-
-
     if (signup) {
-
       signup.textContent =
         "Account";
-
     }
-
   }
-
-
   else {
-
     login.innerHTML = `
       <span>👤</span>
-
       <div>
         <small>Account</small>
         <strong>Sign in</strong>
       </div>
     `;
-
-
     if (signup) {
-
       signup.textContent =
         "Create account";
-
     }
-
   }
-
 }
-
-
 /* =========================================================
-   AUTH STATE LISTENER
+   LOCATION
 ========================================================= */
-
+if (locationButton) {
+  locationButton.onclick =
+    () => {
+      alert(
+        "Campus-based marketplace locations are coming soon."
+      );
+    };
+}
+/* =========================================================
+   AUTH STATE CHANGES
+========================================================= */
 supabaseClient.auth
   .onAuthStateChange(
     async (
       event,
       session
     ) => {
-
       window.chealCurrentUser =
         session?.user ||
         null;
-
-
       await updateAuthButtons();
-
-
       if (
         session?.user
       ) {
-
+        await loadProducts();
         await loadConversations();
-
       }
-
       else {
-
         conversations = [];
-
         activeConversationId =
           null;
-
-        activeConversation =
-          null;
-
-
         if (messageChannel) {
-
           supabaseClient
             .removeChannel(
               messageChannel
             );
-
           messageChannel =
             null;
-
         }
-
-
-        renderConversationInbox();
-
+        renderChatInbox();
       }
-
     }
   );
-
-
 /* =========================================================
-   START APPLICATION
+   START CHEAL MARKET
 ========================================================= */
-
 window.chealCurrentUser =
   null;
-
-
 createCategories();
-
-loadProducts();
-
 updateAuthButtons();
-
+loadProducts();
 loadConversations();
