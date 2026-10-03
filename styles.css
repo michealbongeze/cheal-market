@@ -1,1 +1,683 @@
-*{box-sizing:border-box}html{scroll-behavior:smooth}body{margin:0;font-family:Arial,sans-serif;background:#f7f8fc;color:#172033}header{height:70px;background:white;border-bottom:1px solid #ddd;display:flex;align-items:center;justify-content:space-between;padding:0 5%;position:sticky;top:0;z-index:5}.logo{font-size:22px;font-weight:900;text-decoration:none;color:#172033}.logo span,h1 span{color:#2563eb}nav{display:flex;gap:14px;align-items:center}nav a{color:#555;text-decoration:none}button,.cta,.ghost{padding:11px 15px;border-radius:9px;border:0;font-weight:700;cursor:pointer}.cta,button{background:#2563eb;color:white;text-decoration:none}.ghost{border:1px solid #ddd;background:white;color:#172033;text-decoration:none}.hero,section{max-width:1100px;margin:auto;padding:65px 5%}.hero{display:grid;grid-template-columns:1.2fr .8fr;gap:40px;align-items:center}.hero h1{font-size:54px;line-height:1;margin:15px 0}.hero p{font-size:19px;color:#667085;line-height:1.6}.heroCard{background:white;border:1px solid #e2e5eb;border-radius:22px;padding:35px;font-size:55px;box-shadow:0 15px 40px #00000010}.heroCard h2{font-size:24px}.heroCard p{font-size:16px}.hero+section{border-top:1px solid #eee}section h2{font-size:32px}#search{width:100%;padding:13px;border:1px solid #ddd;border-radius:9px;margin:10px 0 20px}.cat{display:inline-block;padding:8px 13px;margin:0 7px 15px 0;border:1px solid #ddd;border-radius:20px;background:white;cursor:pointer}.active{background:#172033;color:white}.grid{display:grid;grid-template-columns:repeat(4,1fr);gap:16px}.product{background:white;border:1px solid #e1e4ea;border-radius:14px;padding:17px}.pic{text-align:center;font-size:42px;background:#eef2ff;padding:25px;border-radius:10px}.product h3{margin-bottom:5px}.muted{color:#667085;font-size:13px}form{display:grid;gap:12px}#sellForm{background:white;border:1px solid #e1e4ea;border-radius:15px;padding:22px;grid-template-columns:1fr 1fr}#sellForm textarea,#sellForm button{grid-column:1/-1}input,select,textarea{padding:13px;border:1px solid #d7dbe3;border-radius:9px;font:inherit}textarea{min-height:90px}.chat{display:grid;grid-template-columns:230px 1fr;background:white;border:1px solid #e1e4ea;border-radius:15px;overflow:hidden;min-height:400px}.chat aside{padding:20px;border-right:1px solid #ddd}.chat aside small{display:block;color:#667085;margin:5px 0 18px}.chat>div{display:flex;flex-direction:column;justify-content:space-between;padding:20px}.sellerMsg,.buyerMsg{padding:10px 13px;border-radius:12px;max-width:70%}.sellerMsg{background:#eef0f4}.buyerMsg{background:#2563eb;color:white;margin-left:auto}.chat form{display:flex}.chat form input{flex:1}.modal{position:fixed;inset:0;background:#0008;display:grid;place-items:center;z-index:10}.hidden{display:none}.box{background:white;padding:28px;border-radius:16px;width:min(420px,90%);position:relative}.box form{margin:20px 0}.box>button{position:absolute;right:10px;top:10px;background:none;color:#222;font-size:25px}footer{text-align:center;background:#111827;color:#ddd;padding:30px}@media(max-width:800px){.hero{grid-template-columns:1fr}.grid{grid-template-columns:1fr 1fr}.topbar nav a{display:none}}@media(max-width:500px){.grid{grid-template-columns:1fr}#sellForm{grid-template-columns:1fr}#sellForm textarea,#sellForm button{grid-column:auto}.hero h1{font-size:42px}}
+/* =========================
+   CHEAL MARKET
+   MAIN STYLES
+========================= */
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  margin: 0;
+  font-family: Arial, Helvetica, sans-serif;
+  background: #f7f8fa;
+  color: #172033;
+  line-height: 1.6;
+}
+
+a {
+  text-decoration: none;
+  color: inherit;
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
+}
+
+
+/* =========================
+   HEADER
+========================= */
+
+header {
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  background: #ffffff;
+  border-bottom: 1px solid #e5e7eb;
+  padding: 16px 6%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+}
+
+.logo {
+  font-size: 25px;
+  font-weight: 800;
+  color: #111827;
+}
+
+.logo span {
+  color: #2563eb;
+}
+
+nav {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+nav a {
+  padding: 8px 12px;
+  color: #374151;
+  font-weight: 600;
+}
+
+nav a:hover {
+  color: #2563eb;
+}
+
+nav button {
+  border: 0;
+  border-radius: 8px;
+  padding: 10px 15px;
+  cursor: pointer;
+  font-weight: 700;
+  background: #2563eb;
+  color: white;
+}
+
+nav button:hover {
+  opacity: 0.9;
+}
+
+
+/* =========================
+   MAIN
+========================= */
+
+main {
+  width: 100%;
+}
+
+section {
+  width: min(1180px, 88%);
+  margin: 0 auto;
+  padding: 80px 0;
+}
+
+section h2 {
+  font-size: 30px;
+  margin: 0 0 12px;
+}
+
+section > p {
+  color: #667085;
+}
+
+
+/* =========================
+   HERO
+========================= */
+
+.hero {
+  min-height: 650px;
+  display: grid;
+  grid-template-columns: 1.5fr 1fr;
+  align-items: center;
+  gap: 50px;
+}
+
+.hero b {
+  color: #2563eb;
+  font-size: 13px;
+  letter-spacing: 1.5px;
+}
+
+.hero h1 {
+  font-size: clamp(42px, 7vw, 76px);
+  line-height: 1.02;
+  margin: 18px 0;
+  letter-spacing: -2px;
+}
+
+.hero h1 span {
+  color: #2563eb;
+}
+
+.hero p {
+  max-width: 650px;
+  font-size: 18px;
+  color: #667085;
+}
+
+.cta,
+.ghost {
+  display: inline-block;
+  margin-top: 18px;
+  margin-right: 10px;
+  padding: 13px 20px;
+  border-radius: 9px;
+  font-weight: 700;
+}
+
+.cta {
+  background: #2563eb;
+  color: white;
+}
+
+.ghost {
+  background: white;
+  border: 1px solid #d0d5dd;
+  color: #344054;
+}
+
+.heroCard {
+  background: white;
+  border: 1px solid #e5e7eb;
+  border-radius: 22px;
+  padding: 50px 35px;
+  text-align: center;
+  box-shadow: 0 15px 40px rgba(16, 24, 40, 0.08);
+  font-size: 55px;
+}
+
+.heroCard h2 {
+  font-size: 25px;
+  margin-top: 20px;
+}
+
+.heroCard p {
+  font-size: 16px;
+  color: #667085;
+}
+
+
+/* =========================
+   SEARCH
+========================= */
+
+#search {
+  width: 100%;
+  padding: 16px 18px;
+  margin: 20px 0;
+  border: 1px solid #d0d5dd;
+  border-radius: 10px;
+  background: white;
+  outline: none;
+}
+
+#search:focus {
+  border-color: #2563eb;
+}
+
+
+/* =========================
+   CATEGORIES
+========================= */
+
+#cats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 25px;
+}
+
+.cat {
+  border: 1px solid #d0d5dd;
+  background: white;
+  color: #344054;
+  padding: 9px 15px;
+  border-radius: 999px;
+  cursor: pointer;
+}
+
+.cat:hover,
+.cat.active {
+  background: #2563eb;
+  border-color: #2563eb;
+  color: white;
+}
+
+
+/* =========================
+   PRODUCTS
+========================= */
+
+#products {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 18px;
+}
+
+.product {
+  background: white;
+  border: 1px solid #e5e7eb;
+  border-radius: 15px;
+  padding: 18px;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.product:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 10px 25px rgba(16, 24, 40, 0.08);
+}
+
+.product .pic {
+  height: 150px;
+  border-radius: 12px;
+  background: #f2f4f7;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 60px;
+  margin-bottom: 15px;
+}
+
+.product h3 {
+  margin: 5px 0;
+  font-size: 18px;
+}
+
+.product b {
+  color: #2563eb;
+  font-size: 17px;
+}
+
+.muted {
+  color: #667085;
+}
+
+.product button {
+  width: 100%;
+  margin-top: 10px;
+  border: 0;
+  border-radius: 8px;
+  padding: 10px;
+  cursor: pointer;
+  background: #eef4ff;
+  color: #175cd3;
+  font-weight: 700;
+}
+
+
+/* =========================
+   SELL FORM
+========================= */
+
+#sellForm {
+  margin-top: 25px;
+  background: white;
+  border: 1px solid #e5e7eb;
+  border-radius: 16px;
+  padding: 25px;
+  display: grid;
+  gap: 14px;
+  max-width: 750px;
+}
+
+#sellForm input,
+#sellForm select,
+#sellForm textarea {
+  width: 100%;
+  padding: 13px 15px;
+  border: 1px solid #d0d5dd;
+  border-radius: 9px;
+  outline: none;
+  background: white;
+}
+
+#sellForm textarea {
+  min-height: 120px;
+  resize: vertical;
+}
+
+#sellForm input:focus,
+#sellForm select:focus,
+#sellForm textarea:focus {
+  border-color: #2563eb;
+}
+
+#sellForm button {
+  border: 0;
+  border-radius: 9px;
+  padding: 13px;
+  background: #2563eb;
+  color: white;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+
+/* =========================
+   CHAT
+========================= */
+
+#chat {
+  padding-bottom: 100px;
+}
+
+.chat {
+  margin-top: 25px;
+  display: grid;
+  grid-template-columns: 260px minmax(0, 1fr);
+  min-height: 520px;
+  background: white;
+  border: 1px solid #dfe3e8;
+  border-radius: 18px;
+  overflow: hidden;
+  box-shadow: 0 8px 25px rgba(16, 24, 40, 0.06);
+}
+
+
+/* CHAT SIDEBAR */
+
+.chat aside {
+  background: #f8fafc;
+  border-right: 1px solid #e5e7eb;
+  padding: 20px;
+  overflow-y: auto;
+}
+
+.chat aside b {
+  display: block;
+  font-size: 16px;
+  margin-bottom: 3px;
+}
+
+.chat aside small {
+  display: block;
+  color: #667085;
+  margin-bottom: 18px;
+}
+
+.chat aside hr {
+  border: 0;
+  border-top: 1px solid #e5e7eb;
+  margin: 18px 0;
+}
+
+
+/* CHAT MAIN AREA */
+
+.chat > div {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  background: #ffffff;
+}
+
+
+/* MESSAGES */
+
+#messages {
+  flex: 1;
+  min-height: 390px;
+  padding: 25px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  background: #fbfcfe;
+}
+
+#messages p {
+  max-width: 70%;
+  margin: 0;
+  padding: 11px 15px;
+  border-radius: 15px;
+  word-wrap: break-word;
+  overflow-wrap: anywhere;
+}
+
+
+/* SELLER MESSAGE */
+
+.sellerMsg {
+  align-self: flex-start;
+  background: #eef2f6;
+  color: #344054;
+  border-bottom-left-radius: 4px !important;
+}
+
+
+/* BUYER MESSAGE */
+
+.buyerMsg {
+  align-self: flex-end;
+  background: #2563eb;
+  color: white;
+  border-bottom-right-radius: 4px !important;
+}
+
+
+/* CHAT INPUT */
+
+#chatForm {
+  display: flex;
+  gap: 10px;
+  padding: 15px;
+  border-top: 1px solid #e5e7eb;
+  background: white;
+}
+
+#chatForm input {
+  min-width: 0;
+  flex: 1;
+  padding: 13px 15px;
+  border: 1px solid #d0d5dd;
+  border-radius: 10px;
+  outline: none;
+}
+
+#chatForm input:focus {
+  border-color: #2563eb;
+}
+
+#chatForm button {
+  flex-shrink: 0;
+  border: 0;
+  border-radius: 10px;
+  padding: 12px 20px;
+  background: #2563eb;
+  color: white;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+
+/* =========================
+   ACCOUNT MODAL
+========================= */
+
+.modal {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  background: rgba(0, 0, 0, 0.55);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
+
+.modal.hidden {
+  display: none;
+}
+
+.box {
+  position: relative;
+  width: min(450px, 100%);
+  background: white;
+  border-radius: 18px;
+  padding: 30px;
+  box-shadow: 0 25px 60px rgba(0, 0, 0, 0.2);
+}
+
+.box h2 {
+  margin-top: 0;
+  padding-right: 30px;
+}
+
+#close {
+  position: absolute;
+  top: 12px;
+  right: 15px;
+  border: 0;
+  background: transparent;
+  font-size: 30px;
+  cursor: pointer;
+  color: #667085;
+}
+
+#auth {
+  display: grid;
+  gap: 13px;
+}
+
+#auth input,
+#auth select {
+  width: 100%;
+  padding: 13px;
+  border: 1px solid #d0d5dd;
+  border-radius: 9px;
+}
+
+#auth button {
+  border: 0;
+  border-radius: 9px;
+  padding: 13px;
+  background: #2563eb;
+  color: white;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+#authMessage {
+  display: block;
+  margin-top: 15px;
+  color: #667085;
+}
+
+
+/* =========================
+   FOOTER
+========================= */
+
+footer {
+  text-align: center;
+  padding: 35px 20px;
+  border-top: 1px solid #e5e7eb;
+  background: white;
+  color: #667085;
+}
+
+
+/* =========================
+   TABLET
+========================= */
+
+@media (max-width: 900px) {
+
+  .hero {
+    grid-template-columns: 1fr;
+    padding-top: 60px;
+  }
+
+  #products {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+}
+
+
+/* =========================
+   MOBILE
+========================= */
+
+@media (max-width: 650px) {
+
+  header {
+    position: relative;
+    flex-direction: column;
+    align-items: flex-start;
+    padding: 15px 5%;
+  }
+
+  nav {
+    width: 100%;
+    gap: 5px;
+  }
+
+  nav a {
+    padding: 7px 6px;
+    font-size: 14px;
+  }
+
+  nav button {
+    padding: 8px 10px;
+    font-size: 13px;
+  }
+
+  section {
+    width: 90%;
+    padding: 55px 0;
+  }
+
+  .hero {
+    min-height: auto;
+    gap: 35px;
+  }
+
+  .hero h1 {
+    font-size: 45px;
+  }
+
+  .heroCard {
+    padding: 35px 20px;
+  }
+
+  #products {
+    grid-template-columns: 1fr;
+  }
+
+
+  /* MOBILE CHAT */
+
+  .chat {
+    grid-template-columns: 1fr;
+    min-height: auto;
+  }
+
+  .chat aside {
+    border-right: 0;
+    border-bottom: 1px solid #e5e7eb;
+    max-height: 180px;
+  }
+
+  .chat aside hr {
+    margin: 12px 0;
+  }
+
+  #messages {
+    min-height: 350px;
+    max-height: 450px;
+    padding: 18px;
+  }
+
+  #messages p {
+    max-width: 85%;
+  }
+
+  #chatForm {
+    padding: 12px;
+  }
+
+  #chatForm button {
+    padding: 11px 15px;
+  }
+
+  .box {
+    padding: 25px 20px;
+  }
+
+}
