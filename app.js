@@ -1,17 +1,27 @@
+/* =========================================================
+   CHEAL MARKET — APP.JS
+========================================================= */
+
+
+/* =========================================================
+   SUPABASE CONFIGURATION
+========================================================= */
+
 const SUPABASE_URL =
   "https://qwlklqjfbrhythpynghr.supabase.co";
 
-const SUPABASE_KEY = "sb_publishable_HVAjJNZAQIiyf1aFosvH0A_fnYoFpHx";;
+const SUPABASE_KEY =
+  "sb_publishable_HVAjJNZAQIiyf1aFosvH0A_fnYoFpHx";
 
-const supabaseClient = window.supabase.createClient(
-  SUPABASE_URL,
-  SUPABASE_PUBLISHABLE_KEY
-);
+const supabaseClient =
+  window.supabase.createClient(
+    SUPABASE_URL,
+    SUPABASE_KEY
+  );
 
 
 /* =========================================================
    DEMO FALLBACK PRODUCTS
-   These appear only if Supabase has no listings yet.
 ========================================================= */
 
 const demoProducts = [
@@ -140,6 +150,7 @@ const demoProducts = [
 
 
 let products = [];
+
 let activeCategory = "All";
 
 
@@ -218,14 +229,16 @@ const locationButton =
 
 
 /* =========================================================
-   FORMAT MONEY
+   MONEY FORMAT
 ========================================================= */
 
 function money(value) {
 
-  return "UGX " +
+  return (
+    "UGX " +
     Number(value || 0)
-      .toLocaleString("en-UG");
+      .toLocaleString("en-UG")
+  );
 
 }
 
@@ -279,7 +292,7 @@ function categoryIcon(category) {
 
 
 /* =========================================================
-   LOAD PRODUCTS FROM SUPABASE
+   LOAD PRODUCTS
 ========================================================= */
 
 async function loadProducts() {
@@ -302,17 +315,18 @@ async function loadProducts() {
     const {
       data,
       error
-    } = await supabaseClient
-      .from("products")
-      .select(
-        "id, seller_id, name, price, category, seller_name, campus, description, created_at"
-      )
-      .order(
-        "created_at",
-        {
-          ascending: false
-        }
-      );
+    } =
+      await supabaseClient
+        .from("products")
+        .select(
+          "id, seller_id, name, price, category, seller_name, campus, description, created_at"
+        )
+        .order(
+          "created_at",
+          {
+            ascending: false
+          }
+        );
 
 
     if (error) {
@@ -322,14 +336,11 @@ async function loadProducts() {
         error
       );
 
-      /*
-        If the database cannot be read,
-        keep the marketplace usable.
-      */
 
       products = [
         ...demoProducts
       ];
+
 
       render();
 
@@ -338,25 +349,26 @@ async function loadProducts() {
     }
 
 
-    /*
-      If there are real products,
-      display them.
-
-      If the table is empty,
-      use demo products temporarily.
-    */
-
-    if (data && data.length > 0) {
+    if (
+      data &&
+      data.length > 0
+    ) {
 
       products =
         data.map(
           (item) => ({
 
-            id: item.id,
+            id:
+              item.id,
 
-            name: item.name,
+            seller_id:
+              item.seller_id,
 
-            price: item.price,
+            name:
+              item.name,
+
+            price:
+              item.price,
 
             category:
               item.category,
@@ -397,14 +409,21 @@ async function loadProducts() {
 
     render();
 
+  }
 
-  } catch (error) {
 
-    console.error(error);
+  catch (error) {
+
+    console.error(
+      "Product loading error:",
+      error
+    );
+
 
     products = [
       ...demoProducts
     ];
+
 
     render();
 
@@ -430,9 +449,11 @@ function formatTime(dateValue) {
     new Date(dateValue);
 
 
-  if (Number.isNaN(
-    date.getTime()
-  )) {
+  if (
+    Number.isNaN(
+      date.getTime()
+    )
+  ) {
 
     return "Recently";
 
@@ -441,9 +462,10 @@ function formatTime(dateValue) {
 
   const seconds =
     Math.floor(
-      (Date.now() -
-        date.getTime()) /
-      1000
+      (
+        Date.now() -
+        date.getTime()
+      ) / 1000
     );
 
 
@@ -517,23 +539,36 @@ function productCard(product) {
 
       </div>
 
+
       <div class="productBody">
 
         <div class="productCategory">
-          ${escapeHTML(product.category)}
+          ${escapeHTML(
+            product.category || "Other"
+          )}
         </div>
+
 
         <h3>
-          ${escapeHTML(product.name)}
+          ${escapeHTML(
+            product.name
+          )}
         </h3>
 
+
         <div class="productPrice">
-          ${money(product.price)}
+          ${money(
+            product.price
+          )}
         </div>
 
+
         <div class="productLocation">
-          📍 ${escapeHTML(product.campus)}
+          📍 ${escapeHTML(
+            product.campus
+          )}
         </div>
+
 
         <div class="productSeller">
 
@@ -547,10 +582,14 @@ function productCard(product) {
             )}
           </div>
 
+
           <div>
 
             <strong>
-              ${escapeHTML(product.seller)}
+              ${escapeHTML(
+                product.seller ||
+                "Student"
+              )}
             </strong>
 
             <span>
@@ -564,14 +603,11 @@ function productCard(product) {
 
         </div>
 
+
         <button
           type="button"
           class="productChatButton"
-          onclick="openProductChat(
-            '${escapeHTML(product.seller)}',
-            '${escapeHTML(product.name)}',
-            '${escapeHTML(product.campus)}'
-          )"
+          onclick="openProductChat()"
         >
           💬 Chat with seller
         </button>
@@ -815,6 +851,7 @@ if (searchButton) {
 
       render();
 
+
       document
         .querySelector(
           "#market"
@@ -865,11 +902,7 @@ function toggleFavorite(
    PRODUCT CHAT
 ========================================================= */
 
-function openProductChat(
-  seller,
-  productName,
-  campus
-) {
+function openProductChat() {
 
   const chatSection =
     document.querySelector(
@@ -910,15 +943,28 @@ function openProductChat(
 async function getUser() {
 
   const {
-    data: {
-      user
-    }
+    data,
+    error
   } =
-    await supabaseClient.auth
+    await supabaseClient
+      .auth
       .getUser();
 
 
-  return user;
+  if (error) {
+
+    console.error(
+      "Get user error:",
+      error
+    );
+
+
+    return null;
+
+  }
+
+
+  return data.user;
 
 }
 
@@ -1053,6 +1099,7 @@ if (sellForm) {
         if (error) {
 
           console.error(
+            "Product insert error:",
             error
           );
 
@@ -1068,16 +1115,13 @@ if (sellForm) {
         }
 
 
-        /*
-          Add the newly-created
-          Supabase product to the
-          current screen immediately.
-        */
-
         products.unshift({
 
           id:
             data?.id,
+
+          seller_id:
+            user.id,
 
           name:
             productName,
@@ -1118,10 +1162,13 @@ if (sellForm) {
           "Your product has been listed successfully!"
         );
 
+      }
 
-      } catch (error) {
+
+      catch (error) {
 
         console.error(
+          "Product publishing error:",
           error
         );
 
@@ -1263,8 +1310,10 @@ function openAuth(title) {
     authCampus.required =
       false;
 
+  }
 
-  } else {
+
+  else {
 
     authMode =
       "signup";
@@ -1426,7 +1475,9 @@ if (auth) {
 
       try {
 
-        /* SIGN IN */
+        /* =================================================
+           SIGN IN
+        ================================================= */
 
         if (
           authMode ===
@@ -1483,7 +1534,9 @@ if (auth) {
         }
 
 
-        /* CREATE ACCOUNT */
+        /* =================================================
+           CREATE ACCOUNT
+        ================================================= */
 
         const fullName =
           authName.value.trim();
@@ -1537,10 +1590,9 @@ if (auth) {
         }
 
 
-        /*
-          Create profile when
-          Supabase gives us a session.
-        */
+        /* =================================================
+           CREATE PROFILE
+        ================================================= */
 
         if (
           data.user &&
@@ -1553,7 +1605,7 @@ if (auth) {
           } =
             await supabaseClient
               .from("profiles")
-              .insert({
+              .upsert({
 
                 id:
                   data.user.id,
@@ -1567,16 +1619,10 @@ if (auth) {
               });
 
 
-          if (
-            profileError &&
-            !profileError.message
-              .toLowerCase()
-              .includes(
-                "duplicate"
-              )
-          ) {
+          if (profileError) {
 
             console.error(
+              "Profile creation error:",
               profileError
             );
 
@@ -1584,6 +1630,10 @@ if (auth) {
 
         }
 
+
+        /* =================================================
+           SUCCESS MESSAGE
+        ================================================= */
 
         if (
           !data.session
@@ -1593,7 +1643,9 @@ if (auth) {
             "Account created! Please check your email to confirm your account, then sign in."
           );
 
-        } else {
+        }
+
+        else {
 
           alert(
             "Account created successfully!"
@@ -1612,20 +1664,26 @@ if (auth) {
 
         updateAuthButtons();
 
+      }
 
-      } catch (error) {
+
+      catch (error) {
 
         console.error(
+          "Authentication error:",
           error
         );
 
 
         alert(
-          "Something went wrong. Please try again."
+          "Something went wrong: " +
+          error.message
         );
 
+      }
 
-      } finally {
+
+      finally {
 
         authSubmit.disabled =
           false;
@@ -1676,7 +1734,10 @@ async function updateAuthButtons() {
 
     }
 
-  } else {
+  }
+
+
+  else {
 
     login.innerHTML = `
       <span>👤</span>
