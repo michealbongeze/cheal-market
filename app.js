@@ -1,250 +1,877 @@
-const SUPABASE_URL = "https://qwlklqjfbrhythpynghr.supabase.co";
+/* =========================================================
+   CHEAL MARKET
+   Marketplace Dashboard JavaScript
+   ========================================================= */
+
+const SUPABASE_URL =
+  "https://qwlklqjfbrhythpynghr.supabase.co";
 
 const SUPABASE_PUBLISHABLE_KEY =
   "sb_publishable_HVAjJNZAQIiyf1AosvH0A_fnYoFpHx";
 
-const supabaseClient = window.supabase.createClient(
-  SUPABASE_URL,
-  SUPABASE_PUBLISHABLE_KEY
-);
+const supabaseClient =
+  window.supabase.createClient(
+    SUPABASE_URL,
+    SUPABASE_PUBLISHABLE_KEY
+  );
 
 
-// ===============================
-// DEMO PRODUCTS
-// ===============================
+/* =========================================================
+   DEMO PRODUCTS
+   ========================================================= */
 
 const products = [
-  ["iPhone 13 Pro", 1850000, "Phones", "Sarah", "KIU", "📱"],
-  ["Samsung Galaxy A55", 980000, "Phones", "Daniel", "Makerere", "📱"],
-  ["Campus Hoodie", 35000, "Clothes", "Brian", "KIU", "👕"],
-  ["Sneakers", 85000, "Clothes", "Joan", "Kyambogo", "👟"],
-  ["Calculus Textbook", 45000, "Books", "Irene", "KIU", "📚"],
-  ["Wireless Headphones", 120000, "Electronics", "Kevin", "Makerere", "🎧"],
-  ["Scientific Calculator", 55000, "Other", "Amina", "KIU", "🧮"],
-  ["Laptop Stand", 65000, "Electronics", "Mark", "KIU", "💻"]
-];
 
-let active = "All";
+  {
+    name: "iPhone 13 Pro",
+    price: 1850000,
+    category: "Phones",
+    seller: "Sarah",
+    campus: "KIU",
+    icon: "📱",
+    condition: "Used",
+    time: "2 hours ago"
+  },
 
+  {
+    name: "Samsung Galaxy A55",
+    price: 980000,
+    category: "Phones",
+    seller: "Daniel",
+    campus: "Makerere",
+    icon: "📱",
+    condition: "Like New",
+    time: "3 hours ago"
+  },
 
-// ===============================
-// ELEMENTS
-// ===============================
+  {
+    name: "HP EliteBook Laptop",
+    price: 1250000,
+    category: "Computers",
+    seller: "Michael",
+    campus: "KIU",
+    icon: "💻",
+    condition: "Used",
+    time: "5 hours ago"
+  },
 
-const productsEl = document.querySelector("#products");
-const search = document.querySelector("#search");
-const cats = document.querySelector("#cats");
+  {
+    name: "Campus Hoodie",
+    price: 35000,
+    category: "Clothes",
+    seller: "Brian",
+    campus: "KIU",
+    icon: "👕",
+    condition: "New",
+    time: "1 hour ago"
+  },
 
-const sellForm = document.querySelector("#sellForm");
+  {
+    name: "Nike Sneakers",
+    price: 85000,
+    category: "Clothes",
+    seller: "Joan",
+    campus: "Kyambogo",
+    icon: "👟",
+    condition: "Like New",
+    time: "4 hours ago"
+  },
 
-const chatForm = document.querySelector("#chatForm");
-const message = document.querySelector("#message");
-const messages = document.querySelector("#messages");
+  {
+    name: "Calculus Textbook",
+    price: 45000,
+    category: "Books",
+    seller: "Irene",
+    campus: "KIU",
+    icon: "📚",
+    condition: "Used",
+    time: "30 minutes ago"
+  },
 
-const modal = document.querySelector("#modal");
-const modalTitle = document.querySelector("#modalTitle");
+  {
+    name: "Wireless Headphones",
+    price: 120000,
+    category: "Electronics",
+    seller: "Kevin",
+    campus: "Makerere",
+    icon: "🎧",
+    condition: "New",
+    time: "6 hours ago"
+  },
 
-const auth = document.querySelector("#auth");
+  {
+    name: "Scientific Calculator",
+    price: 55000,
+    category: "Other",
+    seller: "Amina",
+    campus: "KIU",
+    icon: "🧮",
+    condition: "Like New",
+    time: "1 day ago"
+  },
 
-const authName = document.querySelector("#authName");
-const authEmail = document.querySelector("#authEmail");
-const authPassword = document.querySelector("#authPassword");
-const authCampus = document.querySelector("#authCampus");
-const authSubmit = document.querySelector("#authSubmit");
-const authMessage = document.querySelector("#authMessage");
+  {
+    name: "Laptop Stand",
+    price: 65000,
+    category: "Electronics",
+    seller: "Mark",
+    campus: "KIU",
+    icon: "💻",
+    condition: "New",
+    time: "2 hours ago"
+  },
 
-const login = document.querySelector("#login");
-const signup = document.querySelector("#signup");
-const close = document.querySelector("#close");
+  {
+    name: "Gaming Controller",
+    price: 95000,
+    category: "Gaming",
+    seller: "Alex",
+    campus: "Makerere",
+    icon: "🎮",
+    condition: "Used",
+    time: "8 hours ago"
+  },
 
+  {
+    name: "Study Desk",
+    price: 180000,
+    category: "Home",
+    seller: "David",
+    campus: "KIU",
+    icon: "🪑",
+    condition: "Used",
+    time: "1 day ago"
+  },
 
-// ===============================
-// MONEY FORMAT
-// ===============================
-
-const money = (n) =>
-  "UGX " + Number(n).toLocaleString();
-
-
-// ===============================
-// RENDER PRODUCTS
-// ===============================
-
-function render() {
-
-  const q = search.value.toLowerCase().trim();
-
-  const filtered = products.filter((p) => {
-
-    const categoryMatch =
-      active === "All" || p[2] === active;
-
-    const searchMatch =
-      p.join(" ").toLowerCase().includes(q);
-
-    return categoryMatch && searchMatch;
-
-  });
-
-
-  if (filtered.length === 0) {
-
-    productsEl.innerHTML = `
-      <p class="muted">
-        No products found.
-      </p>
-    `;
-
-    return;
+  {
+    name: "USB Flash Drive 64GB",
+    price: 25000,
+    category: "Electronics",
+    seller: "Grace",
+    campus: "Kyambogo",
+    icon: "💾",
+    condition: "New",
+    time: "3 hours ago"
   }
 
+];
 
-  productsEl.innerHTML = filtered.map((p) => {
 
-    return `
-      <article class="product">
+let activeCategory = "All";
 
-        <div class="pic">
-          ${p[5]}
-        </div>
 
-        <h3>
-          ${p[0]}
-        </h3>
+/* =========================================================
+   ELEMENTS
+   ========================================================= */
 
-        <b>
-          ${money(p[1])}
-        </b>
+const productsEl =
+  document.querySelector("#products");
 
-        <p class="muted">
-          ${p[3]} · ${p[4]}
-        </p>
+const search =
+  document.querySelector("#search");
 
-        <button
-          type="button"
-          onclick="document.querySelector('#chat').scrollIntoView({behavior:'smooth'})"
-        >
-          Chat with seller
-        </button>
+const cats =
+  document.querySelector("#cats");
 
-      </article>
-    `;
+const sort =
+  document.querySelector("#sort");
 
-  }).join("");
+const sellForm =
+  document.querySelector("#sellForm");
+
+const chatForm =
+  document.querySelector("#chatForm");
+
+const message =
+  document.querySelector("#message");
+
+const messages =
+  document.querySelector("#messages");
+
+const modal =
+  document.querySelector("#modal");
+
+const modalTitle =
+  document.querySelector("#modalTitle");
+
+const auth =
+  document.querySelector("#auth");
+
+const authName =
+  document.querySelector("#authName");
+
+const authEmail =
+  document.querySelector("#authEmail");
+
+const authPassword =
+  document.querySelector("#authPassword");
+
+const authCampus =
+  document.querySelector("#authCampus");
+
+const authSubmit =
+  document.querySelector("#authSubmit");
+
+const authMessage =
+  document.querySelector("#authMessage");
+
+const login =
+  document.querySelector("#login");
+
+const signup =
+  document.querySelector("#signup");
+
+const close =
+  document.querySelector("#close");
+
+const searchButton =
+  document.querySelector("#searchButton");
+
+const messagesButton =
+  document.querySelector("#messagesButton");
+
+
+/* =========================================================
+   MONEY
+   ========================================================= */
+
+function money(value) {
+
+  return "UGX " +
+    Number(value).toLocaleString("en-UG");
 
 }
 
 
-// ===============================
-// CATEGORIES
-// ===============================
+/* =========================================================
+   ESCAPE HTML
+   ========================================================= */
 
-[
+function escapeHTML(value) {
+
+  return String(value)
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#039;");
+
+}
+
+
+/* =========================================================
+   PRODUCT IMAGE / ICON
+   ========================================================= */
+
+function productVisual(product) {
+
+  return `
+    <div class="pic">
+
+      <span class="productIcon">
+        ${product.icon || "🛍️"}
+      </span>
+
+      <button
+        type="button"
+        class="favoriteButton"
+        aria-label="Add to favorites"
+        onclick="toggleFavorite(this)"
+      >
+        ♡
+      </button>
+
+      <span class="conditionBadge">
+        ${escapeHTML(product.condition || "Used")}
+      </span>
+
+    </div>
+  `;
+
+}
+
+
+/* =========================================================
+   PRODUCT CARD
+   ========================================================= */
+
+function productCard(product) {
+
+  return `
+    <article class="product">
+
+      ${productVisual(product)}
+
+      <div class="productBody">
+
+        <div class="productCategory">
+          ${escapeHTML(product.category)}
+        </div>
+
+        <h3>
+          ${escapeHTML(product.name)}
+        </h3>
+
+        <div class="productPrice">
+          ${money(product.price)}
+        </div>
+
+        <div class="productLocation">
+          📍 ${escapeHTML(product.campus)}
+        </div>
+
+        <div class="productSeller">
+
+          <div class="sellerAvatar">
+            ${escapeHTML(
+              product.seller
+                ? product.seller.charAt(0).toUpperCase()
+                : "U"
+            )}
+          </div>
+
+          <div>
+            <strong>
+              ${escapeHTML(product.seller)}
+            </strong>
+
+            <span>
+              ${escapeHTML(product.time || "Recently")}
+            </span>
+          </div>
+
+        </div>
+
+        <button
+          type="button"
+          class="productChatButton"
+          onclick="openProductChat('${escapeHTML(product.seller)}', '${escapeHTML(product.name)}', '${escapeHTML(product.campus)}')"
+        >
+          💬 Chat with seller
+        </button>
+
+      </div>
+
+    </article>
+  `;
+
+}
+
+
+/* =========================================================
+   RENDER PRODUCTS
+   ========================================================= */
+
+function render() {
+
+  if (!productsEl) return;
+
+  const query =
+    search
+      ? search.value.toLowerCase().trim()
+      : "";
+
+
+  let filtered =
+    products.filter((product) => {
+
+      const categoryMatch =
+        activeCategory === "All" ||
+        product.category === activeCategory;
+
+
+      const searchableText = [
+        product.name,
+        product.category,
+        product.seller,
+        product.campus,
+        product.condition
+      ]
+        .join(" ")
+        .toLowerCase();
+
+
+      const searchMatch =
+        searchableText.includes(query);
+
+
+      return categoryMatch && searchMatch;
+
+    });
+
+
+  /* SORT */
+
+  if (sort) {
+
+    if (sort.value === "priceLow") {
+
+      filtered.sort(
+        (a, b) => a.price - b.price
+      );
+
+    }
+
+
+    if (sort.value === "priceHigh") {
+
+      filtered.sort(
+        (a, b) => b.price - a.price
+      );
+
+    }
+
+  }
+
+
+  if (!filtered.length) {
+
+    productsEl.innerHTML = `
+      <div class="emptyProducts">
+
+        <div>
+          🔎
+        </div>
+
+        <h3>
+          No products found
+        </h3>
+
+        <p>
+          Try another search or category.
+        </p>
+
+      </div>
+    `;
+
+    return;
+
+  }
+
+
+  productsEl.innerHTML =
+    filtered
+      .map(productCard)
+      .join("");
+
+}
+
+
+/* =========================================================
+   CATEGORIES
+   ========================================================= */
+
+const categories = [
   "All",
   "Phones",
+  "Computers",
   "Clothes",
   "Books",
   "Electronics",
+  "Home",
+  "Gaming",
   "Other"
-].forEach((category) => {
-
-  const button = document.createElement("button");
-
-  button.className =
-    "cat " + (category === "All" ? "active" : "");
-
-  button.textContent = category;
+];
 
 
-  button.onclick = () => {
+function createCategories() {
 
-    active = category;
+  if (!cats) return;
 
-    document
-      .querySelectorAll(".cat")
-      .forEach((x) => x.classList.remove("active"));
+  cats.innerHTML = "";
 
-    button.classList.add("active");
+
+  categories.forEach(
+    (category) => {
+
+      const button =
+        document.createElement("button");
+
+      button.type = "button";
+
+      button.className =
+        "cat" +
+        (
+          category === activeCategory
+            ? " active"
+            : ""
+        );
+
+      button.textContent =
+        category;
+
+
+      button.onclick = () => {
+
+        activeCategory =
+          category;
+
+
+        document
+          .querySelectorAll(".cat")
+          .forEach(
+            (item) =>
+              item.classList.remove("active")
+          );
+
+
+        button.classList.add("active");
+
+        render();
+
+      };
+
+
+      cats.appendChild(button);
+
+    }
+  );
+
+}
+
+
+/* =========================================================
+   SEARCH
+   ========================================================= */
+
+if (search) {
+
+  search.addEventListener(
+    "input",
+    render
+  );
+
+}
+
+
+if (searchButton) {
+
+  searchButton.onclick = () => {
 
     render();
 
+    document
+      .querySelector("#market")
+      ?.scrollIntoView({
+        behavior: "smooth"
+      });
+
   };
 
-
-  cats.appendChild(button);
-
-});
+}
 
 
-search.oninput = render;
+if (sort) {
+
+  sort.addEventListener(
+    "change",
+    render
+  );
+
+}
 
 
-// ===============================
-// CHECK LOGIN
-// ===============================
+/* =========================================================
+   FAVORITES
+   ========================================================= */
+
+function toggleFavorite(button) {
+
+  button.classList.toggle("favoriteActive");
+
+  button.textContent =
+    button.classList.contains("favoriteActive")
+      ? "♥"
+      : "♡";
+
+}
+
+
+/* =========================================================
+   PRODUCT CHAT
+   ========================================================= */
+
+function openProductChat(
+  seller,
+  productName,
+  campus
+) {
+
+  const chatSection =
+    document.querySelector("#chat");
+
+
+  if (!chatSection) return;
+
+
+  chatSection.scrollIntoView({
+    behavior: "smooth"
+  });
+
+
+  const chatSeller =
+    chatSection.querySelector(
+      ".chatSeller strong"
+    );
+
+
+  const chatProduct =
+    chatSection.querySelector(
+      ".chatSeller span"
+    );
+
+
+  if (chatSeller) {
+
+    chatSeller.textContent =
+      seller;
+
+  }
+
+
+  if (chatProduct) {
+
+    chatProduct.textContent =
+      `${productName} · ${campus}`;
+
+  }
+
+
+  const messageInput =
+    document.querySelector("#message");
+
+
+  if (messageInput) {
+
+    setTimeout(
+      () => messageInput.focus(),
+      500
+    );
+
+  }
+
+}
+
+
+/* =========================================================
+   CHAT CONVERSATIONS
+   ========================================================= */
+
+document
+  .querySelectorAll(".conversation")
+  .forEach(
+    (conversation) => {
+
+      conversation.addEventListener(
+        "click",
+        () => {
+
+          document
+            .querySelectorAll(".conversation")
+            .forEach(
+              (item) =>
+                item.classList.remove("active")
+            );
+
+
+          conversation.classList.add("active");
+
+
+          const name =
+            conversation.querySelector(
+              ".conversationInfo strong"
+            )?.textContent.trim();
+
+
+          const product =
+            conversation.querySelector(
+              ".conversationInfo span"
+            )?.textContent.trim();
+
+
+          const avatar =
+            conversation.querySelector(
+              ".avatar"
+            )?.textContent.trim();
+
+
+          const topName =
+            document.querySelector(
+              ".chatSeller strong"
+            );
+
+
+          const topProduct =
+            document.querySelector(
+              ".chatSeller span"
+            );
+
+
+          const topAvatar =
+            document.querySelector(
+              ".chatSeller .avatar"
+            );
+
+
+          if (topName)
+            topName.textContent = name;
+
+
+          if (topProduct)
+            topProduct.textContent =
+              product;
+
+
+          if (topAvatar)
+            topAvatar.textContent =
+              avatar;
+
+        }
+      );
+
+    }
+  );
+
+
+/* =========================================================
+   LOGIN CHECK
+   ========================================================= */
 
 async function getUser() {
 
   const {
     data: { user }
-  } = await supabaseClient.auth.getUser();
+  } =
+    await supabaseClient.auth.getUser();
 
   return user;
 
 }
 
 
-// ===============================
-// SELL PRODUCT
-// ===============================
+/* =========================================================
+   SELL PRODUCT
+   ========================================================= */
 
-sellForm.onsubmit = async (e) => {
+if (sellForm) {
 
-  e.preventDefault();
+  sellForm.onsubmit =
+    async (event) => {
 
-
-  const user = await getUser();
-
-
-  if (!user) {
-
-    alert(
-      "Please create an account or sign in before listing a product."
-    );
-
-    openAuth("Create account");
-
-    return;
-  }
+      event.preventDefault();
 
 
-  const productName =
-    document.querySelector("#name").value.trim();
-
-  const price =
-    Number(document.querySelector("#price").value);
-
-  const category =
-    document.querySelector("#cat").value;
-
-  const sellerName =
-    document.querySelector("#seller").value.trim();
-
-  const campus =
-    document.querySelector("#campus").value.trim();
-
-  const description =
-    document.querySelector("#desc").value.trim();
+      const user =
+        await getUser();
 
 
-  try {
+      if (!user) {
 
-    const { error } =
-      await supabaseClient
-        .from("products")
-        .insert({
+        alert(
+          "Please create an account or sign in before listing a product."
+        );
 
-          seller_id: user.id,
+        openAuth("Create account");
+
+        return;
+
+      }
+
+
+      const productName =
+        document
+          .querySelector("#name")
+          .value
+          .trim();
+
+
+      const price =
+        Number(
+          document
+            .querySelector("#price")
+            .value
+        );
+
+
+      const category =
+        document
+          .querySelector("#cat")
+          .value;
+
+
+      const sellerName =
+        document
+          .querySelector("#seller")
+          .value
+          .trim();
+
+
+      const campus =
+        document
+          .querySelector("#campus")
+          .value
+          .trim();
+
+
+      const description =
+        document
+          .querySelector("#desc")
+          .value
+          .trim();
+
+
+      if (!productName || !price || !category) {
+
+        alert(
+          "Please complete the required product details."
+        );
+
+        return;
+
+      }
+
+
+      try {
+
+        const {
+          error
+        } =
+          await supabaseClient
+            .from("products")
+            .insert({
+
+              seller_id: user.id,
+
+              name: productName,
+
+              price: price,
+
+              category: category,
+
+              seller_name: sellerName,
+
+              campus: campus,
+
+              description: description
+
+            });
+
+
+        if (error) {
+
+          console.error(error);
+
+          alert(
+            "Could not list the product: " +
+            error.message
+          );
+
+          return;
+
+        }
+
+
+        products.unshift({
 
           name: productName,
 
@@ -252,435 +879,584 @@ sellForm.onsubmit = async (e) => {
 
           category: category,
 
-          seller_name: sellerName,
+          seller: sellerName,
 
           campus: campus,
 
-          description: description
+          icon: "🛍️",
+
+          condition: "Used",
+
+          time: "Just now"
 
         });
 
 
-    if (error) {
+        render();
 
-      console.error(error);
+        sellForm.reset();
 
-      alert(
-        "Could not list the product: " +
-        error.message
+
+        alert(
+          "Your product has been listed successfully!"
+        );
+
+
+      } catch (error) {
+
+        console.error(error);
+
+        alert(
+          "Something went wrong. Please try again."
+        );
+
+      }
+
+    };
+
+}
+
+
+/* =========================================================
+   CHAT SEND
+   ========================================================= */
+
+if (chatForm) {
+
+  chatForm.onsubmit =
+    async (event) => {
+
+      event.preventDefault();
+
+
+      const user =
+        await getUser();
+
+
+      if (!user) {
+
+        alert(
+          "Please sign in to send messages."
+        );
+
+        openAuth("Sign in");
+
+        return;
+
+      }
+
+
+      const text =
+        message
+          ? message.value.trim()
+          : "";
+
+
+      if (!text) return;
+
+
+      const bubble =
+        document.createElement("div");
+
+
+      bubble.className =
+        "buyerMsg";
+
+
+      bubble.textContent =
+        text;
+
+
+      messages.appendChild(
+        bubble
       );
 
-      return;
-    }
+
+      messages.scrollTop =
+        messages.scrollHeight;
 
 
-    products.unshift([
-      productName,
-      price,
-      category,
-      sellerName,
-      campus,
-      "🛍️"
-    ]);
+      message.value = "";
+
+    };
+
+}
 
 
-    render();
-
-    sellForm.reset();
-
-
-    alert(
-      "Your product has been listed successfully!"
-    );
-
-
-  } catch (error) {
-
-    console.error(error);
-
-    alert(
-      "Something went wrong. Please try again."
-    );
-
-  }
-
-};
-
-
-// ===============================
-// CHAT
-// ===============================
-
-chatForm.onsubmit = async (e) => {
-
-  e.preventDefault();
-
-
-  const user = await getUser();
-
-
-  if (!user) {
-
-    alert(
-      "Please sign in to send messages."
-    );
-
-    openAuth("Sign in");
-
-    return;
-  }
-
-
-  const text = message.value.trim();
-
-
-  if (!text) return;
-
-
-  const p = document.createElement("p");
-
-  p.className = "buyerMsg";
-
-  p.textContent = text;
-
-
-  messages.appendChild(p);
-
-  message.value = "";
-
-};
-
-
-// ===============================
-// AUTH MODAL
-// ===============================
+/* =========================================================
+   AUTH MODAL
+   ========================================================= */
 
 let authMode = "signup";
 
 
 function openAuth(title) {
 
-  modalTitle.textContent = title;
+  if (!modal) return;
 
-  modal.classList.remove("hidden");
+
+  modalTitle.textContent =
+    title;
+
+
+  modal.classList.remove(
+    "hidden"
+  );
 
 
   if (title === "Sign in") {
 
     authMode = "signin";
 
-    authSubmit.textContent = "Sign in";
+    authSubmit.textContent =
+      "Sign in";
+
 
     authMessage.textContent =
       "Sign in to buy, sell and chat.";
 
-    authName.style.display = "none";
 
-    authCampus.style.display = "none";
+    authName.style.display =
+      "none";
 
-    authName.required = false;
 
-    authCampus.required = false;
+    authCampus.style.display =
+      "none";
 
-    authPassword.autocomplete = "current-password";
+
+    authName.required =
+      false;
+
+
+    authCampus.required =
+      false;
+
+
+    authPassword.autocomplete =
+      "current-password";
 
   } else {
 
     authMode = "signup";
 
-    authSubmit.textContent = "Create account";
+    authSubmit.textContent =
+      "Create account";
+
 
     authMessage.textContent =
       "Your account will allow you to buy, sell and chat.";
 
-    authName.style.display = "";
 
-    authCampus.style.display = "";
+    authName.style.display =
+      "";
 
-    authName.required = true;
 
-    authCampus.required = true;
+    authCampus.style.display =
+      "";
 
-    authPassword.autocomplete = "new-password";
+
+    authName.required =
+      true;
+
+
+    authCampus.required =
+      true;
+
+
+    authPassword.autocomplete =
+      "new-password";
 
   }
 
 }
 
 
-// ===============================
-// OPEN / CLOSE AUTH
-// ===============================
+/* =========================================================
+   ACCOUNT BUTTONS
+   ========================================================= */
 
-login.onclick = () => {
+if (login) {
 
-  openAuth("Sign in");
+  login.onclick =
+    () => openAuth("Sign in");
 
-};
-
-
-signup.onclick = () => {
-
-  openAuth("Create account");
-
-};
+}
 
 
-close.onclick = () => {
+if (signup) {
 
-  modal.classList.add("hidden");
+  signup.onclick =
+    () => openAuth("Create account");
 
-};
-
-
-// Close modal when clicking outside box
-
-modal.onclick = (e) => {
-
-  if (e.target === modal) {
-
-    modal.classList.add("hidden");
-
-  }
-
-};
+}
 
 
-// ===============================
-// SIGN IN / CREATE ACCOUNT
-// ===============================
+if (close) {
 
-auth.onsubmit = async (e) => {
+  close.onclick =
+    () => {
 
-  e.preventDefault();
-
-
-  const email =
-    authEmail.value.trim();
-
-  const password =
-    authPassword.value;
-
-
-  authSubmit.disabled = true;
-
-  authSubmit.textContent = "Please wait...";
-
-
-  try {
-
-    // ---------------------------
-    // SIGN IN
-    // ---------------------------
-
-    if (authMode === "signin") {
-
-      const {
-        data,
-        error
-      } = await supabaseClient.auth.signInWithPassword({
-
-        email: email,
-
-        password: password
-
-      });
-
-
-      if (error) {
-
-        alert(
-          "Sign in failed: " +
-          error.message
-        );
-
-        return;
-      }
-
-
-      alert(
-        "Welcome back!"
+      modal.classList.add(
+        "hidden"
       );
 
+    };
 
-      modal.classList.add("hidden");
-
-      auth.reset();
-
-
-      updateAuthButtons();
+}
 
 
-      return;
-    }
+if (modal) {
+
+  modal.onclick =
+    (event) => {
+
+      if (
+        event.target === modal
+      ) {
+
+        modal.classList.add(
+          "hidden"
+        );
+
+      }
+
+    };
+
+}
 
 
-    // ---------------------------
-    // CREATE ACCOUNT
-    // ---------------------------
+/* =========================================================
+   MESSAGES BUTTON
+   ========================================================= */
 
-    const fullName =
-      authName.value.trim();
+if (messagesButton) {
 
-    const campus =
-      authCampus.value;
+  messagesButton.onclick =
+    () => {
+
+      document
+        .querySelector("#chat")
+        ?.scrollIntoView({
+          behavior: "smooth"
+        });
+
+    };
+
+}
 
 
-    const {
-      data,
-      error
-    } = await supabaseClient.auth.signUp({
+/* =========================================================
+   LOCATION BUTTON
+   ========================================================= */
 
-      email: email,
+const locationButton =
+  document.querySelector(
+    "#locationButton"
+  );
 
-      password: password,
 
-      options: {
+if (locationButton) {
 
-        data: {
+  locationButton.onclick =
+    () => {
 
-          full_name: fullName,
+      alert(
+        "Campus locations will be available as Cheal Market grows."
+      );
 
-          campus: campus
+    };
+
+}
+
+
+/* =========================================================
+   AUTH SUBMIT
+   ========================================================= */
+
+if (auth) {
+
+  auth.onsubmit =
+    async (event) => {
+
+      event.preventDefault();
+
+
+      const email =
+        authEmail.value.trim();
+
+
+      const password =
+        authPassword.value;
+
+
+      authSubmit.disabled =
+        true;
+
+
+      authSubmit.textContent =
+        "Please wait...";
+
+
+      try {
+
+        /* SIGN IN */
+
+        if (
+          authMode === "signin"
+        ) {
+
+          const {
+            error
+          } =
+            await supabaseClient.auth
+              .signInWithPassword({
+
+                email: email,
+
+                password: password
+
+              });
+
+
+          if (error) {
+
+            alert(
+              "Sign in failed: " +
+              error.message
+            );
+
+            return;
+
+          }
+
+
+          alert(
+            "Welcome back!"
+          );
+
+
+          modal.classList.add(
+            "hidden"
+          );
+
+
+          auth.reset();
+
+          updateAuthButtons();
+
+          return;
 
         }
 
+
+        /* CREATE ACCOUNT */
+
+        const fullName =
+          authName.value.trim();
+
+
+        const campus =
+          authCampus.value.trim();
+
+
+        const {
+          data,
+          error
+        } =
+          await supabaseClient.auth
+            .signUp({
+
+              email: email,
+
+              password: password,
+
+              options: {
+
+                data: {
+
+                  full_name:
+                    fullName,
+
+                  campus:
+                    campus
+
+                }
+
+              }
+
+            });
+
+
+        if (error) {
+
+          alert(
+            "Account creation failed: " +
+            error.message
+          );
+
+          return;
+
+        }
+
+
+        /*
+          Create profile when a session
+          is immediately available.
+        */
+
+        if (
+          data.user &&
+          data.session
+        ) {
+
+          const {
+            error:
+              profileError
+          } =
+            await supabaseClient
+              .from("profiles")
+              .insert({
+
+                id: data.user.id,
+
+                full_name:
+                  fullName,
+
+                campus:
+                  campus
+
+              });
+
+
+          if (
+            profileError &&
+            !profileError.message
+              .toLowerCase()
+              .includes("duplicate")
+          ) {
+
+            console.error(
+              profileError
+            );
+
+          }
+
+        }
+
+
+        if (!data.session) {
+
+          alert(
+            "Account created! Please check your email to confirm your account, then sign in."
+          );
+
+        } else {
+
+          alert(
+            "Account created successfully!"
+          );
+
+        }
+
+
+        modal.classList.add(
+          "hidden"
+        );
+
+
+        auth.reset();
+
+        updateAuthButtons();
+
+
+      } catch (error) {
+
+        console.error(error);
+
+        alert(
+          "Something went wrong. Please try again."
+        );
+
+      } finally {
+
+        authSubmit.disabled =
+          false;
+
+
+        authSubmit.textContent =
+          authMode === "signin"
+            ? "Sign in"
+            : "Create account";
+
       }
 
-    });
+    };
+
+}
 
 
-    if (error) {
-
-      alert(
-        "Account creation failed: " +
-        error.message
-      );
-
-      return;
-    }
-
-
-    // If a session is immediately available,
-    // create the profile.
-
-    if (data.user && data.session) {
-
-      const {
-        error: profileError
-      } = await supabaseClient
-        .from("profiles")
-        .insert({
-
-          id: data.user.id,
-
-          full_name: fullName,
-
-          campus: campus
-
-        });
-
-
-      if (
-        profileError &&
-        !profileError.message
-          .toLowerCase()
-          .includes("duplicate")
-      ) {
-
-        console.error(profileError);
-
-      }
-
-    }
-
-
-    if (!data.session) {
-
-      alert(
-        "Account created! Please check your email to confirm your account, then sign in."
-      );
-
-    } else {
-
-      alert(
-        "Account created successfully!"
-      );
-
-    }
-
-
-    modal.classList.add("hidden");
-
-    auth.reset();
-
-    updateAuthButtons();
-
-
-  } catch (error) {
-
-    console.error(error);
-
-    alert(
-      "Something went wrong. Please try again."
-    );
-
-  } finally {
-
-    authSubmit.disabled = false;
-
-    authSubmit.textContent =
-      authMode === "signin"
-        ? "Sign in"
-        : "Create account";
-
-  }
-
-};
-
-
-// ===============================
-// UPDATE AUTH BUTTONS
-// ===============================
+/* =========================================================
+   AUTH BUTTON STATE
+   ========================================================= */
 
 async function updateAuthButtons() {
 
-  const user = await getUser();
+  const user =
+    await getUser();
 
 
   if (user) {
 
-    login.textContent = "Signed in";
+    login.innerHTML = `
+      <span>👤</span>
+      <div>
+        <small>Account</small>
+        <strong>Signed in</strong>
+      </div>
+    `;
 
-    signup.textContent = "Account";
+
+    signup.textContent =
+      "Account";
 
   } else {
 
-    login.textContent = "Sign in";
+    login.innerHTML = `
+      <span>👤</span>
+      <div>
+        <small>Account</small>
+        <strong>Sign in</strong>
+      </div>
+    `;
 
-    signup.textContent = "Create account";
+
+    signup.textContent =
+      "Create account";
 
   }
 
 }
 
 
-// ===============================
-// AUTH STATE LISTENER
-// ===============================
+/* =========================================================
+   AUTH STATE
+   ========================================================= */
 
-supabaseClient.auth.onAuthStateChange(
-  (event, session) => {
+supabaseClient.auth
+  .onAuthStateChange(
+    () => {
 
-    updateAuthButtons();
+      updateAuthButtons();
 
-  }
-);
+    }
+  );
 
 
-// ===============================
-// START APP
-// ===============================
+/* =========================================================
+   START
+   ========================================================= */
+
+createCategories();
 
 render();
 
