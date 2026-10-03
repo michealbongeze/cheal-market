@@ -1,14 +1,13 @@
 /* =========================================================
-   CHEAL MARKET — REAL MULTI-USER MARKETPLACE
-   Supabase Products + Private Chats + Real-Time Messages
-========================================================= */
-/* =========================================================
    SUPABASE
 ========================================================= */
+
 const SUPABASE_URL =
   "https://qwlklqjfbrhythpynghr.supabase.co";
-const SUPABASE_URL =
-  "https://qwlklqjfbrhythpynghr.supabase.co";
+
+const SUPABASE_KEY =
+  "YOUR_CURRENT_SUPABASE_PUBLISHABLE_KEY";
+
 const supabaseClient =
   window.supabase.createClient(
     SUPABASE_URL,
