@@ -1,24 +1,18 @@
-/* =========================================================
-   CHEAL MARKET
-   Marketplace Dashboard JavaScript
-   ========================================================= */
-
 const SUPABASE_URL =
   "https://qwlklqjfbrhythpynghr.supabase.co";
 
 const SUPABASE_PUBLISHABLE_KEY =
   "sb_publishable_HVAjJNZAQIiyf1AosvH0A_fnYoFpHx";
 
-const supabaseClient =
-  window.supabase.createClient(
-    SUPABASE_URL,
-    SUPABASE_PUBLISHABLE_KEY
-  );
+const supabaseClient = window.supabase.createClient(
+  SUPABASE_URL,
+  SUPABASE_PUBLISHABLE_KEY
+);
 
 
-/* =========================================================
+/* ===============================
    DEMO PRODUCTS
-   ========================================================= */
+================================ */
 
 const products = [
 
@@ -29,7 +23,6 @@ const products = [
     seller: "Sarah",
     campus: "KIU",
     icon: "📱",
-    condition: "Used",
     time: "2 hours ago"
   },
 
@@ -40,7 +33,6 @@ const products = [
     seller: "Daniel",
     campus: "Makerere",
     icon: "📱",
-    condition: "Like New",
     time: "3 hours ago"
   },
 
@@ -51,7 +43,6 @@ const products = [
     seller: "Michael",
     campus: "KIU",
     icon: "💻",
-    condition: "Used",
     time: "5 hours ago"
   },
 
@@ -62,7 +53,6 @@ const products = [
     seller: "Brian",
     campus: "KIU",
     icon: "👕",
-    condition: "New",
     time: "1 hour ago"
   },
 
@@ -73,7 +63,6 @@ const products = [
     seller: "Joan",
     campus: "Kyambogo",
     icon: "👟",
-    condition: "Like New",
     time: "4 hours ago"
   },
 
@@ -84,7 +73,6 @@ const products = [
     seller: "Irene",
     campus: "KIU",
     icon: "📚",
-    condition: "Used",
     time: "30 minutes ago"
   },
 
@@ -95,7 +83,6 @@ const products = [
     seller: "Kevin",
     campus: "Makerere",
     icon: "🎧",
-    condition: "New",
     time: "6 hours ago"
   },
 
@@ -106,7 +93,6 @@ const products = [
     seller: "Amina",
     campus: "KIU",
     icon: "🧮",
-    condition: "Like New",
     time: "1 day ago"
   },
 
@@ -117,7 +103,6 @@ const products = [
     seller: "Mark",
     campus: "KIU",
     icon: "💻",
-    condition: "New",
     time: "2 hours ago"
   },
 
@@ -128,7 +113,6 @@ const products = [
     seller: "Alex",
     campus: "Makerere",
     icon: "🎮",
-    condition: "Used",
     time: "8 hours ago"
   },
 
@@ -139,7 +123,6 @@ const products = [
     seller: "David",
     campus: "KIU",
     icon: "🪑",
-    condition: "Used",
     time: "1 day ago"
   },
 
@@ -150,7 +133,6 @@ const products = [
     seller: "Grace",
     campus: "Kyambogo",
     icon: "💾",
-    condition: "New",
     time: "3 hours ago"
   }
 
@@ -160,9 +142,9 @@ const products = [
 let activeCategory = "All";
 
 
-/* =========================================================
+/* ===============================
    ELEMENTS
-   ========================================================= */
+================================ */
 
 const productsEl =
   document.querySelector("#products");
@@ -230,10 +212,13 @@ const searchButton =
 const messagesButton =
   document.querySelector("#messagesButton");
 
+const locationButton =
+  document.querySelector("#locationButton");
 
-/* =========================================================
+
+/* ===============================
    MONEY
-   ========================================================= */
+================================ */
 
 function money(value) {
 
@@ -243,9 +228,9 @@ function money(value) {
 }
 
 
-/* =========================================================
+/* ===============================
    ESCAPE HTML
-   ========================================================= */
+================================ */
 
 function escapeHTML(value) {
 
@@ -259,48 +244,31 @@ function escapeHTML(value) {
 }
 
 
-/* =========================================================
-   PRODUCT IMAGE / ICON
-   ========================================================= */
-
-function productVisual(product) {
-
-  return `
-    <div class="pic">
-
-      <span class="productIcon">
-        ${product.icon || "🛍️"}
-      </span>
-
-      <button
-        type="button"
-        class="favoriteButton"
-        aria-label="Add to favorites"
-        onclick="toggleFavorite(this)"
-      >
-        ♡
-      </button>
-
-      <span class="conditionBadge">
-        ${escapeHTML(product.condition || "Used")}
-      </span>
-
-    </div>
-  `;
-
-}
-
-
-/* =========================================================
+/* ===============================
    PRODUCT CARD
-   ========================================================= */
+================================ */
 
 function productCard(product) {
 
   return `
     <article class="product">
 
-      ${productVisual(product)}
+      <div class="pic">
+
+        <span class="productIcon">
+          ${product.icon || "🛍️"}
+        </span>
+
+        <button
+          type="button"
+          class="favoriteButton"
+          aria-label="Add to favorites"
+          onclick="toggleFavorite(this)"
+        >
+          ♡
+        </button>
+
+      </div>
 
       <div class="productBody">
 
@@ -345,7 +313,11 @@ function productCard(product) {
         <button
           type="button"
           class="productChatButton"
-          onclick="openProductChat('${escapeHTML(product.seller)}', '${escapeHTML(product.name)}', '${escapeHTML(product.campus)}')"
+          onclick="openProductChat(
+            '${escapeHTML(product.seller)}',
+            '${escapeHTML(product.name)}',
+            '${escapeHTML(product.campus)}'
+          )"
         >
           💬 Chat with seller
         </button>
@@ -358,9 +330,9 @@ function productCard(product) {
 }
 
 
-/* =========================================================
-   RENDER PRODUCTS
-   ========================================================= */
+/* ===============================
+   RENDER
+================================ */
 
 function render() {
 
@@ -372,8 +344,8 @@ function render() {
       : "";
 
 
-  let filtered =
-    products.filter((product) => {
+  let filtered = products.filter(
+    (product) => {
 
       const categoryMatch =
         activeCategory === "All" ||
@@ -381,11 +353,12 @@ function render() {
 
 
       const searchableText = [
+
         product.name,
         product.category,
         product.seller,
-        product.campus,
-        product.condition
+        product.campus
+
       ]
         .join(" ")
         .toLowerCase();
@@ -395,19 +368,20 @@ function render() {
         searchableText.includes(query);
 
 
-      return categoryMatch && searchMatch;
+      return categoryMatch &&
+        searchMatch;
 
-    });
+    }
+  );
 
-
-  /* SORT */
 
   if (sort) {
 
     if (sort.value === "priceLow") {
 
       filtered.sort(
-        (a, b) => a.price - b.price
+        (a, b) =>
+          a.price - b.price
       );
 
     }
@@ -416,7 +390,8 @@ function render() {
     if (sort.value === "priceHigh") {
 
       filtered.sort(
-        (a, b) => b.price - a.price
+        (a, b) =>
+          b.price - a.price
       );
 
     }
@@ -429,9 +404,7 @@ function render() {
     productsEl.innerHTML = `
       <div class="emptyProducts">
 
-        <div>
-          🔎
-        </div>
+        <div>🔎</div>
 
         <h3>
           No products found
@@ -457,9 +430,9 @@ function render() {
 }
 
 
-/* =========================================================
+/* ===============================
    CATEGORIES
-   ========================================================= */
+================================ */
 
 const categories = [
   "All",
@@ -511,11 +484,16 @@ function createCategories() {
           .querySelectorAll(".cat")
           .forEach(
             (item) =>
-              item.classList.remove("active")
+              item.classList.remove(
+                "active"
+              )
           );
 
 
-        button.classList.add("active");
+        button.classList.add(
+          "active"
+        );
+
 
         render();
 
@@ -530,9 +508,9 @@ function createCategories() {
 }
 
 
-/* =========================================================
+/* ===============================
    SEARCH
-   ========================================================= */
+================================ */
 
 if (search) {
 
@@ -571,25 +549,30 @@ if (sort) {
 }
 
 
-/* =========================================================
+/* ===============================
    FAVORITES
-   ========================================================= */
+================================ */
 
 function toggleFavorite(button) {
 
-  button.classList.toggle("favoriteActive");
+  button.classList.toggle(
+    "favoriteActive"
+  );
+
 
   button.textContent =
-    button.classList.contains("favoriteActive")
+    button.classList.contains(
+      "favoriteActive"
+    )
       ? "♥"
       : "♡";
 
 }
 
 
-/* =========================================================
+/* ===============================
    PRODUCT CHAT
-   ========================================================= */
+================================ */
 
 function openProductChat(
   seller,
@@ -598,7 +581,9 @@ function openProductChat(
 ) {
 
   const chatSection =
-    document.querySelector("#chat");
+    document.querySelector(
+      "#chat"
+    );
 
 
   if (!chatSection) return;
@@ -609,42 +594,16 @@ function openProductChat(
   });
 
 
-  const chatSeller =
-    chatSection.querySelector(
-      ".chatSeller strong"
+  const input =
+    document.querySelector(
+      "#message"
     );
 
 
-  const chatProduct =
-    chatSection.querySelector(
-      ".chatSeller span"
-    );
-
-
-  if (chatSeller) {
-
-    chatSeller.textContent =
-      seller;
-
-  }
-
-
-  if (chatProduct) {
-
-    chatProduct.textContent =
-      `${productName} · ${campus}`;
-
-  }
-
-
-  const messageInput =
-    document.querySelector("#message");
-
-
-  if (messageInput) {
+  if (input) {
 
     setTimeout(
-      () => messageInput.focus(),
+      () => input.focus(),
       500
     );
 
@@ -653,9 +612,9 @@ function openProductChat(
 }
 
 
-/* =========================================================
-   CHAT CONVERSATIONS
-   ========================================================= */
+/* ===============================
+   CHAT
+================================ */
 
 document
   .querySelectorAll(".conversation")
@@ -667,64 +626,20 @@ document
         () => {
 
           document
-            .querySelectorAll(".conversation")
+            .querySelectorAll(
+              ".conversation"
+            )
             .forEach(
               (item) =>
-                item.classList.remove("active")
+                item.classList.remove(
+                  "active"
+                )
             );
 
 
-          conversation.classList.add("active");
-
-
-          const name =
-            conversation.querySelector(
-              ".conversationInfo strong"
-            )?.textContent.trim();
-
-
-          const product =
-            conversation.querySelector(
-              ".conversationInfo span"
-            )?.textContent.trim();
-
-
-          const avatar =
-            conversation.querySelector(
-              ".avatar"
-            )?.textContent.trim();
-
-
-          const topName =
-            document.querySelector(
-              ".chatSeller strong"
-            );
-
-
-          const topProduct =
-            document.querySelector(
-              ".chatSeller span"
-            );
-
-
-          const topAvatar =
-            document.querySelector(
-              ".chatSeller .avatar"
-            );
-
-
-          if (topName)
-            topName.textContent = name;
-
-
-          if (topProduct)
-            topProduct.textContent =
-              product;
-
-
-          if (topAvatar)
-            topAvatar.textContent =
-              avatar;
+          conversation.classList.add(
+            "active"
+          );
 
         }
       );
@@ -733,25 +648,26 @@ document
   );
 
 
-/* =========================================================
-   LOGIN CHECK
-   ========================================================= */
+/* ===============================
+   GET USER
+================================ */
 
 async function getUser() {
 
   const {
     data: { user }
   } =
-    await supabaseClient.auth.getUser();
+    await supabaseClient.auth
+      .getUser();
 
   return user;
 
 }
 
 
-/* =========================================================
+/* ===============================
    SELL PRODUCT
-   ========================================================= */
+================================ */
 
 if (sellForm) {
 
@@ -771,7 +687,9 @@ if (sellForm) {
           "Please create an account or sign in before listing a product."
         );
 
-        openAuth("Create account");
+        openAuth(
+          "Create account"
+        );
 
         return;
 
@@ -820,22 +738,9 @@ if (sellForm) {
           .trim();
 
 
-      if (!productName || !price || !category) {
-
-        alert(
-          "Please complete the required product details."
-        );
-
-        return;
-
-      }
-
-
       try {
 
-        const {
-          error
-        } =
+        const { error } =
           await supabaseClient
             .from("products")
             .insert({
@@ -848,11 +753,13 @@ if (sellForm) {
 
               category: category,
 
-              seller_name: sellerName,
+              seller_name:
+                sellerName,
 
               campus: campus,
 
-              description: description
+              description:
+                description
 
             });
 
@@ -885,8 +792,6 @@ if (sellForm) {
 
           icon: "🛍️",
 
-          condition: "Used",
-
           time: "Just now"
 
         });
@@ -900,7 +805,6 @@ if (sellForm) {
         alert(
           "Your product has been listed successfully!"
         );
-
 
       } catch (error) {
 
@@ -917,9 +821,9 @@ if (sellForm) {
 }
 
 
-/* =========================================================
-   CHAT SEND
-   ========================================================= */
+/* ===============================
+   SEND MESSAGE
+================================ */
 
 if (chatForm) {
 
@@ -939,7 +843,9 @@ if (chatForm) {
           "Please sign in to send messages."
         );
 
-        openAuth("Sign in");
+        openAuth(
+          "Sign in"
+        );
 
         return;
 
@@ -956,7 +862,9 @@ if (chatForm) {
 
 
       const bubble =
-        document.createElement("div");
+        document.createElement(
+          "div"
+        );
 
 
       bubble.className =
@@ -983,11 +891,12 @@ if (chatForm) {
 }
 
 
-/* =========================================================
-   AUTH MODAL
-   ========================================================= */
+/* ===============================
+   AUTH
+================================ */
 
-let authMode = "signup";
+let authMode =
+  "signup";
 
 
 function openAuth(title) {
@@ -1006,7 +915,9 @@ function openAuth(title) {
 
   if (title === "Sign in") {
 
-    authMode = "signin";
+    authMode =
+      "signin";
+
 
     authSubmit.textContent =
       "Sign in";
@@ -1031,13 +942,11 @@ function openAuth(title) {
     authCampus.required =
       false;
 
-
-    authPassword.autocomplete =
-      "current-password";
-
   } else {
 
-    authMode = "signup";
+    authMode =
+      "signup";
+
 
     authSubmit.textContent =
       "Create account";
@@ -1062,23 +971,22 @@ function openAuth(title) {
     authCampus.required =
       true;
 
-
-    authPassword.autocomplete =
-      "new-password";
-
   }
 
 }
 
 
-/* =========================================================
-   ACCOUNT BUTTONS
-   ========================================================= */
+/* ===============================
+   AUTH BUTTONS
+================================ */
 
 if (login) {
 
   login.onclick =
-    () => openAuth("Sign in");
+    () =>
+      openAuth(
+        "Sign in"
+      );
 
 }
 
@@ -1086,7 +994,10 @@ if (login) {
 if (signup) {
 
   signup.onclick =
-    () => openAuth("Create account");
+    () =>
+      openAuth(
+        "Create account"
+      );
 
 }
 
@@ -1094,13 +1005,10 @@ if (signup) {
 if (close) {
 
   close.onclick =
-    () => {
-
+    () =>
       modal.classList.add(
         "hidden"
       );
-
-    };
 
 }
 
@@ -1125,9 +1033,9 @@ if (modal) {
 }
 
 
-/* =========================================================
+/* ===============================
    MESSAGES BUTTON
-   ========================================================= */
+================================ */
 
 if (messagesButton) {
 
@@ -1145,15 +1053,9 @@ if (messagesButton) {
 }
 
 
-/* =========================================================
-   LOCATION BUTTON
-   ========================================================= */
-
-const locationButton =
-  document.querySelector(
-    "#locationButton"
-  );
-
+/* ===============================
+   LOCATION
+================================ */
 
 if (locationButton) {
 
@@ -1169,9 +1071,9 @@ if (locationButton) {
 }
 
 
-/* =========================================================
+/* ===============================
    AUTH SUBMIT
-   ========================================================= */
+================================ */
 
 if (auth) {
 
@@ -1199,21 +1101,19 @@ if (auth) {
 
       try {
 
-        /* SIGN IN */
-
         if (
-          authMode === "signin"
+          authMode ===
+          "signin"
         ) {
 
-          const {
-            error
-          } =
-            await supabaseClient.auth
+          const { error } =
+            await supabaseClient
+              .auth
               .signInWithPassword({
 
-                email: email,
+                email,
 
-                password: password
+                password
 
               });
 
@@ -1249,8 +1149,6 @@ if (auth) {
         }
 
 
-        /* CREATE ACCOUNT */
-
         const fullName =
           authName.value.trim();
 
@@ -1263,12 +1161,13 @@ if (auth) {
           data,
           error
         } =
-          await supabaseClient.auth
+          await supabaseClient
+            .auth
             .signUp({
 
-              email: email,
+              email,
 
-              password: password,
+              password,
 
               options: {
 
@@ -1277,8 +1176,7 @@ if (auth) {
                   full_name:
                     fullName,
 
-                  campus:
-                    campus
+                  campus
 
                 }
 
@@ -1299,47 +1197,23 @@ if (auth) {
         }
 
 
-        /*
-          Create profile when a session
-          is immediately available.
-        */
-
         if (
           data.user &&
           data.session
         ) {
 
-          const {
-            error:
-              profileError
-          } =
-            await supabaseClient
-              .from("profiles")
-              .insert({
+          await supabaseClient
+            .from("profiles")
+            .insert({
 
-                id: data.user.id,
+              id: data.user.id,
 
-                full_name:
-                  fullName,
+              full_name:
+                fullName,
 
-                campus:
-                  campus
+              campus
 
-              });
-
-
-          if (
-            profileError &&
-            !profileError.message
-              .toLowerCase()
-              .includes("duplicate")
-          ) {
-
-            console.error(
-              profileError
-            );
-
-          }
+            });
 
         }
 
@@ -1368,7 +1242,6 @@ if (auth) {
 
         updateAuthButtons();
 
-
       } catch (error) {
 
         console.error(error);
@@ -1395,9 +1268,9 @@ if (auth) {
 }
 
 
-/* =========================================================
-   AUTH BUTTON STATE
-   ========================================================= */
+/* ===============================
+   AUTH STATE
+================================ */
 
 async function updateAuthButtons() {
 
@@ -1415,7 +1288,6 @@ async function updateAuthButtons() {
       </div>
     `;
 
-
     signup.textContent =
       "Account";
 
@@ -1429,7 +1301,6 @@ async function updateAuthButtons() {
       </div>
     `;
 
-
     signup.textContent =
       "Create account";
 
@@ -1437,10 +1308,6 @@ async function updateAuthButtons() {
 
 }
 
-
-/* =========================================================
-   AUTH STATE
-   ========================================================= */
 
 supabaseClient.auth
   .onAuthStateChange(
@@ -1452,9 +1319,9 @@ supabaseClient.auth
   );
 
 
-/* =========================================================
+/* ===============================
    START
-   ========================================================= */
+================================ */
 
 createCategories();
 
