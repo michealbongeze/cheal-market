@@ -10,11 +10,12 @@ const supabaseClient = window.supabase.createClient(
 );
 
 
-/* ===============================
-   DEMO PRODUCTS
-================================ */
+/* =========================================================
+   DEMO FALLBACK PRODUCTS
+   These appear only if Supabase has no listings yet.
+========================================================= */
 
-const products = [
+const demoProducts = [
 
   {
     name: "iPhone 13 Pro",
@@ -139,12 +140,13 @@ const products = [
 ];
 
 
+let products = [];
 let activeCategory = "All";
 
 
-/* ===============================
+/* =========================================================
    ELEMENTS
-================================ */
+========================================================= */
 
 const productsEl =
   document.querySelector("#products");
@@ -216,25 +218,26 @@ const locationButton =
   document.querySelector("#locationButton");
 
 
-/* ===============================
-   MONEY
-================================ */
+/* =========================================================
+   FORMAT MONEY
+========================================================= */
 
 function money(value) {
 
   return "UGX " +
-    Number(value).toLocaleString("en-UG");
+    Number(value || 0)
+      .toLocaleString("en-UG");
 
 }
 
 
-/* ===============================
+/* =========================================================
    ESCAPE HTML
-================================ */
+========================================================= */
 
 function escapeHTML(value) {
 
-  return String(value)
+  return String(value ?? "")
     .replaceAll("&", "&amp;")
     .replaceAll("<", "&lt;")
     .replaceAll(">", "&gt;")
@@ -244,9 +247,254 @@ function escapeHTML(value) {
 }
 
 
-/* ===============================
+/* =========================================================
+   CATEGORY ICON
+========================================================= */
+
+function categoryIcon(category) {
+
+  const icons = {
+
+    Phones: "📱",
+
+    Computers: "💻",
+
+    Clothes: "👕",
+
+    Books: "📚",
+
+    Electronics: "🎧",
+
+    Home: "🏠",
+
+    Gaming: "🎮",
+
+    Other: "🛍️"
+
+  };
+
+
+  return icons[category] || "🛍️";
+
+}
+
+
+/* =========================================================
+   LOAD PRODUCTS FROM SUPABASE
+========================================================= */
+
+async function loadProducts() {
+
+  if (productsEl) {
+
+    productsEl.innerHTML = `
+      <div class="emptyProducts">
+        <div>⏳</div>
+        <h3>Loading listings...</h3>
+        <p>Please wait.</p>
+      </div>
+    `;
+
+  }
+
+
+  try {
+
+    const {
+      data,
+      error
+    } = await supabaseClient
+      .from("products")
+      .select(
+        "id, seller_id, name, price, category, seller_name, campus, description, created_at"
+      )
+      .order(
+        "created_at",
+        {
+          ascending: false
+        }
+      );
+
+
+    if (error) {
+
+      console.error(
+        "Supabase product error:",
+        error
+      );
+
+      /*
+        If the database cannot be read,
+        keep the marketplace usable.
+      */
+
+      products = [
+        ...demoProducts
+      ];
+
+      render();
+
+      return;
+
+    }
+
+
+    /*
+      If there are real products,
+      display them.
+
+      If the table is empty,
+      use demo products temporarily.
+    */
+
+    if (data && data.length > 0) {
+
+      products =
+        data.map(
+          (item) => ({
+
+            id: item.id,
+
+            name: item.name,
+
+            price: item.price,
+
+            category:
+              item.category,
+
+            seller:
+              item.seller_name ||
+              "Student",
+
+            campus:
+              item.campus ||
+              "Uganda",
+
+            description:
+              item.description ||
+              "",
+
+            icon:
+              categoryIcon(
+                item.category
+              ),
+
+            time:
+              formatTime(
+                item.created_at
+              )
+
+          })
+        );
+
+    } else {
+
+      products = [
+        ...demoProducts
+      ];
+
+    }
+
+
+    render();
+
+
+  } catch (error) {
+
+    console.error(error);
+
+    products = [
+      ...demoProducts
+    ];
+
+    render();
+
+  }
+
+}
+
+
+/* =========================================================
+   TIME FORMAT
+========================================================= */
+
+function formatTime(dateValue) {
+
+  if (!dateValue) {
+
+    return "Recently";
+
+  }
+
+
+  const date =
+    new Date(dateValue);
+
+
+  if (Number.isNaN(
+    date.getTime()
+  )) {
+
+    return "Recently";
+
+  }
+
+
+  const seconds =
+    Math.floor(
+      (Date.now() -
+        date.getTime()) /
+      1000
+    );
+
+
+  if (seconds < 60) {
+
+    return "Just now";
+
+  }
+
+
+  const minutes =
+    Math.floor(
+      seconds / 60
+    );
+
+
+  if (minutes < 60) {
+
+    return `${minutes}m ago`;
+
+  }
+
+
+  const hours =
+    Math.floor(
+      minutes / 60
+    );
+
+
+  if (hours < 24) {
+
+    return `${hours}h ago`;
+
+  }
+
+
+  const days =
+    Math.floor(
+      hours / 24
+    );
+
+
+  return `${days}d ago`;
+
+}
+
+
+/* =========================================================
    PRODUCT CARD
-================================ */
+========================================================= */
 
 function productCard(product) {
 
@@ -293,19 +541,26 @@ function productCard(product) {
           <div class="sellerAvatar">
             ${escapeHTML(
               product.seller
-                ? product.seller.charAt(0).toUpperCase()
+                ? product.seller
+                    .charAt(0)
+                    .toUpperCase()
                 : "U"
             )}
           </div>
 
           <div>
+
             <strong>
               ${escapeHTML(product.seller)}
             </strong>
 
             <span>
-              ${escapeHTML(product.time || "Recently")}
+              ${escapeHTML(
+                product.time ||
+                "Recently"
+              )}
             </span>
+
           </div>
 
         </div>
@@ -330,68 +585,85 @@ function productCard(product) {
 }
 
 
-/* ===============================
-   RENDER
-================================ */
+/* =========================================================
+   RENDER PRODUCTS
+========================================================= */
 
 function render() {
 
   if (!productsEl) return;
 
+
   const query =
     search
-      ? search.value.toLowerCase().trim()
+      ? search.value
+          .toLowerCase()
+          .trim()
       : "";
 
 
-  let filtered = products.filter(
-    (product) => {
+  let filtered =
+    products.filter(
+      (product) => {
 
-      const categoryMatch =
-        activeCategory === "All" ||
-        product.category === activeCategory;
-
-
-      const searchableText = [
-
-        product.name,
-        product.category,
-        product.seller,
-        product.campus
-
-      ]
-        .join(" ")
-        .toLowerCase();
+        const categoryMatch =
+          activeCategory === "All" ||
+          product.category ===
+            activeCategory;
 
 
-      const searchMatch =
-        searchableText.includes(query);
+        const searchableText = [
+
+          product.name,
+          product.category,
+          product.seller,
+          product.campus,
+          product.description
+
+        ]
+          .join(" ")
+          .toLowerCase();
 
 
-      return categoryMatch &&
-        searchMatch;
+        const searchMatch =
+          searchableText
+            .includes(query);
 
-    }
-  );
+
+        return (
+          categoryMatch &&
+          searchMatch
+        );
+
+      }
+    );
 
 
   if (sort) {
 
-    if (sort.value === "priceLow") {
+    if (
+      sort.value ===
+      "priceLow"
+    ) {
 
       filtered.sort(
         (a, b) =>
-          a.price - b.price
+          Number(a.price) -
+          Number(b.price)
       );
 
     }
 
 
-    if (sort.value === "priceHigh") {
+    if (
+      sort.value ===
+      "priceHigh"
+    ) {
 
       filtered.sort(
         (a, b) =>
-          b.price - a.price
+          Number(b.price) -
+          Number(a.price)
       );
 
     }
@@ -430,11 +702,12 @@ function render() {
 }
 
 
-/* ===============================
+/* =========================================================
    CATEGORIES
-================================ */
+========================================================= */
 
 const categories = [
+
   "All",
   "Phones",
   "Computers",
@@ -444,12 +717,14 @@ const categories = [
   "Home",
   "Gaming",
   "Other"
+
 ];
 
 
 function createCategories() {
 
   if (!cats) return;
+
 
   cats.innerHTML = "";
 
@@ -458,49 +733,61 @@ function createCategories() {
     (category) => {
 
       const button =
-        document.createElement("button");
+        document.createElement(
+          "button"
+        );
 
-      button.type = "button";
+
+      button.type =
+        "button";
+
 
       button.className =
         "cat" +
         (
-          category === activeCategory
+          category ===
+          activeCategory
             ? " active"
             : ""
         );
+
 
       button.textContent =
         category;
 
 
-      button.onclick = () => {
+      button.onclick =
+        () => {
 
-        activeCategory =
-          category;
-
-
-        document
-          .querySelectorAll(".cat")
-          .forEach(
-            (item) =>
-              item.classList.remove(
-                "active"
-              )
-          );
+          activeCategory =
+            category;
 
 
-        button.classList.add(
-          "active"
-        );
+          document
+            .querySelectorAll(
+              ".cat"
+            )
+            .forEach(
+              (item) =>
+                item.classList
+                  .remove(
+                    "active"
+                  )
+            );
 
 
-        render();
+          button.classList
+            .add("active");
 
-      };
+
+          render();
+
+        };
 
 
-      cats.appendChild(button);
+      cats.appendChild(
+        button
+      );
 
     }
   );
@@ -508,9 +795,9 @@ function createCategories() {
 }
 
 
-/* ===============================
+/* =========================================================
    SEARCH
-================================ */
+========================================================= */
 
 if (search) {
 
@@ -524,17 +811,20 @@ if (search) {
 
 if (searchButton) {
 
-  searchButton.onclick = () => {
+  searchButton.onclick =
+    () => {
 
-    render();
+      render();
 
-    document
-      .querySelector("#market")
-      ?.scrollIntoView({
-        behavior: "smooth"
-      });
+      document
+        .querySelector(
+          "#market"
+        )
+        ?.scrollIntoView({
+          behavior: "smooth"
+        });
 
-  };
+    };
 
 }
 
@@ -549,11 +839,13 @@ if (sort) {
 }
 
 
-/* ===============================
+/* =========================================================
    FAVORITES
-================================ */
+========================================================= */
 
-function toggleFavorite(button) {
+function toggleFavorite(
+  button
+) {
 
   button.classList.toggle(
     "favoriteActive"
@@ -570,9 +862,9 @@ function toggleFavorite(button) {
 }
 
 
-/* ===============================
+/* =========================================================
    PRODUCT CHAT
-================================ */
+========================================================= */
 
 function openProductChat(
   seller,
@@ -612,62 +904,29 @@ function openProductChat(
 }
 
 
-/* ===============================
-   CHAT
-================================ */
-
-document
-  .querySelectorAll(".conversation")
-  .forEach(
-    (conversation) => {
-
-      conversation.addEventListener(
-        "click",
-        () => {
-
-          document
-            .querySelectorAll(
-              ".conversation"
-            )
-            .forEach(
-              (item) =>
-                item.classList.remove(
-                  "active"
-                )
-            );
-
-
-          conversation.classList.add(
-            "active"
-          );
-
-        }
-      );
-
-    }
-  );
-
-
-/* ===============================
-   GET USER
-================================ */
+/* =========================================================
+   GET CURRENT USER
+========================================================= */
 
 async function getUser() {
 
   const {
-    data: { user }
+    data: {
+      user
+    }
   } =
     await supabaseClient.auth
       .getUser();
+
 
   return user;
 
 }
 
 
-/* ===============================
+/* =========================================================
    SELL PRODUCT
-================================ */
+========================================================= */
 
 if (sellForm) {
 
@@ -687,9 +946,11 @@ if (sellForm) {
           "Please create an account or sign in before listing a product."
         );
 
+
         openAuth(
           "Create account"
         );
+
 
         return;
 
@@ -738,66 +999,118 @@ if (sellForm) {
           .trim();
 
 
+      if (
+        !productName ||
+        !price ||
+        !category
+      ) {
+
+        alert(
+          "Please complete the required product details."
+        );
+
+
+        return;
+
+      }
+
+
       try {
 
-        const { error } =
+        const {
+          data,
+          error
+        } =
           await supabaseClient
             .from("products")
             .insert({
 
-              seller_id: user.id,
+              seller_id:
+                user.id,
 
-              name: productName,
+              name:
+                productName,
 
-              price: price,
+              price:
+                price,
 
-              category: category,
+              category:
+                category,
 
               seller_name:
                 sellerName,
 
-              campus: campus,
+              campus:
+                campus,
 
               description:
                 description
 
-            });
+            })
+            .select()
+            .single();
 
 
         if (error) {
 
-          console.error(error);
+          console.error(
+            error
+          );
+
 
           alert(
             "Could not list the product: " +
             error.message
           );
 
+
           return;
 
         }
 
 
+        /*
+          Add the newly-created
+          Supabase product to the
+          current screen immediately.
+        */
+
         products.unshift({
 
-          name: productName,
+          id:
+            data?.id,
 
-          price: price,
+          name:
+            productName,
 
-          category: category,
+          price:
+            price,
 
-          seller: sellerName,
+          category:
+            category,
 
-          campus: campus,
+          seller:
+            sellerName,
 
-          icon: "🛍️",
+          campus:
+            campus,
 
-          time: "Just now"
+          description:
+            description,
+
+          icon:
+            categoryIcon(
+              category
+            ),
+
+          time:
+            "Just now"
 
         });
 
 
         render();
+
 
         sellForm.reset();
 
@@ -806,9 +1119,13 @@ if (sellForm) {
           "Your product has been listed successfully!"
         );
 
+
       } catch (error) {
 
-        console.error(error);
+        console.error(
+          error
+        );
+
 
         alert(
           "Something went wrong. Please try again."
@@ -821,9 +1138,9 @@ if (sellForm) {
 }
 
 
-/* ===============================
-   SEND MESSAGE
-================================ */
+/* =========================================================
+   CHAT
+========================================================= */
 
 if (chatForm) {
 
@@ -843,9 +1160,11 @@ if (chatForm) {
           "Please sign in to send messages."
         );
 
+
         openAuth(
           "Sign in"
         );
+
 
         return;
 
@@ -891,9 +1210,9 @@ if (chatForm) {
 }
 
 
-/* ===============================
-   AUTH
-================================ */
+/* =========================================================
+   AUTH MODAL
+========================================================= */
 
 let authMode =
   "signup";
@@ -913,7 +1232,10 @@ function openAuth(title) {
   );
 
 
-  if (title === "Sign in") {
+  if (
+    title ===
+    "Sign in"
+  ) {
 
     authMode =
       "signin";
@@ -941,6 +1263,7 @@ function openAuth(title) {
 
     authCampus.required =
       false;
+
 
   } else {
 
@@ -976,9 +1299,9 @@ function openAuth(title) {
 }
 
 
-/* ===============================
+/* =========================================================
    AUTH BUTTONS
-================================ */
+========================================================= */
 
 if (login) {
 
@@ -1019,7 +1342,8 @@ if (modal) {
     (event) => {
 
       if (
-        event.target === modal
+        event.target ===
+        modal
       ) {
 
         modal.classList.add(
@@ -1033,9 +1357,9 @@ if (modal) {
 }
 
 
-/* ===============================
+/* =========================================================
    MESSAGES BUTTON
-================================ */
+========================================================= */
 
 if (messagesButton) {
 
@@ -1043,7 +1367,9 @@ if (messagesButton) {
     () => {
 
       document
-        .querySelector("#chat")
+        .querySelector(
+          "#chat"
+        )
         ?.scrollIntoView({
           behavior: "smooth"
         });
@@ -1053,9 +1379,9 @@ if (messagesButton) {
 }
 
 
-/* ===============================
-   LOCATION
-================================ */
+/* =========================================================
+   LOCATION BUTTON
+========================================================= */
 
 if (locationButton) {
 
@@ -1071,9 +1397,9 @@ if (locationButton) {
 }
 
 
-/* ===============================
+/* =========================================================
    AUTH SUBMIT
-================================ */
+========================================================= */
 
 if (auth) {
 
@@ -1101,19 +1427,25 @@ if (auth) {
 
       try {
 
+        /* SIGN IN */
+
         if (
           authMode ===
           "signin"
         ) {
 
-          const { error } =
+          const {
+            error
+          } =
             await supabaseClient
               .auth
               .signInWithPassword({
 
-                email,
+                email:
+                  email,
 
-                password
+                password:
+                  password
 
               });
 
@@ -1124,6 +1456,7 @@ if (auth) {
               "Sign in failed: " +
               error.message
             );
+
 
             return;
 
@@ -1142,12 +1475,16 @@ if (auth) {
 
           auth.reset();
 
+
           updateAuthButtons();
+
 
           return;
 
         }
 
+
+        /* CREATE ACCOUNT */
 
         const fullName =
           authName.value.trim();
@@ -1165,9 +1502,11 @@ if (auth) {
             .auth
             .signUp({
 
-              email,
+              email:
+                email,
 
-              password,
+              password:
+                password,
 
               options: {
 
@@ -1176,7 +1515,8 @@ if (auth) {
                   full_name:
                     fullName,
 
-                  campus
+                  campus:
+                    campus
 
                 }
 
@@ -1192,33 +1532,63 @@ if (auth) {
             error.message
           );
 
+
           return;
 
         }
 
+
+        /*
+          Create profile when
+          Supabase gives us a session.
+        */
 
         if (
           data.user &&
           data.session
         ) {
 
-          await supabaseClient
-            .from("profiles")
-            .insert({
+          const {
+            error:
+              profileError
+          } =
+            await supabaseClient
+              .from("profiles")
+              .insert({
 
-              id: data.user.id,
+                id:
+                  data.user.id,
 
-              full_name:
-                fullName,
+                full_name:
+                  fullName,
 
-              campus
+                campus:
+                  campus
 
-            });
+              });
+
+
+          if (
+            profileError &&
+            !profileError.message
+              .toLowerCase()
+              .includes(
+                "duplicate"
+              )
+          ) {
+
+            console.error(
+              profileError
+            );
+
+          }
 
         }
 
 
-        if (!data.session) {
+        if (
+          !data.session
+        ) {
 
           alert(
             "Account created! Please check your email to confirm your account, then sign in."
@@ -1240,15 +1610,21 @@ if (auth) {
 
         auth.reset();
 
+
         updateAuthButtons();
+
 
       } catch (error) {
 
-        console.error(error);
+        console.error(
+          error
+        );
+
 
         alert(
           "Something went wrong. Please try again."
         );
+
 
       } finally {
 
@@ -1257,7 +1633,8 @@ if (auth) {
 
 
         authSubmit.textContent =
-          authMode === "signin"
+          authMode ===
+          "signin"
             ? "Sign in"
             : "Create account";
 
@@ -1268,9 +1645,9 @@ if (auth) {
 }
 
 
-/* ===============================
-   AUTH STATE
-================================ */
+/* =========================================================
+   UPDATE AUTH BUTTONS
+========================================================= */
 
 async function updateAuthButtons() {
 
@@ -1278,36 +1655,55 @@ async function updateAuthButtons() {
     await getUser();
 
 
+  if (!login) return;
+
+
   if (user) {
 
     login.innerHTML = `
       <span>👤</span>
+
       <div>
         <small>Account</small>
         <strong>Signed in</strong>
       </div>
     `;
 
-    signup.textContent =
-      "Account";
+
+    if (signup) {
+
+      signup.textContent =
+        "Account";
+
+    }
 
   } else {
 
     login.innerHTML = `
       <span>👤</span>
+
       <div>
         <small>Account</small>
         <strong>Sign in</strong>
       </div>
     `;
 
-    signup.textContent =
-      "Create account";
+
+    if (signup) {
+
+      signup.textContent =
+        "Create account";
+
+    }
 
   }
 
 }
 
+
+/* =========================================================
+   AUTH STATE LISTENER
+========================================================= */
 
 supabaseClient.auth
   .onAuthStateChange(
@@ -1319,12 +1715,12 @@ supabaseClient.auth
   );
 
 
-/* ===============================
-   START
-================================ */
+/* =========================================================
+   START APPLICATION
+========================================================= */
 
 createCategories();
 
-render();
+loadProducts();
 
 updateAuthButtons();
