@@ -2,1150 +2,618 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="theme-color" content="#ffffff">
+  <title>Cheal Market — Buy. Sell. Connect.</title>
 
-  <title>Cheal Market — Uganda's Student Marketplace</title>
-
-  <meta
-    name="description"
-    content="Cheal Market is a student marketplace for buying and selling products around Ugandan campuses."
-  >
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 
   <link rel="stylesheet" href="styles.css">
 </head>
 
 <body>
 
-  <!-- =========================
-       TOP BAR
-  ========================== -->
+  <!-- APP -->
+  <div id="app">
 
-  <div class="topBar">
-    <div class="container topBarInner">
+    <!-- TOP BAR -->
+    <header class="topbar">
+      <div class="topbar-inner">
 
-      <span>🇺🇬 Welcome to Cheal Market</span>
+        <button class="icon-button logo-button" id="menuButton" aria-label="Menu">
+          ☰
+        </button>
 
-      <div class="topLinks">
-        <span>Student Marketplace</span>
-        <span>Safe & Easy Buying</span>
+        <a href="#home" class="brand">
+          <span class="brand-mark">C</span>
+          <span>
+            <strong>Cheal</strong>
+            <small>Market</small>
+          </span>
+        </a>
+
+        <button class="icon-button" id="topAccountButton" aria-label="Account">
+          👤
+        </button>
+
       </div>
-
-    </div>
-  </div>
+    </header>
 
 
-  <!-- =========================
-       HEADER
-  ========================== -->
-
-  <header class="header">
-
-    <div class="container headerInner">
-
-      <a href="#" class="logo">
-        Cheal<span>Market</span>
-      </a>
-
-
-      <!-- Search -->
-
-      <div class="searchBox">
-
-        <span class="searchIcon">⌕</span>
-
+    <!-- SEARCH -->
+    <section class="search-section">
+      <div class="search-box">
+        <span>⌕</span>
         <input
-          id="search"
+          id="searchInput"
           type="search"
-          placeholder="Search for phones, laptops, clothes, books..."
+          placeholder="Search phones, clothes, books..."
           autocomplete="off"
         >
-
-        <button type="button" id="searchButton">
-          Search
-        </button>
-
+        <button id="clearSearch" class="search-clear hidden">×</button>
       </div>
 
+      <button class="location-button" id="locationButton">
+        📍 Kampala
+      </button>
+    </section>
 
-      <!-- Header actions -->
 
-      <div class="headerActions">
+    <!-- MAIN CONTENT -->
+    <main id="mainContent">
 
-        <button
-          type="button"
-          class="headerAction"
-          id="locationButton"
-        >
-          <span>📍</span>
+      <!-- HOME -->
+      <section class="screen" id="homeScreen" data-screen="home">
+
+        <div class="hero">
           <div>
-            <small>Location</small>
-            <strong>Kampala</strong>
-          </div>
-        </button>
+            <p class="eyebrow">BUILT FOR CAMPUS LIFE</p>
+            <h1>Buy. Sell.<br><span>Connect.</span></h1>
+            <p class="hero-text">
+              Find affordable products from students around your campus.
+            </p>
 
+            <div class="hero-actions">
+              <button class="primary-button" data-route="home">
+                Start Shopping
+              </button>
 
-        <button
-          type="button"
-          class="headerAction"
-          id="messagesButton"
-        >
-          <span>💬</span>
-          <div>
-            <small>Messages</small>
-            <strong>Chat</strong>
-          </div>
-        </button>
-
-
-        <button
-          type="button"
-          class="headerAction"
-          id="login"
-        >
-          <span>👤</span>
-          <div>
-            <small>Account</small>
-            <strong>Sign in</strong>
-          </div>
-        </button>
-
-
-        <button
-          type="button"
-          class="sellHeaderButton"
-          onclick="document.querySelector('#sell').scrollIntoView({behavior:'smooth'})"
-        >
-          + Sell
-        </button>
-
-      </div>
-
-    </div>
-
-  </header>
-
-
-  <!-- =========================
-       CATEGORY NAVIGATION
-  ========================== -->
-
-  <nav class="categoryNav">
-
-    <div class="container categoryNavInner">
-
-      <button class="categoryMenuButton" type="button">
-        ☰ &nbsp; Categories
-      </button>
-
-      <button class="navCategory active" type="button">
-        All
-      </button>
-
-      <button class="navCategory" type="button">
-        📱 Phones
-      </button>
-
-      <button class="navCategory" type="button">
-        💻 Computers
-      </button>
-
-      <button class="navCategory" type="button">
-        👕 Fashion
-      </button>
-
-      <button class="navCategory" type="button">
-        📚 Books
-      </button>
-
-      <button class="navCategory" type="button">
-        🎧 Electronics
-      </button>
-
-      <button class="navCategory" type="button">
-        🏠 Home
-      </button>
-
-      <button class="navCategory" type="button">
-        🎮 Gaming
-      </button>
-
-      <button class="navCategory" type="button">
-        🛍️ Other
-      </button>
-
-    </div>
-
-  </nav>
-
-
-  <main>
-
-
-    <!-- =========================
-         HERO DASHBOARD
-    ========================== -->
-
-    <section class="heroDashboard">
-
-      <div class="container heroGrid">
-
-
-        <div class="heroContent">
-
-          <div class="heroBadge">
-            🎓 Built for students in Uganda
-          </div>
-
-          <h1>
-            Buy. Sell.
-            <span>Connect.</span>
-          </h1>
-
-          <p>
-            Find affordable products from students around your
-            campus and sell what you no longer need.
-          </p>
-
-
-          <div class="heroButtons">
-
-            <button
-              type="button"
-              class="primaryButton"
-              onclick="document.querySelector('#market').scrollIntoView({behavior:'smooth'})"
-            >
-              🛍️ Start Shopping
-            </button>
-
-            <button
-              type="button"
-              class="secondaryButton"
-              onclick="document.querySelector('#sell').scrollIntoView({behavior:'smooth'})"
-            >
-              + Sell an Item
-            </button>
-
-          </div>
-
-
-          <div class="heroStats">
-
-            <div>
-              <strong>500+</strong>
-              <span>Students</span>
+              <button class="secondary-button" data-route="sell">
+                Sell an Item
+              </button>
             </div>
-
-            <div>
-              <strong>1,000+</strong>
-              <span>Listings</span>
-            </div>
-
-            <div>
-              <strong>10+</strong>
-              <span>Campuses</span>
-            </div>
-
           </div>
-
         </div>
 
 
-        <div class="heroVisual">
-
-          <div class="floatingCard floatingOne">
-            📱
+        <!-- CATEGORIES -->
+        <section class="section">
+          <div class="section-heading">
             <div>
-              <strong>Phones</strong>
-              <span>Find your next phone</span>
+              <p class="section-label">EXPLORE</p>
+              <h2>Categories</h2>
             </div>
           </div>
 
-          <div class="heroShoppingCard">
+          <div class="category-grid">
 
-            <div class="heroShoppingIcon">
-              🛍️
-            </div>
-
-            <h3>
-              Your campus marketplace
-            </h3>
-
-            <p>
-              Everything students need,
-              all in one place.
-            </p>
-
-            <div class="heroMiniProducts">
-
+            <button class="category-card" data-category="Phones">
               <span>📱</span>
+              <strong>Phones</strong>
+              <small>Phones & accessories</small>
+            </button>
+
+            <button class="category-card" data-category="Computers">
               <span>💻</span>
+              <strong>Computers</strong>
+              <small>Laptops & computers</small>
+            </button>
+
+            <button class="category-card" data-category="Fashion">
               <span>👕</span>
+              <strong>Fashion</strong>
+              <small>Clothes & shoes</small>
+            </button>
+
+            <button class="category-card" data-category="Books">
               <span>📚</span>
+              <strong>Books</strong>
+              <small>Academic materials</small>
+            </button>
+
+            <button class="category-card" data-category="Electronics">
               <span>🎧</span>
+              <strong>Electronics</strong>
+              <small>Gadgets & devices</small>
+            </button>
 
-            </div>
+            <button class="category-card" data-category="Home">
+              <span>🏠</span>
+              <strong>Home</strong>
+              <small>Furniture & more</small>
+            </button>
 
           </div>
+        </section>
 
-          <div class="floatingCard floatingTwo">
-            💰
+
+        <!-- PRODUCTS -->
+        <section class="section products-section">
+
+          <div class="section-heading">
             <div>
-              <strong>Sell & earn</strong>
-              <span>List your items easily</span>
+              <p class="section-label">MARKETPLACE</p>
+              <h2 id="productSectionTitle">Latest listings</h2>
+            </div>
+
+            <button class="text-button" id="sortButton">
+              Latest ▾
+            </button>
+          </div>
+
+          <div id="productGrid" class="product-grid">
+            <div class="loading-card">
+              <div class="spinner"></div>
+              <p>Loading products...</p>
             </div>
           </div>
 
+        </section>
+
+      </section>
+
+
+      <!-- SAVED -->
+      <section class="screen hidden" id="savedScreen" data-screen="saved">
+
+        <div class="page-header">
+          <p class="section-label">YOUR MARKET</p>
+          <h1>Saved items</h1>
+          <p>Products you've saved for later.</p>
         </div>
 
-      </div>
-
-    </section>
-
-
-    <!-- =========================
-         QUICK CATEGORIES
-    ========================== -->
-
-    <section class="quickCategories">
-
-      <div class="container">
-
-        <div class="sectionHeading">
-
-          <div>
-            <span class="eyebrow">EXPLORE</span>
-            <h2>Shop by category</h2>
+        <div id="savedGrid" class="product-grid">
+          <div class="empty-state">
+            <div class="empty-icon">♡</div>
+            <h2>No saved items</h2>
+            <p>Tap the heart on a product to save it here.</p>
+            <button class="primary-button" data-route="home">
+              Browse products
+            </button>
           </div>
-
-          <button type="button" class="textButton">
-            View all →
-          </button>
-
         </div>
 
+      </section>
 
-        <div class="categoryCards">
 
-          <button class="categoryCard" type="button">
-            <div class="categoryIcon phoneIcon">📱</div>
-            <strong>Phones</strong>
-            <span>120+ items</span>
-          </button>
+      <!-- SELL -->
+      <section class="screen hidden" id="sellScreen" data-screen="sell">
 
-          <button class="categoryCard" type="button">
-            <div class="categoryIcon computerIcon">💻</div>
-            <strong>Computers</strong>
-            <span>85+ items</span>
-          </button>
-
-          <button class="categoryCard" type="button">
-            <div class="categoryIcon fashionIcon">👕</div>
-            <strong>Fashion</strong>
-            <span>200+ items</span>
-          </button>
-
-          <button class="categoryCard" type="button">
-            <div class="categoryIcon booksIcon">📚</div>
-            <strong>Books</strong>
-            <span>150+ items</span>
-          </button>
-
-          <button class="categoryCard" type="button">
-            <div class="categoryIcon electronicsIcon">🎧</div>
-            <strong>Electronics</strong>
-            <span>90+ items</span>
-          </button>
-
-          <button class="categoryCard" type="button">
-            <div class="categoryIcon homeIcon">🏠</div>
-            <strong>Home</strong>
-            <span>60+ items</span>
-          </button>
-
-          <button class="categoryCard" type="button">
-            <div class="categoryIcon gamingIcon">🎮</div>
-            <strong>Gaming</strong>
-            <span>45+ items</span>
-          </button>
-
-          <button class="categoryCard" type="button">
-            <div class="categoryIcon otherIcon">🛍️</div>
-            <strong>Other</strong>
-            <span>100+ items</span>
-          </button>
-
+        <div class="page-header">
+          <p class="section-label">SELL ON CHEAL</p>
+          <h1>Sell an item</h1>
+          <p>Reach students looking for affordable products.</p>
         </div>
 
-      </div>
+        <form id="sellForm" class="form-card">
 
-    </section>
+          <!-- IMAGE UPLOAD -->
+          <div class="form-group">
+            <label>Product photos</label>
 
+            <div id="imagePreview" class="image-preview-grid"></div>
 
-    <!-- =========================
-         MARKETPLACE
-    ========================== -->
-
-    <section id="market" class="marketSection">
-
-      <div class="container">
-
-
-        <div class="marketHeader">
-
-          <div>
-
-            <span class="eyebrow">
-              MARKETPLACE
-            </span>
-
-            <h2>
-              Latest listings
-            </h2>
-
-            <p>
-              Discover products listed by students around Uganda.
-            </p>
-
-          </div>
-
-
-          <div class="sortBox">
-
-            <label for="sort">
-              Sort:
+            <label class="upload-box" for="productImages">
+              <span>📸</span>
+              <strong>Add photos</strong>
+              <small>Up to 5 photos · JPG, PNG or WebP</small>
             </label>
 
-            <select id="sort">
+            <input
+              id="productImages"
+              type="file"
+              accept="image/*"
+              multiple
+              hidden
+            >
 
-              <option value="newest">
-                Newest
-              </option>
-
-              <option value="priceLow">
-                Price: Low to High
-              </option>
-
-              <option value="priceHigh">
-                Price: High to Low
-              </option>
-
-            </select>
-
-          </div>
-
-        </div>
-
-
-        <!-- Filters -->
-
-        <div class="marketToolbar">
-
-          <div id="cats" class="filterCategories"></div>
-
-          <button
-            type="button"
-            class="filterButton"
-            id="filterButton"
-          >
-            ⚙ Filters
-          </button>
-
-        </div>
-
-
-        <!-- Products -->
-
-        <div
-          id="products"
-          class="productsGrid"
-        ></div>
-
-
-        <div class="loadMoreWrap">
-
-          <button
-            type="button"
-            class="loadMoreButton"
-          >
-            Load more products
-          </button>
-
-        </div>
-
-      </div>
-
-    </section>
-
-
-    <!-- =========================
-         WHY CHEAL MARKET
-    ========================== -->
-
-    <section class="trustSection">
-
-      <div class="container">
-
-        <div class="trustGrid">
-
-          <div class="trustCard">
-
-            <div class="trustIcon">
-              🔐
-            </div>
-
-            <div>
-              <h3>Student-focused</h3>
-              <p>
-                Built around the needs of students and campus communities.
-              </p>
-            </div>
-
-          </div>
-
-
-          <div class="trustCard">
-
-            <div class="trustIcon">
-              📍
-            </div>
-
-            <div>
-              <h3>Campus-based</h3>
-              <p>
-                Find products close to your university or college.
-              </p>
-            </div>
-
-          </div>
-
-
-          <div class="trustCard">
-
-            <div class="trustIcon">
-              💬
-            </div>
-
-            <div>
-              <h3>Chat directly</h3>
-              <p>
-                Talk with sellers before making a purchase.
-              </p>
-            </div>
-
-          </div>
-
-
-          <div class="trustCard">
-
-            <div class="trustIcon">
-              💰
-            </div>
-
-            <div>
-              <h3>Sell easily</h3>
-              <p>
-                Turn unused items into cash with a simple listing.
-              </p>
-            </div>
-
-          </div>
-
-        </div>
-
-      </div>
-
-    </section>
-
-
-    <!-- =========================
-         SELL SECTION
-    ========================== -->
-
-    <section
-      id="sell"
-      class="sellSection"
-    >
-
-      <div class="container">
-
-        <div class="sellCard">
-
-          <div class="sellIntro">
-
-            <span class="eyebrow">
-              SELL ON CHEAL MARKET
-            </span>
-
-            <h2>
-              Have something to sell?
-            </h2>
-
-            <p>
-              List your product and connect with students
-              looking for what you have.
+            <p class="field-note">
+              Clear photos help buyers understand what you're selling.
             </p>
-
-            <div class="sellBenefits">
-
-              <span>✓ Easy listing</span>
-              <span>✓ Reach students</span>
-              <span>✓ Chat with buyers</span>
-
-            </div>
-
           </div>
 
 
-          <form
-            id="sellForm"
-            class="sellForm"
-          >
-
-            <div class="formRow">
-
-              <div class="formGroup">
-
-                <label for="name">
-                  Product name
-                </label>
-
-                <input
-                  id="name"
-                  type="text"
-                  placeholder="e.g. iPhone 13 Pro"
-                  required
-                >
-
-              </div>
+          <div class="form-group">
+            <label for="productName">Product name</label>
+            <input
+              id="productName"
+              type="text"
+              placeholder="e.g. iPhone 13 Pro"
+              required
+            >
+          </div>
 
 
-              <div class="formGroup">
+          <div class="form-row">
 
-                <label for="price">
-                  Price (UGX)
-                </label>
-
-                <input
-                  id="price"
-                  type="number"
-                  placeholder="e.g. 1500000"
-                  min="0"
-                  required
-                >
-
-              </div>
-
-            </div>
-
-
-            <div class="formRow">
-
-              <div class="formGroup">
-
-                <label for="cat">
-                  Category
-                </label>
-
-                <select id="cat" required>
-
-                  <option value="">
-                    Select category
-                  </option>
-
-                  <option value="Phones">
-                    Phones
-                  </option>
-
-                  <option value="Computers">
-                    Computers
-                  </option>
-
-                  <option value="Clothes">
-                    Fashion
-                  </option>
-
-                  <option value="Books">
-                    Books
-                  </option>
-
-                  <option value="Electronics">
-                    Electronics
-                  </option>
-
-                  <option value="Home">
-                    Home & Living
-                  </option>
-
-                  <option value="Gaming">
-                    Gaming
-                  </option>
-
-                  <option value="Other">
-                    Other
-                  </option>
-
-                </select>
-
-              </div>
-
-
-              <div class="formGroup">
-
-                <label for="seller">
-                  Your name
-                </label>
-
-                <input
-                  id="seller"
-                  type="text"
-                  placeholder="Your name"
-                  required
-                >
-
-              </div>
-
-            </div>
-
-
-            <div class="formGroup">
-
-              <label for="campus">
-                Campus / Location
-              </label>
-
+            <div class="form-group">
+              <label for="productPrice">Price (UGX)</label>
               <input
-                id="campus"
-                type="text"
-                placeholder="e.g. KIU, Kansanga"
+                id="productPrice"
+                type="number"
+                min="0"
+                placeholder="850000"
                 required
               >
-
             </div>
 
-
-            <div class="formGroup">
-
-              <label for="desc">
-                Description
-              </label>
-
-              <textarea
-                id="desc"
-                rows="4"
-                placeholder="Describe your product..."
-              ></textarea>
-
+            <div class="form-group">
+              <label for="productCategory">Category</label>
+              <select id="productCategory" required>
+                <option value="">Choose</option>
+                <option>Phones</option>
+                <option>Computers</option>
+                <option>Fashion</option>
+                <option>Books</option>
+                <option>Electronics</option>
+                <option>Home</option>
+                <option>Gaming</option>
+                <option>Other</option>
+              </select>
             </div>
 
+          </div>
 
-            <button
-              type="submit"
-              class="primaryButton fullButton"
+
+          <div class="form-group">
+            <label for="productCampus">Campus</label>
+            <input
+              id="productCampus"
+              type="text"
+              placeholder="e.g. KIU"
+              required
             >
-              Publish listing
+          </div>
+
+
+          <div class="form-group">
+            <label for="productDescription">Description</label>
+            <textarea
+              id="productDescription"
+              rows="5"
+              placeholder="Describe the condition, features and anything buyers should know..."
+            ></textarea>
+          </div>
+
+
+          <button class="primary-button full-button" type="submit">
+            Publish listing
+          </button>
+
+          <p id="sellMessage" class="form-message"></p>
+
+        </form>
+
+      </section>
+
+
+      <!-- MESSAGES -->
+      <section class="screen hidden" id="messagesScreen" data-screen="messages">
+
+        <div class="page-header">
+          <p class="section-label">PRIVATE CHAT</p>
+          <h1>Messages</h1>
+          <p>Chat privately with buyers and sellers.</p>
+        </div>
+
+        <div id="conversationList" class="conversation-list">
+
+          <div class="empty-state">
+            <div class="empty-icon">💬</div>
+            <h2>No conversations yet</h2>
+            <p>When you message a seller, your conversation will appear here.</p>
+            <button class="primary-button" data-route="home">
+              Find products
+            </button>
+          </div>
+
+        </div>
+
+      </section>
+
+
+      <!-- CHAT -->
+      <section class="screen hidden" id="chatScreen" data-screen="chat">
+
+        <div class="chat-page">
+
+          <div class="chat-header">
+            <button class="back-button" data-route="messages">
+              ←
+            </button>
+
+            <div>
+              <strong id="chatName">Conversation</strong>
+              <small id="chatProduct"></small>
+            </div>
+          </div>
+
+
+          <div id="chatMessages" class="chat-messages"></div>
+
+
+          <form id="chatForm" class="chat-input-area">
+
+            <input
+              id="chatInput"
+              type="text"
+              placeholder="Write a message..."
+              autocomplete="off"
+              required
+            >
+
+            <button type="submit">
+              ➤
             </button>
 
           </form>
 
         </div>
 
-      </div>
-
-    </section>
+      </section>
 
 
-    <!-- =========================
-         CHAT
-    ========================== -->
+      <!-- ACCOUNT -->
+      <section class="screen hidden" id="accountScreen" data-screen="account">
 
-    <section
-      id="chat"
-      class="chatSection"
-    >
+        <div class="account-header">
 
-      <div class="container">
-
-        <div class="sectionHeading">
+          <div class="profile-avatar" id="profileAvatar">
+            M
+          </div>
 
           <div>
-
-            <span class="eyebrow">
-              MESSAGES
-            </span>
-
-            <h2>
-              Chat with sellers
-            </h2>
-
-            <p>
-              Ask questions and discuss products before buying.
-            </p>
-
+            <p class="section-label">MY ACCOUNT</p>
+            <h1 id="profileName">Welcome</h1>
+            <p id="profileEmail">Sign in to manage your account.</p>
           </div>
 
         </div>
 
 
-        <div class="chat">
-
-          <!-- Sidebar -->
-
-          <aside class="chatSidebar">
-
-            <div class="chatSidebarHeader">
-
-              <h3>
-                Conversations
-              </h3>
-
-              <span class="onlineDot">
-                ● Online
-              </span>
-
-            </div>
-
-
-            <button
-              type="button"
-              class="conversation active"
-            >
-
-              <div class="avatar">
-                S
-              </div>
-
-              <div class="conversationInfo">
-
-                <strong>
-                  Sarah
-                </strong>
-
-                <span>
-                  iPhone 13 Pro
-                </span>
-
-              </div>
-
-              <small>
-                2m
-              </small>
-
-            </button>
-
-
-            <button
-              type="button"
-              class="conversation"
-            >
-
-              <div class="avatar">
-                B
-              </div>
-
-              <div class="conversationInfo">
-
-                <strong>
-                  Brian
-                </strong>
-
-                <span>
-                  Campus Hoodie
-                </span>
-
-              </div>
-
-              <small>
-                1h
-              </small>
-
-            </button>
-
-
-            <button
-              type="button"
-              class="conversation"
-            >
-
-              <div class="avatar">
-                J
-              </div>
-
-              <div class="conversationInfo">
-
-                <strong>
-                  Joan
-                </strong>
-
-                <span>
-                  Sneakers
-                </span>
-
-              </div>
-
-              <small>
-                3h
-              </small>
-
-            </button>
-
-          </aside>
-
-
-          <!-- Chat window -->
-
-          <div class="chatWindow">
-
-            <div class="chatTop">
-
-              <div class="chatSeller">
-
-                <div class="avatar">
-                  S
-                </div>
-
-                <div>
-
-                  <strong>
-                    Sarah
-                  </strong>
-
-                  <span>
-                    iPhone 13 Pro · KIU
-                  </span>
-
-                </div>
-
-              </div>
-
-
-              <button
-                type="button"
-                class="chatMore"
-              >
-                ⋮
-              </button>
-
-            </div>
-
-
-            <div
-              id="messages"
-              class="messages"
-            >
-
-              <div class="chatDate">
-                Today
-              </div>
-
-              <div class="sellerMsg">
-                Hello 👋 Is there anything you'd like to know about the iPhone?
-              </div>
-
-              <div class="sellerMsg">
-                It's in good condition and I'm available around KIU.
-              </div>
-
-            </div>
-
-
-            <form
-              id="chatForm"
-              class="chatForm"
-            >
-
-              <input
-                id="message"
-                type="text"
-                placeholder="Write a message..."
-                autocomplete="off"
-              >
-
-              <button type="submit">
-                Send
-              </button>
-
-            </form>
-
-          </div>
-
-        </div>
-
-      </div>
-
-    </section>
-
-
-    <!-- =========================
-         ACCOUNT MODAL
-    ========================== -->
-
-    <div
-      id="modal"
-      class="modal hidden"
-    >
-
-      <div class="modalCard">
-
-        <button
-          type="button"
-          id="close"
-          class="modalClose"
-        >
-          ×
-        </button>
-
-        <div class="modalLogo">
-          Cheal<span>Market</span>
-        </div>
-
-        <h2 id="modalTitle">
-          Sign in
-        </h2>
-
-        <p id="authMessage">
-          Sign in to buy, sell and chat.
-        </p>
-
-
-        <form id="auth">
-
-          <input
-            id="authName"
-            type="text"
-            placeholder="Full name"
-            autocomplete="name"
-          >
-
-          <input
-            id="authEmail"
-            type="email"
-            placeholder="Email address"
-            autocomplete="email"
-            required
-          >
-
-          <input
-            id="authPassword"
-            type="password"
-            placeholder="Password"
-            autocomplete="current-password"
-            required
-          >
-
-          <input
-            id="authCampus"
-            type="text"
-            placeholder="Campus"
-            autocomplete="organization"
-          >
-
-          <button
-            id="authSubmit"
-            type="submit"
-            class="primaryButton fullButton"
-          >
+        <div id="accountLoggedOut" class="account-login-card">
+
+          <div class="empty-icon">👤</div>
+          <h2>Sign in to Cheal Market</h2>
+          <p>
+            Manage your listings, saved items and messages.
+          </p>
+
+          <button class="primary-button" id="accountLoginButton">
             Sign in
           </button>
 
-        </form>
+        </div>
 
-        <p class="modalSwitch">
-          New to Cheal Market?
-          <button
-            type="button"
-            id="signup"
-          >
-            Create account
+
+        <div id="accountLoggedIn" class="account-menu hidden">
+
+          <button class="account-menu-item" data-route="my-listings">
+            <span>📦</span>
+            <div>
+              <strong>My listings</strong>
+              <small>Manage products you've posted</small>
+            </div>
+            <b>›</b>
           </button>
-        </p>
+
+          <button class="account-menu-item" data-route="saved">
+            <span>❤️</span>
+            <div>
+              <strong>Saved items</strong>
+              <small>Products you've saved</small>
+            </div>
+            <b>›</b>
+          </button>
+
+          <button class="account-menu-item">
+            <span>⚙️</span>
+            <div>
+              <strong>Settings</strong>
+              <small>Account preferences</small>
+            </div>
+            <b>›</b>
+          </button>
+
+          <button class="account-menu-item danger" id="logoutButton">
+            <span>↪</span>
+            <div>
+              <strong>Sign out</strong>
+              <small>Sign out of your account</small>
+            </div>
+            <b>›</b>
+          </button>
+
+        </div>
+
+      </section>
+
+
+      <!-- MY LISTINGS -->
+      <section class="screen hidden" id="myListingsScreen">
+
+        <div class="page-header">
+          <button class="back-button" data-route="account">
+            ← Account
+          </button>
+
+          <p class="section-label">SELLER CENTER</p>
+          <h1>My listings</h1>
+          <p>Manage the products you've posted.</p>
+        </div>
+
+        <div id="myListingsGrid" class="product-grid">
+
+          <div class="empty-state">
+            <div class="empty-icon">📦</div>
+            <h2>No listings yet</h2>
+            <p>Products you sell will appear here.</p>
+            <button class="primary-button" data-route="sell">
+              Sell an item
+            </button>
+          </div>
+
+        </div>
+
+      </section>
+
+
+      <!-- PRODUCT DETAILS -->
+      <section class="screen hidden" id="productScreen">
+
+        <div id="productDetails"></div>
+
+      </section>
+
+
+      <!-- AUTH -->
+      <div id="authOverlay" class="modal-overlay hidden">
+
+        <div class="auth-modal">
+
+          <button id="closeAuth" class="modal-close">×</button>
+
+          <div class="auth-logo">C</div>
+
+          <h2 id="authTitle">Welcome to Cheal Market</h2>
+
+          <p id="authSubtitle">
+            Sign in to buy, sell and chat.
+          </p>
+
+
+          <form id="authForm">
+
+            <div id="signupFields" class="hidden">
+
+              <div class="form-group">
+                <label for="authName">Full name</label>
+                <input id="authName" type="text" placeholder="Your name">
+              </div>
+
+              <div class="form-group">
+                <label for="authCampus">Campus</label>
+                <input id="authCampus" type="text" placeholder="e.g. KIU">
+              </div>
+
+            </div>
+
+
+            <div class="form-group">
+              <label for="authEmail">Email</label>
+              <input
+                id="authEmail"
+                type="email"
+                placeholder="you@example.com"
+                required
+              >
+            </div>
+
+
+            <div class="form-group">
+              <label for="authPassword">Password</label>
+              <input
+                id="authPassword"
+                type="password"
+                placeholder="••••••••"
+                minlength="6"
+                required
+              >
+            </div>
+
+
+            <button class="primary-button full-button" type="submit">
+              <span id="authSubmitText">Sign in</span>
+            </button>
+
+            <p id="authMessage" class="form-message"></p>
+
+          </form>
+
+
+          <button id="authSwitch" class="auth-switch">
+            Don't have an account? <strong>Sign up</strong>
+          </button>
+
+        </div>
 
       </div>
 
-    </div>
 
+      <!-- MENU DRAWER -->
+      <div id="menuOverlay" class="menu-overlay hidden">
 
-  </main>
+        <aside class="side-menu">
 
+          <button id="closeMenu" class="modal-close">×</button>
 
-  <!-- =========================
-       FOOTER
-  ========================== -->
+          <div class="side-brand">
+            <span class="brand-mark">C</span>
+            <strong>Cheal Market</strong>
+          </div>
 
-  <footer class="footer">
+          <button data-route="home">🏠 Home</button>
+          <button data-route="saved">❤️ Saved</button>
+          <button data-route="sell">➕ Sell</button>
+          <button data-route="messages">💬 Messages</button>
+          <button data-route="account">👤 Account</button>
 
-    <div class="container footerGrid">
-
-      <div>
-
-        <a href="#" class="logo footerLogo">
-          Cheal<span>Market</span>
-        </a>
-
-        <p>
-          Uganda's student marketplace for buying,
-          selling and connecting.
-        </p>
+        </aside>
 
       </div>
 
-
-      <div>
-
-        <h4>Marketplace</h4>
-
-        <a href="#market">Browse products</a>
-        <a href="#sell">Sell an item</a>
-        <a href="#chat">Messages</a>
-
-      </div>
+    </main>
 
 
-      <div>
+    <!-- BOTTOM NAVIGATION -->
+    <nav class="bottom-nav">
 
-        <h4>Categories</h4>
+      <a href="#home" class="nav-item active" data-nav="home">
+        <span>⌂</span>
+        <small>Home</small>
+      </a>
 
-        <a href="#market">Phones</a>
-        <a href="#market">Computers</a>
-        <a href="#market">Fashion</a>
-        <a href="#market">Books</a>
+      <a href="#saved" class="nav-item" data-nav="saved">
+        <span>♡</span>
+        <small>Saved</small>
+      </a>
 
-      </div>
+      <a href="#sell" class="nav-item sell-nav">
+        <span>＋</span>
+        <small>Sell</small>
+      </a>
 
+      <a href="#messages" class="nav-item" data-nav="messages">
+        <span>♧</span>
+        <small>Messages</small>
+      </a>
 
-      <div>
+      <a href="#account" class="nav-item" data-nav="account">
+        <span>♙</span>
+        <small>Account</small>
+      </a>
 
-        <h4>Cheal Market</h4>
+    </nav>
 
-        <a href="#">About us</a>
-        <a href="#">Safety</a>
-        <a href="#">Help centre</a>
-
-      </div>
-
-    </div>
-
-
-    <div class="container footerBottom">
-
-      <span>
-        © 2026 Cheal Market
-      </span>
-
-      <span>
-        Built for students 🇺🇬
-      </span>
-
-    </div>
-
-  </footer>
+  </div>
 
 
-  <!-- =========================
-       SCRIPTS
-  ========================== -->
-
+  <!-- SUPABASE -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
+  <!-- APP -->
   <script src="app.js"></script>
 
 </body>
