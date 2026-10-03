@@ -1,4 +1,4 @@
-# CampusMarket
+# CHEAL MARKET 
 
 A student marketplace concept for buying and selling phones, clothes, books, electronics and campus essentials.
 
