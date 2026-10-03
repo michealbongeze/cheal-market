@@ -7,8 +7,8 @@
 ========================================================= */
 const SUPABASE_URL =
   "https://qwlklqjfbrhythpynghr.supabase.co";
-const SUPABASE_KEY =
-  "sb_publishable_HVAjJNZAQIiyf1AosvH0A_fnYoFpHx";
+const SUPABASE_URL =
+  "https://qwlklqjfbrhythpynghr.supabase.co";
 const supabaseClient =
   window.supabase.createClient(
     SUPABASE_URL,
