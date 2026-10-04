@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
   <title>Cheal Market</title>
   
-  <!-- Supabase CDN -->
+  <!-- Supabase JS Client v2 -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   
   <style>
@@ -204,6 +204,7 @@
       text-align: center;
       cursor: pointer;
       flex-shrink: 0;
+      transition: all 0.2s ease;
     }
 
     .category-card.active {
@@ -227,6 +228,7 @@
       grid-template-columns: repeat(2, 1fr);
       gap: 12px;
       padding: 0 16px 16px 16px;
+      min-height: 150px;
     }
 
     .product-card-item {
@@ -349,7 +351,7 @@
       box-shadow: 0 4px 10px rgba(30, 86, 77, 0.3);
     }
 
-    /* MODAL & DRAWER */
+    /* MODALS & HELPERS */
     .overlay {
       position: fixed;
       top: 0;
@@ -370,19 +372,6 @@
       border-radius: 16px;
       padding: 20px;
       position: relative;
-    }
-
-    .drawer {
-      position: fixed;
-      top: 0;
-      left: 0;
-      width: 80%;
-      max-width: 300px;
-      height: 100%;
-      background: white;
-      z-index: 2000;
-      padding: 20px;
-      box-shadow: 2px 0 10px rgba(0,0,0,0.1);
     }
 
     .hidden {
@@ -421,9 +410,10 @@
 
     .empty-state {
       text-align: center;
-      padding: 40px 20px;
+      padding: 30px 16px;
       grid-column: span 2;
       color: var(--text-muted);
+      font-size: 13px;
     }
   </style>
 </head>
@@ -431,7 +421,7 @@
 
   <!-- TOP BAR -->
   <header class="top-bar">
-    <button class="icon-btn" id="menuButton" onclick="openMenu()">☰</button>
+    <button class="icon-btn" onclick="navigateTo('home')">☰</button>
     <div class="brand" onclick="navigateTo('home')">
       <div class="brand-logo">C</div>
       <div>
@@ -439,15 +429,14 @@
         <div class="brand-sub">Market</div>
       </div>
     </div>
-    <button class="icon-btn" id="topAccountButton" onclick="navigateTo('account')">👤</button>
+    <button class="icon-btn" onclick="navigateTo('account')">👤</button>
   </header>
 
   <!-- HOME SCREEN -->
   <main id="screen-home" class="screen">
     <div class="search-container">
       <div class="search-box">
-        🔍 <input type="text" id="searchInput" placeholder="Search phones, clothes, books..." />
-        <button id="clearSearch" class="hidden" style="border:none; background:none;">✕</button>
+        🔍 <input type="text" id="searchInput" placeholder="Search phones, clothes, books..." oninput="handleSearch(this.value)" />
       </div>
     </div>
     <div class="location-tag">📍 Kampala</div>
@@ -465,15 +454,15 @@
     <div class="section-subtitle">EXPLORE</div>
     <div class="section-title">Categories</div>
     <div class="category-grid">
-      <div class="category-card" onclick="selectCategory('Phones')">
+      <div class="category-card" data-category="Phones" onclick="selectCategory('Phones', this)">
         <div class="category-icon">📱</div>
         <div class="category-name">Phones</div>
       </div>
-      <div class="category-card" onclick="selectCategory('Computers')">
+      <div class="category-card" data-category="Computers" onclick="selectCategory('Computers', this)">
         <div class="category-icon">💻</div>
         <div class="category-name">Computers</div>
       </div>
-      <div class="category-card" onclick="selectCategory('Fashion')">
+      <div class="category-card" data-category="Fashion" onclick="selectCategory('Fashion', this)">
         <div class="category-icon">👕</div>
         <div class="category-name">Fashion</div>
       </div>
@@ -515,7 +504,7 @@
       </div>
       <div class="form-group">
         <label>Description</label>
-        <textarea id="productDescription" rows="3" placeholder="Condition, specs, reason for selling..."></textarea>
+        <textarea id="productDescription" rows="3" placeholder="Condition, specs, contact details..."></textarea>
       </div>
       <button type="submit" class="btn-block">Publish Listing</button>
       <div id="sellMessage" style="margin-top:10px; font-size:12px; text-align:center;"></div>
@@ -531,10 +520,9 @@
     </div>
     <div id="accountLoggedIn" class="hidden">
       <div style="display:flex; align-items:center; gap:12px; margin-bottom:20px;">
-        <div id="profileAvatar" style="width:50px; height:50px; background:var(--primary); color:white; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:20px; font-weight:bold;">👤</div>
+        <div style="width:50px; height:50px; background:var(--primary); color:white; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:20px; font-weight:bold;">👤</div>
         <div>
-          <div id="profileName" style="font-weight:bold;">User</div>
-          <div id="profileEmail" style="font-size:12px; color:var(--text-muted);">email@example.com</div>
+          <div id="profileEmail" style="font-size:14px; font-weight:bold;">user@example.com</div>
         </div>
       </div>
       <button class="btn-block" style="background:#e63946;" onclick="handleLogout()">Sign Out</button>
@@ -543,19 +531,19 @@
 
   <!-- BOTTOM NAVIGATION -->
   <nav class="bottom-nav">
-    <button class="nav-item active" onclick="navigateTo('home')">
+    <button class="nav-item active" onclick="navigateTo('home', this)">
       <span class="icon">🏠</span>
       <span>Home</span>
     </button>
-    <button class="nav-item" onclick="navigateTo('saved')">
+    <button class="nav-item" onclick="navigateTo('saved', this)">
       <span class="icon">♡</span>
       <span>Saved</span>
     </button>
-    <button class="nav-item" onclick="navigateTo('sell')">
+    <button class="nav-item" onclick="navigateTo('sell', this)">
       <div class="nav-sell-btn">+</div>
       <span style="margin-top:4px;">Sell</span>
     </button>
-    <button class="nav-item" onclick="navigateTo('account')">
+    <button class="nav-item" onclick="navigateTo('account', this)">
       <span class="icon">👤</span>
       <span>Account</span>
     </button>
@@ -565,8 +553,8 @@
   <div id="authOverlay" class="overlay hidden">
     <div class="modal">
       <button onclick="closeAuthModal()" style="position:absolute; top:12px; right:12px; border:none; background:none; font-size:18px;">✕</button>
-      <h3 id="authTitle" style="margin-bottom:8px;">Welcome</h3>
-      <p id="authSubtitle" style="font-size:12px; color:var(--text-muted); margin-bottom:16px;">Sign in to continue</p>
+      <h3 style="margin-bottom:8px;">Account Access</h3>
+      <p style="font-size:12px; color:var(--text-muted); margin-bottom:16px;">Sign in or create a new account</p>
       <form id="authForm">
         <div class="form-group">
           <label>Email</label>
@@ -576,13 +564,16 @@
           <label>Password</label>
           <input type="password" id="authPassword" required />
         </div>
-        <button type="submit" class="btn-block" id="authSubmitText">Sign In</button>
+        <div style="display:flex; gap:8px;">
+          <button type="submit" class="btn-block" id="btnSignIn">Sign In</button>
+          <button type="button" class="btn-block" style="background:var(--accent);" id="btnSignUp" onclick="handleSignUp()">Register</button>
+        </div>
       </form>
       <div id="authMessage" style="margin-top:10px; font-size:12px; text-align:center;"></div>
     </div>
   </div>
 
-  <!-- CACHE-BUSTED JAVASCRIPT INCLUSION -->
-  <script src="app.js?v=2"></script>
+  <!-- CACHE BUSTING LOAD -->
+  <script src="app.js?v=3"></script>
 </body>
 </html>
