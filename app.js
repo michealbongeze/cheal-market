@@ -1,183 +1,461 @@
-// ==========================================
-// 1. SUPABASE CLIENT INITIALIZATION
-// ==========================================
-// Project ID: michealbongeze | Anon Key: Sb_publishable_HVAjJNZAQIiyf1aFosvH0A_fnYoFpHx
-const SUPABASE_URL = 'https://michealbongeze.supabase.co'
-const SUPABASE_ANON_KEY = 'Sb_publishable_HVAjJNZAQIiyf1aFosvH0A_fnYoFpHx'
+/* =========================================================
+   CHEAL MARKET — APP.JS
+   Backend: Supabase (Project: michealbongeze)
+========================================================== */
 
-// Note: flowType 'implicit' prevents iOS Safari WebKit PKCE fetch blocks ("Load failed")
+// 1. SUPABASE INITIALIZATION WITH SAFARI IMPLICIT AUTH FIX
+const SUPABASE_URL = 'https://michealbongeze.supabase.co';
+const SUPABASE_ANON_KEY = 'Sb_publishable_HVAjJNZAQIiyf1aFosvH0A_fnYoFpHx';
+
 const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
   auth: {
     persistSession: true,
     autoRefreshToken: true,
     detectSessionInUrl: true,
-    flowType: 'implicit'
+    flowType: 'implicit' // Resolves iOS Safari WebKit "Load failed" PKCE blocks
   }
-})
+});
 
-// ==========================================
-// 2. STATE MANAGEMENT & DOM INITIALIZATION
-// ==========================================
-let currentUser = null
+// 2. STATE MANAGEMENT
+let currentUser = null;
+let currentScreen = 'home';
+let savedProductIds = new Set(JSON.parse(localStorage.getItem('cheal_saved_ids') || '[]'));
+let selectedCategory = null;
+let searchQuery = '';
+let isSignUpMode = false;
 
+// 3. DOM ELEMENTS
 document.addEventListener('DOMContentLoaded', () => {
-  // Elements matching your original CHEAL Market setup
-  const authModal = document.getElementById('auth-modal')
-  const postModal = document.getElementById('post-modal')
-  const openAuthBtn = document.getElementById('open-auth-btn') || document.getElementById('auth-btn')
-  const openPostBtn = document.getElementById('open-post-btn') || document.getElementById('post-btn')
-  const closeBtns = document.querySelectorAll('.close-btn, #close-auth, #close-post')
-  
-  const loginForm = document.getElementById('login-form') || document.getElementById('auth-form')
-  const postProductForm = document.getElementById('post-product-form')
-  const authError = document.getElementById('auth-error')
-  const productsContainer = document.getElementById('products-container') || document.getElementById('products-grid')
+  // Navigation & Screens
+  const screens = document.querySelectorAll('.screen');
+  const navItems = document.querySelectorAll('.nav-item');
+  const routeButtons = document.querySelectorAll('[data-route]');
+  const categoryCards = document.querySelectorAll('.category-card');
 
-  // Listen to Auth State Changes
-  supabase.auth.onAuthStateChange((event, session) => {
-    currentUser = session ? session.user : null
-    updateAuthUI()
-    fetchProducts()
-  })
+  // Top Bar & Menus
+  const menuButton = document.getElementById('menuButton');
+  const menuOverlay = document.getElementById('menuOverlay');
+  const closeMenu = document.getElementById('closeMenu');
+  const topAccountButton = document.getElementById('topAccountButton');
+  const brandHomeButton = document.getElementById('brandHomeButton');
 
-  // ==========================================
-  // 3. INTERACTIVE BUTTON & MODAL CONTROLS
-  // ==========================================
-  if (openAuthBtn) {
-    openAuthBtn.addEventListener('click', async () => {
-      if (currentUser) {
-        await supabase.auth.signOut()
-      } else if (authModal) {
-        authModal.style.display = 'flex'
-      }
-    })
-  }
+  // Search
+  const searchInput = document.getElementById('searchInput');
+  const clearSearch = document.getElementById('clearSearch');
 
-  if (openPostBtn) {
-    openPostBtn.addEventListener('click', () => {
-      if (!currentUser) {
-        alert('Please sign in to post an item on CHEAL Market.')
-        if (authModal) authModal.style.display = 'flex'
-      } else if (postModal) {
-        postModal.style.display = 'flex'
-      }
-    })
-  }
+  // Auth Modal & Forms
+  const authOverlay = document.getElementById('auth-overlay') || document.getElementById('authOverlay');
+  const closeAuth = document.getElementById('closeAuth');
+  const authForm = document.getElementById('authForm');
+  const authSwitch = document.getElementById('authSwitch');
+  const signupFields = document.getElementById('signupFields');
+  const authTitle = document.getElementById('authTitle');
+  const authSubtitle = document.getElementById('authSubtitle');
+  const authSubmitText = document.getElementById('authSubmitText');
+  const authMessage = document.getElementById('authMessage');
+  const accountLoginButton = document.getElementById('accountLoginButton');
+  const logoutButton = document.getElementById('logoutButton');
 
-  closeBtns.forEach(btn => {
-    btn.addEventListener('click', () => {
-      if (authModal) authModal.style.display = 'none'
-      if (postModal) postModal.style.display = 'none'
-    })
-  })
+  // Grids & Products
+  const productGrid = document.getElementById('productGrid');
+  const savedGrid = document.getElementById('savedGrid');
+  const myListingsGrid = document.getElementById('myListingsGrid');
+  const sellForm = document.getElementById('sellForm');
+  const sellMessage = document.getElementById('sellMessage');
 
-  window.addEventListener('click', (e) => {
-    if (e.target === authModal) authModal.style.display = 'none'
-    if (e.target === postModal) postModal.style.display = 'none'
-  })
+  // Account Header Elements
+  const profileName = document.getElementById('profileName');
+  const profileEmail = document.getElementById('profileEmail');
+  const profileAvatar = document.getElementById('profileAvatar');
+  const accountLoggedOut = document.getElementById('accountLoggedOut');
+  const accountLoggedIn = document.getElementById('accountLoggedIn');
 
-  function updateAuthUI() {
-    const userStatus = document.getElementById('user-account-status') || document.getElementById('user-status')
-    if (userStatus) {
-      userStatus.textContent = currentUser ? `Logged in as: ${currentUser.email}` : 'Browsing as Guest'
-    }
-    if (openAuthBtn) {
-      openAuthBtn.textContent = currentUser ? 'Sign Out' : 'Sign In'
-    }
-  }
+  // =========================================================
+  // ROUTING & SCREEN NAVIGATION
+  // =========================================================
+  function navigateTo(screenName) {
+    currentScreen = screenName;
 
-  // ==========================================
-  // 4. AUTHENTICATION (SIGN IN & SIGN UP)
-  // ==========================================
-  if (loginForm) {
-    loginForm.addEventListener('submit', async (e) => {
-      e.preventDefault()
-      if (authError) authError.textContent = ''
-
-      const emailInput = document.getElementById('email') || document.getElementById('auth-email')
-      const passwordInput = document.getElementById('password') || document.getElementById('auth-password')
-
-      if (!emailInput || !passwordInput) return
-
-      const { data, error } = await supabase.auth.signInWithPassword({
-        email: emailInput.value.trim(),
-        password: passwordInput.value
-      })
-
-      if (error) {
-        if (authError) authError.textContent = error.message
+    // Toggle screen visibility
+    screens.forEach(screen => {
+      if (screen.dataset.screen === screenName) {
+        screen.classList.remove('hidden');
       } else {
-        if (authModal) authModal.style.display = 'none'
-        loginForm.reset()
+        screen.classList.add('hidden');
       }
-    })
+    });
+
+    // Update bottom nav highlighting
+    navItems.forEach(nav => {
+      if (nav.dataset.nav === screenName) {
+        nav.classList.add('active');
+      } else {
+        nav.classList.remove('active');
+      }
+    });
+
+    // Close mobile side drawer if open
+    if (menuOverlay) menuOverlay.classList.add('hidden');
+
+    // Trigger grid updates depending on screen
+    if (screenName === 'home') fetchProducts();
+    if (screenName === 'saved') renderSavedGrid();
+    if (screenName === 'my-listings') fetchMyListings();
+
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   }
 
-  // ==========================================
-  // 5. PRODUCT FEED & SUBMISSIONS
-  // ==========================================
-  async function fetchProducts() {
-    if (!productsContainer) return
+  // Bind click routes
+  routeButtons.forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      e.preventDefault();
+      const route = btn.dataset.route;
+      if (route) navigateTo(route);
+    });
+  });
 
-    const { data: products, error } = await supabase
-      .from('products')
-      .select('*')
-      .order('created_at', { ascending: false })
+  navItems.forEach(nav => {
+    nav.addEventListener('click', (e) => {
+      e.preventDefault();
+      const target = nav.dataset.nav;
+      if (target) navigateTo(target);
+    });
+  });
+
+  if (brandHomeButton) {
+    brandHomeButton.addEventListener('click', (e) => {
+      e.preventDefault();
+      navigateTo('home');
+    });
+  }
+
+  // =========================================================
+  // SIDE MENU DRAWER & TOP BUTTONS
+  // =========================================================
+  if (menuButton && menuOverlay) {
+    menuButton.addEventListener('click', () => menuOverlay.classList.remove('hidden'));
+  }
+  if (closeMenu && menuOverlay) {
+    closeMenu.addEventListener('click', () => menuOverlay.classList.add('hidden'));
+  }
+  if (menuOverlay) {
+    menuOverlay.addEventListener('click', (e) => {
+      if (e.target === menuOverlay) menuOverlay.classList.add('hidden');
+    });
+  }
+
+  if (topAccountButton) {
+    topAccountButton.addEventListener('click', () => navigateTo('account'));
+  }
+
+  // Category filter triggers
+  categoryCards.forEach(card => {
+    card.addEventListener('click', () => {
+      const cat = card.dataset.category;
+      selectedCategory = selectedCategory === cat ? null : cat;
+      categoryCards.forEach(c => c.classList.toggle('active', c.dataset.category === selectedCategory));
+      fetchProducts();
+    });
+  });
+
+  // =========================================================
+  // SEARCH FUNCTIONALITY
+  // =========================================================
+  if (searchInput) {
+    searchInput.addEventListener('input', (e) => {
+      searchQuery = e.target.value.trim().toLowerCase();
+      if (clearSearch) {
+        clearSearch.classList.toggle('hidden', searchQuery.length === 0);
+      }
+      fetchProducts();
+    });
+  }
+
+  if (clearSearch) {
+    clearSearch.addEventListener('click', () => {
+      if (searchInput) searchInput.value = '';
+      searchQuery = '';
+      clearSearch.classList.add('hidden');
+      fetchProducts();
+    });
+  }
+
+  // =========================================================
+  // SUPABASE AUTHENTICATION
+  // =========================================================
+  supabase.auth.onAuthStateChange((event, session) => {
+    currentUser = session ? session.user : null;
+    updateAccountUI();
+    fetchProducts();
+  });
+
+  function updateAccountUI() {
+    if (currentUser) {
+      if (accountLoggedOut) accountLoggedOut.classList.add('hidden');
+      if (accountLoggedIn) accountLoggedIn.classList.remove('hidden');
+
+      const userEmail = currentUser.email || 'Student User';
+      if (profileName) profileName.textContent = userEmail.split('@')[0];
+      if (profileEmail) profileEmail.textContent = userEmail;
+      if (profileAvatar) profileAvatar.textContent = userEmail.charAt(0).toUpperCase();
+    } else {
+      if (accountLoggedOut) accountLoggedOut.classList.remove('hidden');
+      if (accountLoggedIn) accountLoggedIn.classList.add('hidden');
+
+      if (profileName) profileName.textContent = 'Welcome';
+      if (profileEmail) profileEmail.textContent = 'Sign in to manage your account.';
+      if (profileAvatar) profileAvatar.textContent = '👤';
+    }
+  }
+
+  function openAuthModal() {
+    if (authOverlay) authOverlay.classList.remove('hidden');
+  }
+
+  function closeAuthModal() {
+    if (authOverlay) authOverlay.classList.add('hidden');
+    if (authMessage) authMessage.textContent = '';
+  }
+
+  if (accountLoginButton) accountLoginButton.addEventListener('click', openAuthModal);
+  if (closeAuth) closeAuth.addEventListener('click', closeAuthModal);
+
+  if (authSwitch) {
+    authSwitch.addEventListener('click', () => {
+      isSignUpMode = !isSignUpMode;
+      if (signupFields) signupFields.classList.toggle('hidden', !isSignUpMode);
+
+      if (isSignUpMode) {
+        authTitle.textContent = 'Create an Account';
+        authSubtitle.textContent = 'Join Cheal Market to sell and chat with students.';
+        authSubmitText.textContent = 'Sign up';
+        authSwitch.innerHTML = 'Already have an account? <strong>Sign in</strong>';
+      } else {
+        authTitle.textContent = 'Welcome to Cheal Market';
+        authSubtitle.textContent = 'Sign in to buy, sell and chat.';
+        authSubmitText.textContent = 'Sign in';
+        authSwitch.innerHTML = "Don't have an account? <strong>Sign up</strong>";
+      }
+    });
+  }
+
+  if (authForm) {
+    authForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      if (authMessage) authMessage.textContent = 'Processing...';
+
+      const email = document.getElementById('authEmail').value.trim();
+      const password = document.getElementById('authPassword').value;
+
+      if (isSignUpMode) {
+        const { data, error } = await supabase.auth.signUp({ email, password });
+        if (error) {
+          if (authMessage) authMessage.textContent = error.message;
+        } else {
+          if (authMessage) authMessage.textContent = 'Account created! Check your email to verify.';
+          setTimeout(closeAuthModal, 2000);
+        }
+      } else {
+        const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+        if (error) {
+          if (authMessage) authMessage.textContent = error.message;
+        } else {
+          closeAuthModal();
+          authForm.reset();
+        }
+      }
+    });
+  }
+
+  if (logoutButton) {
+    logoutButton.addEventListener('click', async () => {
+      await supabase.auth.signOut();
+      navigateTo('home');
+    });
+  }
+
+  // =========================================================
+  // PRODUCTS FETCHING & RENDERING
+  // =========================================================
+  async function fetchProducts() {
+    if (!productGrid) return;
+
+    productGrid.innerHTML = `
+      <div class="loading-card">
+        <div class="spinner"></div>
+        <p>Loading products...</p>
+      </div>
+    `;
+
+    let query = supabase.from('products').select('*').order('created_at', { ascending: false });
+
+    if (selectedCategory) {
+      query = query.eq('category', selectedCategory);
+    }
+
+    const { data: products, error } = await query;
 
     if (error) {
-      console.error('Error fetching products:', error.message)
-      return
+      productGrid.innerHTML = `<p class="form-message">Unable to load products right now.</p>`;
+      return;
     }
 
-    renderProducts(products)
+    let filtered = products || [];
+    if (searchQuery) {
+      filtered = filtered.filter(p => 
+        (p.name && p.name.toLowerCase().includes(searchQuery)) ||
+        (p.title && p.title.toLowerCase().includes(searchQuery)) ||
+        (p.description && p.description.toLowerCase().includes(searchQuery))
+      );
+    }
+
+    renderProductCards(filtered, productGrid);
   }
 
-  function renderProducts(products) {
-    if (!productsContainer) return
-    productsContainer.innerHTML = ''
+  function renderProductCards(items, targetContainer) {
+    if (!targetContainer) return;
+    targetContainer.innerHTML = '';
 
-    if (!products || products.length === 0) {
-      productsContainer.innerHTML = '<p class="no-items">No items posted yet.</p>'
-      return
+    if (!items || items.length === 0) {
+      targetContainer.innerHTML = `
+        <div class="empty-state">
+          <p>No products found.</p>
+        </div>
+      `;
+      return;
     }
 
-    products.forEach(product => {
-      const card = document.createElement('div')
-      card.className = 'product-card card'
+    items.forEach(product => {
+      const isSaved = savedProductIds.has(product.id);
+      const title = product.name || product.title || 'Untitled Product';
+      const price = product.price ? `UGX ${Number(product.price).toLocaleString()}` : 'Contact for Price';
+      const campus = product.campus || product.location || 'Kampala Campus';
+      const image = product.image_url || 'https://via.placeholder.com/300x200?text=Cheal+Market';
+
+      const card = document.createElement('div');
+      card.className = 'product-card-item';
       card.innerHTML = `
-        <h3>${product.title || 'Untitled Item'}</h3>
-        <p class="price">UGX ${product.price || 0}</p>
-        <p class="location">📍 ${product.location || 'Kampala'}</p>
-      `
-      productsContainer.appendChild(card)
-    })
+        <div class="product-image-wrap">
+          <img src="${image}" alt="${title}" loading="lazy" />
+          <button type="button" class="save-btn ${isSaved ? 'saved' : ''}" data-id="${product.id}">
+            ${isSaved ? '♥' : '♡'}
+          </button>
+        </div>
+        <div class="product-details">
+          <strong class="product-title">${title}</strong>
+          <p class="product-price">${price}</p>
+          <small class="product-campus">📍 ${campus}</small>
+        </div>
+      `;
+
+      // Heart Button Listener
+      const saveBtn = card.querySelector('.save-btn');
+      saveBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        toggleSaveProduct(product.id, saveBtn);
+      });
+
+      targetContainer.appendChild(card);
+    });
   }
 
-  if (postProductForm) {
-    postProductForm.addEventListener('submit', async (e) => {
-      e.preventDefault()
-      if (!currentUser) return
+  function toggleSaveProduct(productId, btnElement) {
+    if (savedProductIds.has(productId)) {
+      savedProductIds.delete(productId);
+      if (btnElement) {
+        btnElement.classList.remove('saved');
+        btnElement.textContent = '♡';
+      }
+    } else {
+      savedProductIds.add(productId);
+      if (btnElement) {
+        btnElement.classList.add('saved');
+        btnElement.textContent = '♥';
+      }
+    }
+    localStorage.setItem('cheal_saved_ids', JSON.stringify(Array.from(savedProductIds)));
+  }
 
-      const title = document.getElementById('product-title').value
-      const price = document.getElementById('product-price').value
-      const location = document.getElementById('product-location').value
+  // Saved Screen Rendering
+  async function renderSavedGrid() {
+    if (!savedGrid) return;
+    if (savedProductIds.size === 0) {
+      savedGrid.innerHTML = `
+        <div class="empty-state">
+          <div class="empty-icon">♡</div>
+          <h2>No saved items</h2>
+          <p>Tap the heart on a product to save it here.</p>
+        </div>
+      `;
+      return;
+    }
+
+    const { data: products } = await supabase.from('products').select('*').in('id', Array.from(savedProductIds));
+    renderProductCards(products || [], savedGrid);
+  }
+
+  // My Listings Fetching
+  async function fetchMyListings() {
+    if (!myListingsGrid) return;
+    if (!currentUser) {
+      myListingsGrid.innerHTML = `
+        <div class="empty-state">
+          <p>Please sign in to view your listings.</p>
+        </div>
+      `;
+      return;
+    }
+
+    const { data: products } = await supabase.from('products').select('*').eq('user_id', currentUser.id);
+    renderProductCards(products || [], myListingsGrid);
+  }
+
+  // =========================================================
+  // SELL FORM SUBMISSION
+  // =========================================================
+  if (sellForm) {
+    sellForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      if (!currentUser) {
+        alert('Please sign in first to post an item.');
+        openAuthModal();
+        return;
+      }
+
+      if (sellMessage) sellMessage.textContent = 'Publishing item...';
+
+      const name = document.getElementById('productName').value.trim();
+      const price = parseFloat(document.getElementById('productPrice').value);
+      const category = document.getElementById('productCategory').value;
+      const campus = document.getElementById('productCampus').value.trim();
+      const description = document.getElementById('productDescription').value.trim();
 
       const { error } = await supabase.from('products').insert([
         {
-          title,
-          price: parseFloat(price),
-          location,
+          name,
+          title: name,
+          price,
+          category,
+          campus,
+          location: campus,
+          description,
           user_id: currentUser.id
         }
-      ])
+      ]);
 
       if (error) {
-        alert('Failed to post product: ' + error.message)
+        if (sellMessage) sellMessage.textContent = 'Failed to post item: ' + error.message;
       } else {
-        postProductForm.reset()
-        if (postModal) postModal.style.display = 'none'
-        fetchProducts()
+        if (sellMessage) sellMessage.textContent = 'Item published successfully!';
+        sellForm.reset();
+        setTimeout(() => {
+          if (sellMessage) sellMessage.textContent = '';
+          navigateTo('home');
+        }, 1500);
       }
-    })
+    });
   }
-})
+
+  // Initial load
+  fetchProducts();
+});
