@@ -7,19 +7,76 @@
     content="width=device-width, initial-scale=1.0, viewport-fit=cover"
   >
 
-  <meta name="theme-color" content="#ffffff">
+  <meta name="theme-color" content="#10b981">
 
-  <title>Cheal Market — Buy. Sell. Connect.</title>
+  <!-- =========================================================
+       APP ICON & PWA METADATA (Home Screen Support)
+  ========================================================== -->
+  <link rel="icon" type="image/png" sizes="32x32" href="logo.png">
+  <link rel="apple-touch-icon" sizes="180x180" href="logo.png">
+  <meta name="apple-mobile-web-app-title" content="Cheal Market">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+
+  <title>CHEAL Market — Buy. Sell. Connect.</title>
 
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 
   <link
-    href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap"
+    href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap"
     rel="stylesheet"
   >
 
   <link rel="stylesheet" href="styles.css">
+
+  <style>
+    /* Styled CHEAL Branding */
+    .brand-cheal {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      text-decoration: none;
+    }
+
+    .brand-badge {
+      background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+      color: #ffffff;
+      font-weight: 900;
+      font-size: 1.1rem;
+      letter-spacing: 0.5px;
+      padding: 6px 12px;
+      border-radius: 10px;
+      box-shadow: 0 4px 12px rgba(16, 185, 129, 0.25);
+      display: inline-block;
+      line-height: 1;
+    }
+
+    .brand-text-wrapper {
+      display: flex;
+      flex-direction: column;
+      line-height: 1.1;
+    }
+
+    .brand-title-cheal {
+      font-weight: 900;
+      font-size: 1.25rem;
+      letter-spacing: 1.5px;
+      color: #0f172a;
+      text-transform: uppercase;
+      background: linear-gradient(135deg, #0f172a 0%, #10b981 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .brand-subtitle-market {
+      font-weight: 700;
+      font-size: 0.7rem;
+      letter-spacing: 2px;
+      color: #10b981;
+      text-transform: uppercase;
+    }
+  </style>
 </head>
 
 <body>
@@ -46,20 +103,18 @@
       </button>
 
 
+      <!-- REDESIGNED CHEAL LOGO -->
       <a
         href="#home"
-        class="brand"
+        class="brand brand-cheal"
         id="brandHomeButton"
-        aria-label="Cheal Market Home"
+        aria-label="CHEAL Market Home"
       >
-
-        <span class="brand-mark">C</span>
-
-        <span>
-          <strong>Cheal</strong>
-          <small>Market</small>
+        <span class="brand-badge">CHEAL</span>
+        <span class="brand-text-wrapper">
+          <strong class="brand-title-cheal">CHEAL</strong>
+          <small class="brand-subtitle-market">MARKET</small>
         </span>
-
       </a>
 
 
@@ -794,8 +849,10 @@
         <div
           class="profile-avatar"
           id="profileAvatar"
+          style="overflow: hidden; display: flex; align-items: center; justify-content: center; position: relative;"
         >
-          M
+          <span id="profileAvatarInitial">M</span>
+          <img id="profileAvatarImg" src="" alt="Profile Photo" class="hidden" style="width: 100%; height: 100%; object-fit: cover;">
         </div>
 
 
@@ -830,7 +887,7 @@
         </div>
 
         <h2>
-          Sign in to Cheal Market
+          Sign in to CHEAL Market
         </h2>
 
         <p>
@@ -855,6 +912,43 @@
         id="accountLoggedIn"
         class="account-menu hidden"
       >
+
+        <!-- Profile Photo & Phone Edit Box -->
+        <div class="form-card" style="margin-bottom: 20px; text-align: left;">
+          
+          <div class="form-group">
+            <label>Profile Picture</label>
+            <div style="display: flex; align-items: center; gap: 12px; margin-top: 6px;">
+              <label for="avatarInput" class="secondary-button" style="cursor: pointer; padding: 8px 16px; font-size: 14px; margin: 0;">
+                📷 Choose Photo
+              </label>
+              <input type="file" id="avatarInput" accept="image/*" style="display: none;">
+              <small id="avatarFileName" style="color: #6b7280;">No new file selected</small>
+            </div>
+          </div>
+
+          <div class="form-group" style="margin-top: 12px;">
+            <label for="profilePhone">Phone / WhatsApp Number</label>
+            <input
+              id="profilePhone"
+              type="tel"
+              placeholder="e.g. +256 700 000 000"
+              autocomplete="tel"
+            >
+          </div>
+
+          <button
+            type="button"
+            id="saveProfileInfoBtn"
+            class="primary-button full-button"
+            style="margin-top: 8px;"
+          >
+            Save Profile Info
+          </button>
+
+          <p id="profileSaveMessage" class="form-message" style="margin-top: 8px;"></p>
+
+        </div>
 
 
         <button
@@ -1090,13 +1184,13 @@
         </button>
 
 
-        <div class="auth-logo">
-          C
+        <div class="auth-logo" style="width: auto; padding: 0 16px; border-radius: 12px; font-weight: 900; font-size: 1.2rem;">
+          CHEAL
         </div>
 
 
         <h2 id="authTitle">
-          Welcome to Cheal Market
+          Welcome to CHEAL Market
         </h2>
 
 
@@ -1188,6 +1282,17 @@
           </div>
 
 
+          <div style="text-align: right; margin-bottom: 12px;">
+            <button
+              type="button"
+              id="forgotPasswordBtn"
+              style="background: none; border: none; color: #10b981; font-size: 13px; font-weight: 600; cursor: pointer; text-decoration: underline;"
+            >
+              Forgot password?
+            </button>
+          </div>
+
+
           <button
             type="submit"
             class="primary-button full-button"
@@ -1251,14 +1356,12 @@
         </button>
 
 
-        <div class="side-brand">
+        <div class="side-brand brand-cheal" style="margin-bottom: 20px;">
 
-          <span class="brand-mark">
-            C
-          </span>
+          <span class="brand-badge">CHEAL</span>
 
-          <strong>
-            Cheal Market
+          <strong style="font-size: 1.2rem; font-weight: 800; color: #0f172a;">
+            CHEAL Market
           </strong>
 
         </div>
