@@ -3,18 +3,25 @@
    Backend: Supabase (Project: michealbongeze)
 ========================================================== */
 
-// 1. SUPABASE INITIALIZATION WITH SAFARI IMPLICIT AUTH FIX
+// 1. SUPABASE INITIALIZATION WITH YOUR ANON KEY
 const SUPABASE_URL = 'https://michealbongeze.supabase.co';
-const SUPABASE_ANON_KEY = 'Sb_publishable_HVAjJNZAQIiyf1aFosvH0A_fnYoFpHx';
+const SUPABASE_ANON_KEY = 'EyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InF3bGtscWpmYnJoeXRocHluZ2hyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTEwMjg3MzEsImV4cCI6MjEwNjYwNDczMX0.BUscEhVhQd0bNS8VHHHlJUxudmsF0tXpx5PC9_oQ2-I';
 
-const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
-  auth: {
-    persistSession: true,
-    autoRefreshToken: true,
-    detectSessionInUrl: true,
-    flowType: 'implicit' // Resolves iOS Safari WebKit "Load failed" PKCE blocks
+let supabase = null;
+try {
+  if (window.supabase) {
+    supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+      auth: {
+        persistSession: true,
+        autoRefreshToken: true,
+        detectSessionInUrl: true,
+        flowType: 'implicit' // Resolves iOS WebKit issues
+      }
+    });
   }
-});
+} catch (err) {
+  console.warn('Supabase initialization warning:', err);
+}
 
 // 2. STATE MANAGEMENT
 let currentUser = null;
@@ -24,12 +31,11 @@ let selectedCategory = null;
 let searchQuery = '';
 let isSignUpMode = false;
 
-// 3. DOM ELEMENTS
+// 3. DOM ELEMENTS & EVENT LISTENERS
 document.addEventListener('DOMContentLoaded', () => {
   // Navigation & Screens
   const screens = document.querySelectorAll('.screen');
   const navItems = document.querySelectorAll('.nav-item');
-  const routeButtons = document.querySelectorAll('[data-route]');
   const categoryCards = document.querySelectorAll('.category-card');
 
   // Top Bar & Menus
@@ -44,7 +50,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const clearSearch = document.getElementById('clearSearch');
 
   // Auth Modal & Forms
-  const authOverlay = document.getElementById('auth-overlay') || document.getElementById('authOverlay');
+  const authOverlay = document.getElementById('authOverlay');
   const closeAuth = document.getElementById('closeAuth');
   const authForm = document.getElementById('authForm');
   const authSwitch = document.getElementById('authSwitch');
@@ -105,21 +111,21 @@ document.addEventListener('DOMContentLoaded', () => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }
 
-  // Bind click routes
-  routeButtons.forEach(btn => {
-    btn.addEventListener('click', (e) => {
+  // GLOBAL DELEGATED CLICK LISTENER (Ensures all buttons respond everywhere)
+  document.addEventListener('click', (e) => {
+    const routeTarget = e.target.closest('[data-route]');
+    if (routeTarget) {
       e.preventDefault();
-      const route = btn.dataset.route;
+      const route = routeTarget.dataset.route;
       if (route) navigateTo(route);
-    });
-  });
+    }
 
-  navItems.forEach(nav => {
-    nav.addEventListener('click', (e) => {
+    const navTarget = e.target.closest('.nav-item');
+    if (navTarget) {
       e.preventDefault();
-      const target = nav.dataset.nav;
+      const target = navTarget.dataset.nav;
       if (target) navigateTo(target);
-    });
+    }
   });
 
   if (brandHomeButton) {
@@ -181,13 +187,15 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   // =========================================================
-  // SUPABASE AUTHENTICATION
+  // AUTHENTICATION LISTENERS
   // =========================================================
-  supabase.auth.onAuthStateChange((event, session) => {
-    currentUser = session ? session.user : null;
-    updateAccountUI();
-    fetchProducts();
-  });
+  if (supabase) {
+    supabase.auth.onAuthStateChange((event, session) => {
+      currentUser = session ? session.user : null;
+      updateAccountUI();
+      fetchProducts();
+    });
+  }
 
   function updateAccountUI() {
     if (currentUser) {
@@ -242,6 +250,11 @@ document.addEventListener('DOMContentLoaded', () => {
   if (authForm) {
     authForm.addEventListener('submit', async (e) => {
       e.preventDefault();
+      if (!supabase) {
+        if (authMessage) authMessage.textContent = 'Database client unavailable.';
+        return;
+      }
+
       if (authMessage) authMessage.textContent = 'Processing...';
 
       const email = document.getElementById('authEmail').value.trim();
@@ -269,7 +282,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
   if (logoutButton) {
     logoutButton.addEventListener('click', async () => {
-      await supabase.auth.signOut();
+      if (supabase) await supabase.auth.signOut();
+      currentUser = null;
+      updateAccountUI();
       navigateTo('home');
     });
   }
@@ -279,6 +294,11 @@ document.addEventListener('DOMContentLoaded', () => {
   // =========================================================
   async function fetchProducts() {
     if (!productGrid) return;
+
+    if (!supabase) {
+      productGrid.innerHTML = `<div class="empty-state"><p>No products available right now.</p></div>`;
+      return;
+    }
 
     productGrid.innerHTML = `
       <div class="loading-card">
@@ -296,7 +316,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const { data: products, error } = await query;
 
     if (error) {
-      productGrid.innerHTML = `<p class="form-message">Unable to load products right now.</p>`;
+      productGrid.innerHTML = `<div class="empty-state"><p>No products found.</p></div>`;
       return;
     }
 
@@ -348,12 +368,13 @@ document.addEventListener('DOMContentLoaded', () => {
         </div>
       `;
 
-      // Heart Button Listener
       const saveBtn = card.querySelector('.save-btn');
-      saveBtn.addEventListener('click', (e) => {
-        e.stopPropagation();
-        toggleSaveProduct(product.id, saveBtn);
-      });
+      if (saveBtn) {
+        saveBtn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          toggleSaveProduct(product.id, saveBtn);
+        });
+      }
 
       targetContainer.appendChild(card);
     });
@@ -376,10 +397,9 @@ document.addEventListener('DOMContentLoaded', () => {
     localStorage.setItem('cheal_saved_ids', JSON.stringify(Array.from(savedProductIds)));
   }
 
-  // Saved Screen Rendering
   async function renderSavedGrid() {
     if (!savedGrid) return;
-    if (savedProductIds.size === 0) {
+    if (savedProductIds.size === 0 || !supabase) {
       savedGrid.innerHTML = `
         <div class="empty-state">
           <div class="empty-icon">♡</div>
@@ -394,10 +414,9 @@ document.addEventListener('DOMContentLoaded', () => {
     renderProductCards(products || [], savedGrid);
   }
 
-  // My Listings Fetching
   async function fetchMyListings() {
     if (!myListingsGrid) return;
-    if (!currentUser) {
+    if (!currentUser || !supabase) {
       myListingsGrid.innerHTML = `
         <div class="empty-state">
           <p>Please sign in to view your listings.</p>
@@ -416,7 +435,7 @@ document.addEventListener('DOMContentLoaded', () => {
   if (sellForm) {
     sellForm.addEventListener('submit', async (e) => {
       e.preventDefault();
-      if (!currentUser) {
+      if (!currentUser || !supabase) {
         alert('Please sign in first to post an item.');
         openAuthModal();
         return;
