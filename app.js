@@ -1,70 +1,76 @@
-// ============================================================
-// CHEAL MARKET
-// Main Application
-// ============================================================
+/* =========================================================
+   CHEAL MARKET
+   Main Application JavaScript
+   ========================================================= */
 
-// ============================================================
-// SUPABASE CONFIGURATION
-// ============================================================
+/* =========================
+   SUPABASE CONFIGURATION
+   ========================= */
 
 const SUPABASE_URL =
   "https://qwlklqjfbrhythpynghr.supabase.co";
 
 const SUPABASE_PUBLISHABLE_KEY =
-  "sb_publishable_HVAjJNZAQIiyf1AosvH0A_fnYoFpHx";
-
-const supabaseClient =
-  window.supabase.createClient(
-    SUPABASE_URL,
-    SUPABASE_PUBLISHABLE_KEY
-  );
+  "sb_publishable_HVAjJNZAQIiyf1aFosvH0A_fnYoFpHx";
 
 const BUCKET_NAME = "product-images";
 
+const supabaseClient = window.supabase.createClient(
+  SUPABASE_URL,
+  SUPABASE_PUBLISHABLE_KEY
+);
 
-// ============================================================
-// APP STATE
-// ============================================================
+
+/* =========================
+   APP STATE
+   ========================= */
 
 let currentUser = null;
 let currentProfile = null;
-
 let currentProduct = null;
 let currentConversation = null;
+let realtimeChannel = null;
 
-let messageChannel = null;
+let products = [];
+let savedProducts = JSON.parse(
+  localStorage.getItem("cheal_saved_products") || "[]"
+);
 
 let selectedImages = [];
-let allProducts = [];
 
-let currentCategory = "All";
-let currentSort = "latest";
+let searchTerm = "";
+let activeCategory = "all";
 
-const SAVED_KEY =
-  "cheal_market_saved";
+let sortMode = "latest";
 
 
-// ============================================================
-// DOM HELPER
-// ============================================================
+/* =========================
+   ROUTES
+   ========================= */
+
+const ROUTES = {
+  home: "homeScreen",
+  saved: "savedScreen",
+  sell: "sellScreen",
+  messages: "messagesScreen",
+  chat: "chatScreen",
+  account: "accountScreen",
+  "my-listings": "myListingsScreen",
+  product: "productScreen"
+};
+
+
+/* =========================
+   HELPERS
+   ========================= */
 
 function $(id) {
   return document.getElementById(id);
 }
 
 
-// ============================================================
-// HTML ESCAPING
-// ============================================================
-
 function escapeHTML(value) {
-
-  if (
-    value === null ||
-    value === undefined
-  ) {
-    return "";
-  }
+  if (value === null || value === undefined) return "";
 
   return String(value)
     .replaceAll("&", "&amp;")
@@ -75,1231 +81,809 @@ function escapeHTML(value) {
 }
 
 
-// ============================================================
-// PRICE FORMAT
-// ============================================================
+function formatPrice(value) {
+  const number = Number(value || 0);
 
-function formatPrice(price) {
-
-  return `UGX ${Number(
-    price || 0
-  ).toLocaleString("en-UG")}`;
+  return "UGX " + number.toLocaleString("en-UG");
 }
 
 
-// ============================================================
-// MESSAGE
-// ============================================================
+function makeId() {
+  if (window.crypto && crypto.randomUUID) {
+    return crypto.randomUUID();
+  }
 
-function showMessage(message) {
+  return (
+    Date.now().toString(36) +
+    Math.random().toString(36).substring(2)
+  );
+}
 
+
+function getProductImage(product) {
+  if (!product) return "";
+
+  if (Array.isArray(product.image_urls) && product.image_urls.length) {
+    return product.image_urls[0];
+  }
+
+  if (product.image_url) {
+    return product.image_url;
+  }
+
+  return "";
+}
+
+
+function showNotice(message) {
   alert(message);
 }
 
 
-// ============================================================
-// SAVED PRODUCTS
-// ============================================================
+/* =========================
+   NAVIGATION
+   ========================= */
 
-function getSavedProducts() {
-
-  try {
-
-    return JSON.parse(
-      localStorage.getItem(
-        SAVED_KEY
-      )
-    ) || [];
-
-  } catch {
-
-    return [];
+function navigate(route) {
+  if (!ROUTES[route]) {
+    route = "home";
   }
-}
 
-
-function setSavedProducts(products) {
-
-  localStorage.setItem(
-    SAVED_KEY,
-    JSON.stringify(products)
-  );
-}
-
-
-function isSaved(productId) {
-
-  return getSavedProducts().includes(
-    Number(productId)
-  );
-}
-
-
-function toggleSaved(productId) {
-
-  const id =
-    Number(productId);
-
-  let saved =
-    getSavedProducts();
-
-  if (saved.includes(id)) {
-
-    saved =
-      saved.filter(
-        item => item !== id
-      );
-
+  if (window.location.hash !== "#" + route) {
+    window.location.hash = route;
   } else {
-
-    saved.push(id);
-  }
-
-  setSavedProducts(saved);
-
-  renderProducts(
-    getVisibleProducts()
-  );
-
-  renderSavedProducts();
-
-  if (
-    currentProduct &&
-    Number(currentProduct.id) === id
-  ) {
-    openProduct(id, false);
+    showScreen(route);
   }
 }
 
 
-// ============================================================
-// NAVIGATION
-// ============================================================
-
-function navigate(screen) {
-
-  if (!screen) {
-    screen = "home";
+function showScreen(route) {
+  if (!ROUTES[route]) {
+    route = "home";
   }
 
-  screen =
-    String(screen)
-      .replace("#", "")
-      .trim();
+  document.querySelectorAll(".screen").forEach((screen) => {
+    screen.classList.add("hidden");
+  });
 
-  if (
-    screen === "listings"
-  ) {
-    screen = "my-listings";
+  const target = $(ROUTES[route]);
+
+  if (target) {
+    target.classList.remove("hidden");
   }
 
-  const validScreens = [
-    "home",
-    "saved",
-    "sell",
-    "messages",
-    "chat",
-    "account",
-    "my-listings",
-    "product"
-  ];
+  document
+    .querySelectorAll(".bottom-nav [data-nav]")
+    .forEach((item) => {
+      item.classList.remove("active");
 
-  if (
-    !validScreens.includes(screen)
-  ) {
-    screen = "home";
+      if (item.dataset.nav === route) {
+        item.classList.add("active");
+      }
+    });
+
+  const sellButton = document.querySelector(".sell-nav");
+
+  if (sellButton) {
+    sellButton.classList.toggle("active", route === "sell");
   }
 
-  if (
-    window.location.hash !==
-    `#${screen}`
-  ) {
-    window.location.hash =
-      screen;
-  }
-
-  showScreen(screen);
+  closeMenu();
 
   window.scrollTo({
     top: 0,
     behavior: "smooth"
   });
-}
 
-
-function showScreen(screen) {
-
-  const screens =
-    document.querySelectorAll(
-      ".screen"
-    );
-
-  screens.forEach(element => {
-
-    element.classList.add(
-      "hidden"
-    );
-
-    element.classList.remove(
-      "active"
-    );
-
-  });
-
-
-  let targetId;
-
-  switch (screen) {
-
-    case "home":
-      targetId =
-        "homeScreen";
-      break;
-
-    case "saved":
-      targetId =
-        "savedScreen";
-      break;
-
-    case "sell":
-      targetId =
-        "sellScreen";
-      break;
-
-    case "messages":
-      targetId =
-        "messagesScreen";
-      break;
-
-    case "chat":
-      targetId =
-        "chatScreen";
-      break;
-
-    case "account":
-      targetId =
-        "accountScreen";
-      break;
-
-    case "my-listings":
-      targetId =
-        "myListingsScreen";
-      break;
-
-    case "product":
-      targetId =
-        "productScreen";
-      break;
-
-    default:
-      targetId =
-        "homeScreen";
-  }
-
-
-  const target =
-    $(targetId);
-
-  if (target) {
-
-    target.classList.remove(
-      "hidden"
-    );
-
-    target.classList.add(
-      "active"
-    );
-  }
-
-
-  // Bottom navigation
-
-  document
-    .querySelectorAll(
-      ".bottom-nav .nav-item"
-    )
-    .forEach(item => {
-
-      item.classList.remove(
-        "active"
-      );
-
-      const route =
-        item.dataset.nav;
-
-      if (
-        route === screen
-      ) {
-        item.classList.add(
-          "active"
-        );
-      }
-
-    });
-
-
-  // Special handling for account
-
-  if (
-    screen === "account"
-  ) {
-    updateAccountScreen();
-  }
-
-
-  // Saved
-
-  if (
-    screen === "saved"
-  ) {
+  if (route === "saved") {
     renderSavedProducts();
   }
 
-
-  // Messages
-
-  if (
-    screen === "messages"
-  ) {
+  if (route === "messages") {
     loadConversations();
   }
 
+  if (route === "account") {
+    updateAccountUI();
+  }
 
-  // My listings
-
-  if (
-    screen === "my-listings"
-  ) {
+  if (route === "my-listings") {
     loadMyListings();
   }
-
-
-  closeMenu();
 }
 
-
-// ============================================================
-// HASH NAVIGATION
-// ============================================================
 
 function handleHashChange() {
+  let route = window.location.hash.replace("#", "");
 
-  let screen =
-    window.location.hash
-      .replace("#", "")
-      .trim();
-
-  if (!screen) {
-    screen = "home";
+  if (!route) {
+    route = "home";
   }
 
-  showScreen(screen);
+  if (!ROUTES[route]) {
+    route = "home";
+  }
+
+  showScreen(route);
 }
 
 
-// ============================================================
-// PRODUCTS
-// ============================================================
+/* =========================
+   MENU
+   ========================= */
 
-async function loadProducts() {
+function openMenu() {
+  const menu = $("menuOverlay");
 
-  const grid =
-    $("productGrid");
+  if (!menu) return;
 
-  if (!grid) {
+  menu.classList.remove("hidden");
+  menu.classList.add("active");
+}
+
+
+function closeMenu() {
+  const menu = $("menuOverlay");
+
+  if (!menu) return;
+
+  menu.classList.remove("active");
+  menu.classList.add("hidden");
+}
+
+
+/* =========================
+   AUTH MODAL
+   ========================= */
+
+let authMode = "login";
+
+
+function openAuth(mode = "login") {
+  authMode = mode;
+
+  const overlay = $("authOverlay");
+
+  if (!overlay) return;
+
+  const signupFields = $("signupFields");
+  const title = $("authTitle");
+  const subtitle = $("authSubtitle");
+  const submitText = $("authSubmitText");
+  const switchButton = $("authSwitch");
+  const message = $("authMessage");
+
+  if (message) {
+    message.textContent = "";
+  }
+
+  if (mode === "signup") {
+    if (signupFields) {
+      signupFields.classList.remove("hidden");
+    }
+
+    if (title) {
+      title.textContent = "Create your account";
+    }
+
+    if (subtitle) {
+      subtitle.textContent =
+        "Join Cheal Market and start buying or selling.";
+    }
+
+    if (submitText) {
+      submitText.textContent = "Create Account";
+    }
+
+    if (switchButton) {
+      switchButton.textContent =
+        "Already have an account? Login";
+    }
+  } else {
+    if (signupFields) {
+      signupFields.classList.add("hidden");
+    }
+
+    if (title) {
+      title.textContent = "Welcome back";
+    }
+
+    if (subtitle) {
+      subtitle.textContent =
+        "Login to continue to Cheal Market.";
+    }
+
+    if (submitText) {
+      submitText.textContent = "Login";
+    }
+
+    if (switchButton) {
+      switchButton.textContent =
+        "Don't have an account? Sign up";
+    }
+  }
+
+  overlay.classList.remove("hidden");
+  overlay.classList.add("active");
+
+  const email = $("authEmail");
+
+  if (email) {
+    setTimeout(() => email.focus(), 100);
+  }
+}
+
+
+function closeAuth() {
+  const overlay = $("authOverlay");
+
+  if (!overlay) return;
+
+  overlay.classList.remove("active");
+  overlay.classList.add("hidden");
+}
+
+
+function setAuthMessage(message, isError = true) {
+  const element = $("authMessage");
+
+  if (!element) return;
+
+  element.textContent = message;
+
+  element.style.color = isError
+    ? "#d93025"
+    : "#16803c";
+}
+
+
+/* =========================
+   LOGIN / SIGNUP
+   ========================= */
+
+async function handleAuthSubmit(event) {
+  event.preventDefault();
+
+  const email = $("authEmail")?.value.trim();
+  const password = $("authPassword")?.value;
+  const name = $("authName")?.value.trim();
+  const campus = $("authCampus")?.value.trim();
+
+  if (!email || !password) {
+    setAuthMessage("Please enter your email and password.");
     return;
   }
 
-  grid.innerHTML = `
-    <div class="loading-card">
-      <div class="spinner"></div>
-      <p>Loading products...</p>
-    </div>
-  `;
+  const submitButton = $("authForm")?.querySelector(
+    'button[type="submit"]'
+  );
 
+  if (submitButton) {
+    submitButton.disabled = true;
+  }
 
-  const {
-    data,
-    error
-  } =
-    await supabaseClient
-      .from("products")
-      .select("*")
-      .order(
-        "created_at",
-        {
-          ascending: false
-        }
-      );
+  setAuthMessage("Please wait...", false);
 
+  try {
+    if (authMode === "login") {
+      const { data, error } =
+        await supabaseClient.auth.signInWithPassword({
+          email,
+          password
+        });
 
-  if (error) {
+      if (error) {
+        throw error;
+      }
 
-    console.error(
-      "Products error:",
-      error
+      currentUser = data.user;
+
+      await loadCurrentProfile();
+
+      setAuthMessage("Login successful.", false);
+
+      setTimeout(() => {
+        closeAuth();
+        updateAccountUI();
+        navigate("home");
+      }, 500);
+
+    } else {
+      if (!name) {
+        setAuthMessage("Please enter your name.");
+        return;
+      }
+
+      const { data, error } =
+        await supabaseClient.auth.signUp({
+          email,
+          password,
+          options: {
+            data: {
+              full_name: name,
+              campus: campus
+            }
+          }
+        });
+
+      if (error) {
+        throw error;
+      }
+
+      currentUser = data.user;
+
+      if (data.session) {
+        await loadCurrentProfile();
+
+        setAuthMessage(
+          "Account created successfully.",
+          false
+        );
+
+        setTimeout(() => {
+          closeAuth();
+          updateAccountUI();
+          navigate("home");
+        }, 700);
+      } else {
+        setAuthMessage(
+          "Account created. Check your email to confirm your account.",
+          false
+        );
+      }
+    }
+
+  } catch (error) {
+    console.error("Authentication error:", error);
+
+    setAuthMessage(
+      error?.message || "Authentication failed."
     );
 
-    grid.innerHTML = `
-      <div class="empty-state">
+  } finally {
+    if (submitButton) {
+      submitButton.disabled = false;
+    }
+  }
+}
 
-        <div class="empty-icon">
-          ⚠️
-        </div>
 
-        <h2>
-          Unable to load products
-        </h2>
+/* =========================
+   CURRENT USER
+   ========================= */
 
-        <p>
-          ${escapeHTML(
-            error.message
-          )}
-        </p>
+async function loadCurrentUser() {
+  try {
+    const { data, error } =
+      await supabaseClient.auth.getSession();
 
-        <button
-          type="button"
-          class="primary-button"
-          onclick="loadProducts()"
-        >
-          Try again
-        </button>
+    if (error) {
+      console.error(error);
+      return;
+    }
 
-      </div>
-    `;
+    currentUser = data?.session?.user || null;
 
+    if (currentUser) {
+      await loadCurrentProfile();
+    }
+
+    updateAccountUI();
+
+  } catch (error) {
+    console.error(
+      "Could not load current user:",
+      error
+    );
+  }
+}
+
+
+/* =========================
+   PROFILE
+   ========================= */
+
+async function loadCurrentProfile() {
+  if (!currentUser) {
+    currentProfile = null;
     return;
   }
 
+  try {
+    const { data, error } =
+      await supabaseClient
+        .from("profiles")
+        .select("*")
+        .eq("id", currentUser.id)
+        .maybeSingle();
 
-  allProducts =
-    data || [];
+    if (error) {
+      console.warn(
+        "Profile loading error:",
+        error.message
+      );
 
-  renderProducts(
-    getVisibleProducts()
+      currentProfile = null;
+      return;
+    }
+
+    currentProfile = data;
+
+  } catch (error) {
+    console.warn(error);
+    currentProfile = null;
+  }
+}
+
+
+function getUserName() {
+  return (
+    currentProfile?.full_name ||
+    currentProfile?.name ||
+    currentUser?.user_metadata?.full_name ||
+    currentUser?.user_metadata?.name ||
+    currentUser?.email?.split("@")[0] ||
+    "Cheal Market User"
   );
 }
 
 
-// ============================================================
-// GET VISIBLE PRODUCTS
-// ============================================================
+function getUserCampus() {
+  return (
+    currentProfile?.campus ||
+    currentUser?.user_metadata?.campus ||
+    ""
+  );
+}
 
-function getVisibleProducts() {
 
-  let products =
-    [...allProducts];
+function updateAccountUI() {
+  const loggedOut = $("accountLoggedOut");
+  const loggedIn = $("accountLoggedIn");
 
+  const nameElement = $("profileName");
+  const emailElement = $("profileEmail");
+  const avatar = $("profileAvatar");
 
-  // Category filter
+  if (!currentUser) {
+    if (loggedOut) {
+      loggedOut.classList.remove("hidden");
+    }
 
-  if (
-    currentCategory &&
-    currentCategory !== "All"
-  ) {
+    if (loggedIn) {
+      loggedIn.classList.add("hidden");
+    }
 
-    products =
-      products.filter(
-        product =>
-          String(
-            product.category || ""
-          ).toLowerCase() ===
-          String(
-            currentCategory
-          ).toLowerCase()
-      );
+    return;
   }
 
-
-  // Search
-
-  const searchInput =
-    $("searchInput");
-
-  const search =
-    searchInput
-      ?.value
-      ?.toLowerCase()
-      ?.trim() || "";
-
-
-  if (search) {
-
-    products =
-      products.filter(
-        product => {
-
-          const name =
-            String(
-              product.name || ""
-            ).toLowerCase();
-
-          const description =
-            String(
-              product.description || ""
-            ).toLowerCase();
-
-          const category =
-            String(
-              product.category || ""
-            ).toLowerCase();
-
-          const campus =
-            String(
-              product.campus || ""
-            ).toLowerCase();
-
-          return (
-            name.includes(search) ||
-            description.includes(search) ||
-            category.includes(search) ||
-            campus.includes(search)
-          );
-        }
-      );
+  if (loggedOut) {
+    loggedOut.classList.add("hidden");
   }
 
+  if (loggedIn) {
+    loggedIn.classList.remove("hidden");
+  }
 
-  // Sort
+  const name = getUserName();
 
-  if (
-    currentSort === "price-low"
-  ) {
+  if (nameElement) {
+    nameElement.textContent = name;
+  }
 
-    products.sort(
+  if (emailElement) {
+    emailElement.textContent =
+      currentUser.email || "";
+  }
+
+  if (avatar) {
+    avatar.textContent =
+      name.charAt(0).toUpperCase();
+  }
+}
+
+
+/* =========================
+   LOGOUT
+   ========================= */
+
+async function logout() {
+  try {
+    await supabaseClient.auth.signOut();
+
+    currentUser = null;
+    currentProfile = null;
+    currentConversation = null;
+
+    if (realtimeChannel) {
+      await supabaseClient.removeChannel(
+        realtimeChannel
+      );
+
+      realtimeChannel = null;
+    }
+
+    updateAccountUI();
+    navigate("home");
+
+  } catch (error) {
+    console.error(error);
+
+    showNotice(
+      error?.message || "Could not logout."
+    );
+  }
+}
+
+
+/* =========================
+   PRODUCTS
+   ========================= */
+
+async function loadProducts() {
+  try {
+    const { data, error } =
+      await supabaseClient
+        .from("products")
+        .select("*")
+        .order("created_at", {
+          ascending: false
+        });
+
+    if (error) {
+      throw error;
+    }
+
+    products = data || [];
+
+    renderProducts();
+
+  } catch (error) {
+    console.error(
+      "Could not load products:",
+      error
+    );
+
+    products = [];
+
+    renderProducts();
+
+    const grid = $("productGrid");
+
+    if (grid) {
+      grid.innerHTML = `
+        <div class="empty-state">
+          <h3>Unable to load products</h3>
+          <p>${escapeHTML(
+            error?.message ||
+            "Please try again later."
+          )}</p>
+        </div>
+      `;
+    }
+  }
+}
+
+
+function getFilteredProducts() {
+  let result = [...products];
+
+  if (activeCategory !== "all") {
+    result = result.filter((product) => {
+      return (
+        String(product.category || "")
+          .toLowerCase() ===
+        activeCategory.toLowerCase()
+      );
+    });
+  }
+
+  if (searchTerm) {
+    const search = searchTerm.toLowerCase();
+
+    result = result.filter((product) => {
+      return [
+        product.name,
+        product.category,
+        product.campus,
+        product.description
+      ]
+        .filter(Boolean)
+        .join(" ")
+        .toLowerCase()
+        .includes(search);
+    });
+  }
+
+  if (sortMode === "price-low") {
+    result.sort(
       (a, b) =>
         Number(a.price || 0) -
         Number(b.price || 0)
     );
+  }
 
-  } else if (
-    currentSort === "price-high"
-  ) {
-
-    products.sort(
+  if (sortMode === "price-high") {
+    result.sort(
       (a, b) =>
         Number(b.price || 0) -
         Number(a.price || 0)
     );
-
-  } else {
-
-    products.sort(
-      (a, b) =>
-        new Date(
-          b.created_at || 0
-        ) -
-        new Date(
-          a.created_at || 0
-        )
-    );
   }
 
-
-  return products;
+  return result;
 }
 
 
-// ============================================================
-// RENDER PRODUCTS
-// ============================================================
+function renderProducts(list = null) {
+  const grid = $("productGrid");
 
-function renderProducts(
-  products
-) {
+  if (!grid) return;
 
-  const grid =
-    $("productGrid");
+  const items =
+    list || getFilteredProducts();
 
-  if (!grid) {
-    return;
-  }
-
-
-  if (!products.length) {
-
+  if (!items.length) {
     grid.innerHTML = `
       <div class="empty-state">
-
-        <div class="empty-icon">
-          🔎
-        </div>
-
-        <h2>
-          No products found
-        </h2>
-
-        <p>
-          Try another search or category.
-        </p>
-
-        <button
-          type="button"
-          class="primary-button"
-          onclick="clearFilters()"
-        >
-          Show all products
-        </button>
-
+        <h3>No products found</h3>
+        <p>Try another search or category.</p>
       </div>
     `;
 
-    updateProductTitle();
-
     return;
   }
 
-
-  grid.innerHTML =
-    products
-      .map(product => {
-
-        const images =
-          Array.isArray(
-            product.image_urls
-          )
-            ? product.image_urls
-            : [];
-
-
-        const image =
-          images[0] ||
-          "https://placehold.co/600x450?text=Cheal+Market";
-
-
-        return `
-          <article
-            class="product-card"
-            data-product-id="${product.id}"
-          >
-
-            <button
-              type="button"
-              class="save-button"
-              data-action="save"
-              data-product-id="${product.id}"
-              aria-label="Save product"
-            >
-              ${
-                isSaved(product.id)
-                  ? "♥"
-                  : "♡"
-              }
-            </button>
-
-
-            <div
-              class="product-image"
-              data-action="open-product"
-              data-product-id="${product.id}"
-            >
-
-              <img
-                src="${escapeHTML(image)}"
-                alt="${escapeHTML(
-                  product.name
-                )}"
-                loading="lazy"
-              >
-
-            </div>
-
-
-            <div
-              class="product-info"
-              data-action="open-product"
-              data-product-id="${product.id}"
-            >
-
-              <h3>
-                ${escapeHTML(
-                  product.name
-                )}
-              </h3>
-
-              <strong>
-                ${formatPrice(
-                  product.price
-                )}
-              </strong>
-
-              <p>
-                📍 ${escapeHTML(
-                  product.campus ||
-                  "Uganda"
-                )}
-              </p>
-
-              <span>
-                ${escapeHTML(
-                  product.category ||
-                  "Other"
-                )}
-              </span>
-
-            </div>
-
-          </article>
-        `;
-      })
-      .join("");
-
-
-  updateProductTitle();
+  grid.innerHTML = items
+    .map(renderProductCard)
+    .join("");
 }
 
 
-// ============================================================
-// PRODUCT TITLE
-// ============================================================
-
-function updateProductTitle() {
-
-  const title =
-    $("productSectionTitle");
-
-  if (!title) {
-    return;
-  }
-
-
-  const search =
-    $("searchInput")
-      ?.value
-      ?.trim();
-
-
-  if (
-    currentCategory !== "All"
-  ) {
-
-    title.textContent =
-      currentCategory;
-
-  } else if (search) {
-
-    title.textContent =
-      `Results for "${search}"`;
-
-  } else {
-
-    title.textContent =
-      "Latest listings";
-  }
-}
-
-
-// ============================================================
-// SEARCH
-// ============================================================
-
-function searchProducts() {
-
-  const clearButton =
-    $("clearSearch");
-
-  const searchInput =
-    $("searchInput");
-
-
-  if (
-    clearButton &&
-    searchInput
-  ) {
-
-    clearButton.classList.toggle(
-      "hidden",
-      !searchInput.value
-    );
-  }
-
-
-  currentCategory =
-    "All";
-
-  renderProducts(
-    getVisibleProducts()
-  );
-}
-
-
-function clearSearch() {
-
-  const input =
-    $("searchInput");
-
-  if (input) {
-    input.value = "";
-  }
-
-  const clear =
-    $("clearSearch");
-
-  if (clear) {
-    clear.classList.add(
-      "hidden"
-    );
-  }
-
-  currentCategory =
-    "All";
-
-  renderProducts(
-    getVisibleProducts()
-  );
-}
-
-
-// ============================================================
-// CATEGORY FILTER
-// ============================================================
-
-function filterCategory(
-  category
-) {
-
-  currentCategory =
-    category || "All";
-
-
-  const searchInput =
-    $("searchInput");
-
-  if (searchInput) {
-    searchInput.value = "";
-  }
-
-
-  const clear =
-    $("clearSearch");
-
-  if (clear) {
-    clear.classList.add(
-      "hidden"
-    );
-  }
-
-
-  navigate("home");
-
-  renderProducts(
-    getVisibleProducts()
-  );
-}
-
-
-// ============================================================
-// CLEAR FILTERS
-// ============================================================
-
-function clearFilters() {
-
-  currentCategory =
-    "All";
-
-  const input =
-    $("searchInput");
-
-  if (input) {
-    input.value = "";
-  }
-
-  const clear =
-    $("clearSearch");
-
-  if (clear) {
-    clear.classList.add(
-      "hidden"
-    );
-  }
-
-  renderProducts(
-    getVisibleProducts()
-  );
-}
-
-
-// ============================================================
-// SORT
-// ============================================================
-
-function changeSort() {
-
-  if (
-    currentSort === "latest"
-  ) {
-
-    currentSort =
-      "price-low";
-
-  } else if (
-    currentSort === "price-low"
-  ) {
-
-    currentSort =
-      "price-high";
-
-  } else {
-
-    currentSort =
-      "latest";
-  }
-
-
-  const button =
-    $("sortButton");
-
-  if (button) {
-
-    if (
-      currentSort === "price-low"
-    ) {
-
-      button.textContent =
-        "Price ↑";
-
-    } else if (
-      currentSort === "price-high"
-    ) {
-
-      button.textContent =
-        "Price ↓";
-
-    } else {
-
-      button.textContent =
-        "Latest ▾";
-    }
-  }
-
-
-  renderProducts(
-    getVisibleProducts()
-  );
-}
-
-
-// ============================================================
-// SAVED SCREEN
-// ============================================================
-
-function renderSavedProducts() {
-
-  const container =
-    $("savedGrid");
-
-  if (!container) {
-    return;
-  }
-
+function renderProductCard(product) {
+  const id = product.id;
+
+  const image =
+    getProductImage(product);
 
   const saved =
-    getSavedProducts();
+    savedProducts.includes(id);
 
+  return `
+    <article class="product-card">
 
-  const products =
-    allProducts.filter(
-      product =>
-        saved.includes(
-          Number(product.id)
-        )
-    );
+      <div
+        class="product-open"
+        data-product-id="${escapeHTML(id)}"
+      >
+        <div class="product-image">
 
+          ${
+            image
+              ? `
+                <img
+                  src="${escapeHTML(image)}"
+                  alt="${escapeHTML(product.name)}"
+                >
+              `
+              : `
+                <div class="no-image">
+                  📦
+                </div>
+              `
+          }
 
-  if (!products.length) {
-
-    container.innerHTML = `
-      <div class="empty-state">
-
-        <div class="empty-icon">
-          ♡
         </div>
 
-        <h2>
-          No saved items
-        </h2>
+        <div class="product-info">
 
-        <p>
-          Tap the heart on a product to save it here.
-        </p>
+          <h3>
+            ${escapeHTML(product.name)}
+          </h3>
 
-        <button
-          type="button"
-          class="primary-button"
-          data-route="home"
-        >
-          Browse products
-        </button>
+          <strong>
+            ${formatPrice(product.price)}
+          </strong>
 
+          <p>
+            ${escapeHTML(product.campus || "Campus")}
+          </p>
+
+        </div>
       </div>
-    `;
 
-    return;
-  }
+      <button
+        type="button"
+        class="save-button"
+        data-action="save"
+        data-product-id="${escapeHTML(id)}"
+        aria-label="Save product"
+      >
+        ${saved ? "♥" : "♡"}
+      </button>
 
-
-  container.innerHTML =
-    products
-      .map(product => {
-
-        const images =
-          Array.isArray(
-            product.image_urls
-          )
-            ? product.image_urls
-            : [];
-
-
-        const image =
-          images[0] ||
-          "https://placehold.co/600x450?text=Cheal+Market";
-
-
-        return `
-          <article
-            class="product-card"
-          >
-
-            <button
-              type="button"
-              class="save-button"
-              data-action="save"
-              data-product-id="${product.id}"
-            >
-              ♥
-            </button>
-
-
-            <div
-              class="product-image"
-              data-action="open-product"
-              data-product-id="${product.id}"
-            >
-
-              <img
-                src="${escapeHTML(image)}"
-                alt="${escapeHTML(
-                  product.name
-                )}"
-                loading="lazy"
-              >
-
-            </div>
-
-
-            <div
-              class="product-info"
-              data-action="open-product"
-              data-product-id="${product.id}"
-            >
-
-              <h3>
-                ${escapeHTML(
-                  product.name
-                )}
-              </h3>
-
-              <strong>
-                ${formatPrice(
-                  product.price
-                )}
-              </strong>
-
-              <p>
-                📍 ${escapeHTML(
-                  product.campus ||
-                  "Uganda"
-                )}
-              </p>
-
-              <span>
-                ${escapeHTML(
-                  product.category ||
-                  "Other"
-                )}
-              </span>
-
-            </div>
-
-          </article>
-        `;
-      })
-      .join("");
+    </article>
+  `;
 }
 
 
-// ============================================================
-// PRODUCT DETAILS
-// ============================================================
+/* =========================
+   PRODUCT DETAILS
+   ========================= */
 
-function openProduct(
-  productId,
-  shouldNavigate = true
-) {
-
+function openProduct(productId) {
   const product =
-    allProducts.find(
-      item =>
-        Number(item.id) ===
-        Number(productId)
+    products.find(
+      (item) =>
+        String(item.id) === String(productId)
     );
-
 
   if (!product) {
-    showMessage(
-      "Product could not be found."
-    );
+    showNotice("Product not found.");
     return;
   }
 
+  currentProduct = product;
 
-  currentProduct =
-    product;
+  const container = $("productDetails");
 
+  if (!container) return;
 
-  const container =
-    $("productDetails");
+  const image =
+    getProductImage(product);
 
-  if (!container) {
-    return;
-  }
-
-
-  const images =
-    Array.isArray(
-      product.image_urls
-    )
-      ? product.image_urls
-      : [];
-
-
-  const mainImage =
-    images[0] ||
-    "https://placehold.co/800x600?text=Cheal+Market";
-
-
-  const gallery =
-    images.length
-      ? images
-      : [mainImage];
-
+  const saved =
+    savedProducts.includes(product.id);
 
   container.innerHTML = `
-
-    <div class="page-header">
+    <div class="product-detail">
 
       <button
         type="button"
         class="back-button"
         data-route="home"
       >
-        ← Back to products
+        ← Back
       </button>
 
-    </div>
+      <div class="product-detail-image">
 
-
-    <div class="details-gallery">
-
-      <img
-        src="${escapeHTML(mainImage)}"
-        alt="${escapeHTML(
-          product.name
-        )}"
-      >
-
-    </div>
-
-
-    ${
-      gallery.length > 1
-        ? `
-          <div class="image-preview-grid">
-
-            ${gallery
-              .map(
-                image => `
-                  <img
-                    src="${escapeHTML(image)}"
-                    alt="${escapeHTML(
-                      product.name
-                    )}"
-                  >
-                `
-              )
-              .join("")}
-
-          </div>
-        `
-        : ""
-    }
-
-
-    <div class="details-content">
-
-      <div class="details-header">
-
-        <div>
-
-          <span>
-            ${escapeHTML(
-              product.category ||
-              "Other"
-            )}
-          </span>
-
-          <h1>
-            ${escapeHTML(
-              product.name
-            )}
-          </h1>
-
-          <h2>
-            ${formatPrice(
-              product.price
-            )}
-          </h2>
-
-        </div>
-
-
-        <button
-          type="button"
-          class="save-button large"
-          data-action="save"
-          data-product-id="${product.id}"
-        >
-          ${
-            isSaved(product.id)
-              ? "♥"
-              : "♡"
-          }
-        </button>
+        ${
+          image
+            ? `
+              <img
+                src="${escapeHTML(image)}"
+                alt="${escapeHTML(product.name)}"
+              >
+            `
+            : `
+              <div class="no-image">
+                📦
+              </div>
+            `
+        }
 
       </div>
 
+      <div class="product-detail-info">
 
-      <div class="details-meta">
+        <h1>
+          ${escapeHTML(product.name)}
+        </h1>
+
+        <h2>
+          ${formatPrice(product.price)}
+        </h2>
 
         <p>
-          📍 ${escapeHTML(
-            product.campus ||
-            "Uganda"
-          )}
+          <strong>Category:</strong>
+          ${escapeHTML(product.category || "Other")}
         </p>
 
         <p>
-          🕒 Recently listed
+          <strong>Campus:</strong>
+          ${escapeHTML(product.campus || "Not specified")}
         </p>
-
-      </div>
-
-
-      <div class="details-description">
-
-        <h3>
-          Description
-        </h3>
 
         <p>
           ${escapeHTML(
@@ -1308,2239 +892,991 @@ function openProduct(
           )}
         </p>
 
+        <div class="product-actions">
+
+          <button
+            type="button"
+            data-action="save"
+            data-product-id="${escapeHTML(product.id)}"
+          >
+            ${saved ? "♥ Saved" : "♡ Save"}
+          </button>
+
+          <button
+            type="button"
+            data-action="chat-seller"
+            data-product-id="${escapeHTML(product.id)}"
+          >
+            💬 Chat with seller
+          </button>
+
+        </div>
+
       </div>
-
-
-      ${
-        currentUser &&
-        product.seller_id ===
-          currentUser.id
-
-          ? `
-
-            <button
-              type="button"
-              class="secondary-button"
-              data-route="my-listings"
-            >
-              📦 My listing
-            </button>
-
-          `
-
-          : `
-
-            <button
-              type="button"
-              class="primary-button full-button"
-              data-action="chat-seller"
-              data-product-id="${product.id}"
-            >
-              💬 Chat with seller
-            </button>
-
-          `
-      }
 
     </div>
   `;
 
-
-  if (shouldNavigate) {
-    navigate("product");
-  }
+  navigate("product");
 }
 
 
-// ============================================================
-// IMAGE SELECTION
-// ============================================================
+/* =========================
+   SAVED PRODUCTS
+   ========================= */
 
-function handleImageSelection(
-  event
-) {
-
-  const files =
-    Array.from(
-      event.target.files || []
-    );
-
-
-  if (!files.length) {
-    return;
-  }
-
-
-  if (files.length > 5) {
-
-    showMessage(
-      "You can upload a maximum of 5 images."
-    );
-
-    event.target.value =
-      "";
-
-    return;
-  }
-
-
-  for (
-    const file of files
-  ) {
-
-    if (
-      !file.type.startsWith(
-        "image/"
-      )
-    ) {
-
-      showMessage(
-        "Only image files are allowed."
-      );
-
-      event.target.value =
-        "";
-
-      return;
-    }
-
-
-    if (
-      file.size >
-      10 * 1024 * 1024
-    ) {
-
-      showMessage(
-        "Each image must be 10 MB or smaller."
-      );
-
-      event.target.value =
-        "";
-
-      return;
-    }
-  }
-
-
-  selectedImages =
-    files;
-
-
-  renderImagePreviews();
-}
-
-
-// ============================================================
-// IMAGE PREVIEWS
-// ============================================================
-
-function renderImagePreviews() {
-
-  const container =
-    $("imagePreview");
-
-  if (!container) {
-    return;
-  }
-
-
-  container.innerHTML =
-    "";
-
-
-  selectedImages.forEach(
-    (file, index) => {
-
-      const reader =
-        new FileReader();
-
-
-      reader.onload =
-        event => {
-
-          const wrapper =
-            document.createElement(
-              "div"
-            );
-
-          wrapper.className =
-            "image-preview-item";
-
-
-          wrapper.innerHTML = `
-
-            <img
-              src="${event.target.result}"
-              alt="Product image ${index + 1}"
-            >
-
-            <button
-              type="button"
-              class="image-remove-button"
-              data-action="remove-image"
-              data-image-index="${index}"
-              aria-label="Remove image"
-            >
-              ×
-            </button>
-
-          `;
-
-
-          container.appendChild(
-            wrapper
-          );
-        };
-
-
-      reader.readAsDataURL(file);
-    }
+function saveProductsToStorage() {
+  localStorage.setItem(
+    "cheal_saved_products",
+    JSON.stringify(savedProducts)
   );
 }
 
 
-// ============================================================
-// REMOVE SELECTED IMAGE
-// ============================================================
+function toggleSaved(productId) {
+  const id = String(productId);
 
-function removeSelectedImage(
-  index
-) {
+  const index = savedProducts.findIndex(
+    (item) => String(item) === id
+  );
 
-  selectedImages =
-    selectedImages.filter(
-      (_, i) =>
-        i !== Number(index)
+  if (index >= 0) {
+    savedProducts.splice(index, 1);
+  } else {
+    savedProducts.push(productId);
+  }
+
+  saveProductsToStorage();
+
+  renderProducts();
+  renderSavedProducts();
+
+  if (
+    currentProduct &&
+    String(currentProduct.id) === id
+  ) {
+    openProduct(id);
+  }
+}
+
+
+function renderSavedProducts() {
+  const grid = $("savedGrid");
+
+  if (!grid) return;
+
+  const saved = products.filter((product) =>
+    savedProducts.some(
+      (id) =>
+        String(id) === String(product.id)
+    )
+  );
+
+  if (!saved.length) {
+    grid.innerHTML = `
+      <div class="empty-state">
+        <h3>No saved products</h3>
+        <p>Products you save will appear here.</p>
+      </div>
+    `;
+
+    return;
+  }
+
+  grid.innerHTML = saved
+    .map(renderProductCard)
+    .join("");
+}
+
+
+/* =========================
+   SEARCH
+   ========================= */
+
+function handleSearch(value) {
+  searchTerm = value.trim();
+
+  const clearButton = $("clearSearch");
+
+  if (clearButton) {
+    clearButton.classList.toggle(
+      "hidden",
+      !searchTerm
     );
+  }
+
+  renderProducts();
+}
 
 
-  const input =
-    $("productImages");
+function clearSearch() {
+  searchTerm = "";
+  activeCategory = "all";
+
+  const input = $("searchInput");
 
   if (input) {
     input.value = "";
   }
 
+  const clearButton = $("clearSearch");
 
-  renderImagePreviews();
+  if (clearButton) {
+    clearButton.classList.add("hidden");
+  }
+
+  renderProducts();
 }
 
 
-// ============================================================
-// UPLOAD PRODUCT IMAGES
-// ============================================================
+/* =========================
+   CATEGORY
+   ========================= */
 
-async function uploadProductImages(
-  userId
-) {
+function filterCategory(category) {
+  activeCategory =
+    category || "all";
+
+  navigate("home");
+
+  renderProducts();
+}
+
+
+/* =========================
+   SORT
+   ========================= */
+
+function changeSort() {
+  if (sortMode === "latest") {
+    sortMode = "price-low";
+  } else if (sortMode === "price-low") {
+    sortMode = "price-high";
+  } else {
+    sortMode = "latest";
+  }
+
+  const button = $("sortButton");
+
+  if (button) {
+    if (sortMode === "latest") {
+      button.textContent = "Sort";
+    }
+
+    if (sortMode === "price-low") {
+      button.textContent =
+        "Price: Low → High";
+    }
+
+    if (sortMode === "price-high") {
+      button.textContent =
+        "Price: High → Low";
+    }
+  }
+
+  renderProducts();
+}
+
+
+/* =========================
+   IMAGE PREVIEW
+   ========================= */
+
+function handleImageSelection(event) {
+  const files =
+    Array.from(event.target.files || []);
+
+  if (!files.length) return;
+
+  const available =
+    5 - selectedImages.length;
+
+  if (available <= 0) {
+    showNotice(
+      "You can upload a maximum of 5 images."
+    );
+
+    return;
+  }
+
+  selectedImages.push(
+    ...files.slice(0, available)
+  );
+
+  renderImagePreview();
+}
+
+
+function renderImagePreview() {
+  const preview = $("imagePreview");
+
+  if (!preview) return;
+
+  if (!selectedImages.length) {
+    preview.innerHTML = "";
+    return;
+  }
+
+  preview.innerHTML = selectedImages
+    .map((file, index) => {
+
+      const url =
+        URL.createObjectURL(file);
+
+      return `
+        <div class="preview-item">
+
+          <img
+            src="${url}"
+            alt="Preview ${index + 1}"
+          >
+
+          <button
+            type="button"
+            data-action="remove-image"
+            data-image-index="${index}"
+          >
+            ×
+          </button>
+
+        </div>
+      `;
+    })
+    .join("");
+}
+
+
+function removeSelectedImage(index) {
+  selectedImages.splice(index, 1);
+
+  renderImagePreview();
+}
+
+
+/* =========================
+   UPLOAD IMAGES
+   ========================= */
+
+async function uploadProductImages(productId) {
+  if (!selectedImages.length) {
+    return [];
+  }
 
   const urls = [];
 
-
-  for (
-    const file of selectedImages
-  ) {
-
+  for (const file of selectedImages) {
     const extension =
-      file.name
-        .split(".")
-        .pop()
-        ?.toLowerCase() ||
+      file.name.split(".").pop() ||
       "jpg";
 
-
     const fileName =
-      `${userId}/${crypto.randomUUID()}.${extension}`;
+      `${productId}/${makeId()}.${extension}`;
 
-
-    const {
-      error
-    } =
+    const { error } =
       await supabaseClient.storage
         .from(BUCKET_NAME)
-        .upload(
-          fileName,
-          file,
-          {
-            cacheControl:
-              "3600",
-            upsert:
-              false,
-            contentType:
-              file.type
-          }
-        );
-
+        .upload(fileName, file, {
+          cacheControl: "3600",
+          upsert: false
+        });
 
     if (error) {
       throw error;
     }
 
-
-    const {
-      data
-    } =
+    const { data } =
       supabaseClient.storage
         .from(BUCKET_NAME)
-        .getPublicUrl(
-          fileName
-        );
+        .getPublicUrl(fileName);
 
-
-    urls.push(
-      data.publicUrl
-    );
+    if (data?.publicUrl) {
+      urls.push(data.publicUrl);
+    }
   }
-
 
   return urls;
 }
 
 
-// ============================================================
-// SELL PRODUCT
-// ============================================================
+/* =========================
+   SELL PRODUCT
+   ========================= */
 
-async function submitProduct(
-  event
-) {
-
+async function handleSellSubmit(event) {
   event.preventDefault();
 
-
   if (!currentUser) {
-
     openAuth("login");
-
     return;
   }
-
 
   const name =
-    $("productName")
-      ?.value
-      ?.trim();
-
+    $("productName")?.value.trim();
 
   const price =
-    $("productPrice")
-      ?.value;
-
+    Number($("productPrice")?.value);
 
   const category =
-    $("productCategory")
-      ?.value;
-
+    $("productCategory")?.value;
 
   const campus =
-    $("productCampus")
-      ?.value
-      ?.trim();
-
+    $("productCampus")?.value.trim();
 
   const description =
-    $("productDescription")
-      ?.value
-      ?.trim();
+    $("productDescription")?.value.trim();
 
+  const message =
+    $("sellMessage");
 
-  if (
-    !name ||
-    !price ||
-    !category ||
-    !campus
-  ) {
-
-    showMessage(
-      "Please complete all required fields."
-    );
+  if (!name || !price || !category) {
+    if (message) {
+      message.textContent =
+        "Please fill in the product name, price and category.";
+    }
 
     return;
   }
 
-
-  const button =
-    event.submitter;
-
-
-  if (button) {
-
-    button.disabled =
-      true;
-
-    button.textContent =
-      "Publishing...";
-  }
-
-
   try {
-
-    let imageUrls = [];
-
-
-    if (
-      selectedImages.length
-    ) {
-
-      imageUrls =
-        await uploadProductImages(
-          currentUser.id
-        );
+    if (message) {
+      message.textContent =
+        "Publishing your product...";
     }
 
+    const productId = makeId();
 
-    const {
-      error
-    } =
+    const imageUrls =
+      await uploadProductImages(productId);
+
+    const productData = {
+      id: productId,
+      seller_id: currentUser.id,
+      name,
+      price,
+      category,
+      campus,
+      description,
+      image_urls: imageUrls,
+      image_url: imageUrls[0] || null
+    };
+
+    const { error } =
       await supabaseClient
         .from("products")
-        .insert({
-
-          name,
-
-          price:
-            Number(price),
-
-          category,
-
-          campus,
-
-          description,
-
-          seller_id:
-            currentUser.id,
-
-          image_urls:
-            imageUrls
-
-        });
-
+        .insert(productData);
 
     if (error) {
       throw error;
     }
 
+    if (message) {
+      message.textContent =
+        "Product published successfully!";
+    }
 
-    showMessage(
-      "Your product has been listed successfully!"
-    );
+    const form = $("sellForm");
 
+    if (form) {
+      form.reset();
+    }
 
-    event.target.reset();
+    selectedImages = [];
 
-
-    selectedImages =
-      [];
-
-
-    renderImagePreviews();
-
+    renderImagePreview();
 
     await loadProducts();
 
-
-    navigate("home");
-
+    setTimeout(() => {
+      navigate("home");
+    }, 700);
 
   } catch (error) {
-
     console.error(
-      "Product publishing error:",
+      "Publishing product failed:",
       error
     );
 
-
-    showMessage(
-      `Unable to publish product: ${error.message}`
-    );
-
-
-  } finally {
-
-    if (button) {
-
-      button.disabled =
-        false;
-
-      button.textContent =
-        "Publish listing";
-    }
-  }
-}
-
-
-// ============================================================
-// AUTH MODAL
-// ============================================================
-
-let authMode =
-  "login";
-
-
-function openAuth(
-  mode = "login"
-) {
-
-  authMode =
-    mode;
-
-
-  const overlay =
-    $("authOverlay");
-
-  if (!overlay) {
-    return;
-  }
-
-
-  overlay.classList.remove(
-    "hidden"
-  );
-
-
-  const signupFields =
-    $("signupFields");
-
-  const title =
-    $("authTitle");
-
-  const subtitle =
-    $("authSubtitle");
-
-  const submitText =
-    $("authSubmitText");
-
-  const switchButton =
-    $("authSwitch");
-
-  const message =
-    $("authMessage");
-
-
-  if (message) {
-    message.textContent =
-      "";
-  }
-
-
-  if (
-    mode === "signup"
-  ) {
-
-    if (signupFields) {
-      signupFields.classList.remove(
-        "hidden"
-      );
-    }
-
-
-    if (title) {
-      title.textContent =
-        "Create your account";
-    }
-
-
-    if (subtitle) {
-      subtitle.textContent =
-        "Join Cheal Market and start buying or selling.";
-    }
-
-
-    if (submitText) {
-      submitText.textContent =
-        "Create account";
-    }
-
-
-    if (switchButton) {
-      switchButton.innerHTML =
-        "Already have an account? <strong>Sign in</strong>";
-    }
-
-
-  } else {
-
-    if (signupFields) {
-      signupFields.classList.add(
-        "hidden"
-      );
-    }
-
-
-    if (title) {
-      title.textContent =
-        "Welcome to Cheal Market";
-    }
-
-
-    if (subtitle) {
-      subtitle.textContent =
-        "Sign in to buy, sell and chat.";
-    }
-
-
-    if (submitText) {
-      submitText.textContent =
-        "Sign in";
-    }
-
-
-    if (switchButton) {
-      switchButton.innerHTML =
-        "Don't have an account? <strong>Sign up</strong>";
-    }
-  }
-}
-
-
-function closeAuth() {
-
-  const overlay =
-    $("authOverlay");
-
-  if (overlay) {
-
-    overlay.classList.add(
-      "hidden"
-    );
-  }
-}
-
-
-function switchAuth() {
-
-  if (
-    authMode === "login"
-  ) {
-
-    openAuth("signup");
-
-  } else {
-
-    openAuth("login");
-  }
-}
-
-
-// ============================================================
-// AUTH FORM
-// ============================================================
-
-async function handleAuthSubmit(
-  event
-) {
-
-  event.preventDefault();
-
-
-  if (
-    authMode === "signup"
-  ) {
-
-    await signUp(
-      event
-    );
-
-  } else {
-
-    await signIn(
-      event
-    );
-  }
-}
-
-
-// ============================================================
-// SIGN UP
-// ============================================================
-
-async function signUp(
-  event
-) {
-
-  const fullName =
-    $("authName")
-      ?.value
-      ?.trim();
-
-
-  const campus =
-    $("authCampus")
-      ?.value
-      ?.trim();
-
-
-  const email =
-    $("authEmail")
-      ?.value
-      ?.trim();
-
-
-  const password =
-    $("authPassword")
-      ?.value;
-
-
-  const message =
-    $("authMessage");
-
-
-  if (
-    !fullName ||
-    !email ||
-    !password
-  ) {
-
     if (message) {
       message.textContent =
-        "Please complete all required fields.";
+        error?.message ||
+        "Could not publish product.";
     }
+  }
+}
+
+
+/* =========================
+   MY LISTINGS
+   ========================= */
+
+async function loadMyListings() {
+  const grid = $("myListingsGrid");
+
+  if (!grid) return;
+
+  if (!currentUser) {
+    grid.innerHTML = `
+      <div class="empty-state">
+        <h3>Login required</h3>
+        <p>Please login to view your listings.</p>
+
+        <button
+          type="button"
+          data-action="login"
+        >
+          Login
+        </button>
+      </div>
+    `;
 
     return;
   }
 
-
-  if (
-    password.length < 6
-  ) {
-
-    if (message) {
-      message.textContent =
-        "Password must contain at least 6 characters.";
-    }
-
-    return;
-  }
-
-
-  const submit =
-    $("authSubmitText");
-
-
-  if (submit) {
-    submit.textContent =
-      "Creating account...";
-  }
-
+  grid.innerHTML = `
+    <div class="empty-state">
+      <p>Loading your listings...</p>
+    </div>
+  `;
 
   try {
-
-    const {
-      data,
-      error
-    } =
-      await supabaseClient.auth
-        .signUp({
-
-          email,
-
-          password,
-
-          options: {
-
-            data: {
-
-              full_name:
-                fullName,
-
-              campus:
-                campus || null
-            }
-          }
+    const { data, error } =
+      await supabaseClient
+        .from("products")
+        .select("*")
+        .eq("seller_id", currentUser.id)
+        .order("created_at", {
+          ascending: false
         });
-
 
     if (error) {
       throw error;
     }
 
-
-    if (!data.user) {
-      throw new Error(
-        "Account could not be created."
-      );
-    }
-
-
-    if (data.session) {
-
-      currentUser =
-        data.user;
-
-      await loadCurrentProfile();
-
-      closeAuth();
-
-      updateAccountScreen();
-
-      navigate("account");
-
-      showMessage(
-        "Account created successfully!"
-      );
-
-
-    } else {
-
-      if (message) {
-        message.textContent =
-          "Account created. If email confirmation is enabled, check your email before signing in.";
-      }
-    }
-
-
-  } catch (error) {
-
-    console.error(
-      "Signup error:",
-      error
-    );
-
-
-    if (message) {
-      message.textContent =
-        error.message;
-    }
-
-
-  } finally {
-
-    if (submit) {
-
-      submit.textContent =
-        authMode === "signup"
-          ? "Create account"
-          : "Sign in";
-    }
-  }
-}
-
-
-// ============================================================
-// SIGN IN
-// ============================================================
-
-async function signIn(
-  event
-) {
-
-  const email =
-    $("authEmail")
-      ?.value
-      ?.trim();
-
-
-  const password =
-    $("authPassword")
-      ?.value;
-
-
-  const message =
-    $("authMessage");
-
-
-  if (
-    !email ||
-    !password
-  ) {
-
-    if (message) {
-      message.textContent =
-        "Enter your email and password.";
-    }
-
-    return;
-  }
-
-
-  const submit =
-    $("authSubmitText");
-
-
-  if (submit) {
-    submit.textContent =
-      "Signing in...";
-  }
-
-
-  try {
-
-    const {
-      data,
-      error
-    } =
-      await supabaseClient.auth
-        .signInWithPassword({
-
-          email,
-
-          password
-        });
-
-
-    if (error) {
-      throw error;
-    }
-
-
-    currentUser =
-      data.user;
-
-
-    await loadCurrentProfile();
-
-
-    closeAuth();
-
-
-    updateAccountScreen();
-
-
-    navigate("account");
-
-
-    showMessage(
-      "Welcome back!"
-    );
-
-
-  } catch (error) {
-
-    console.error(
-      "Login error:",
-      error
-    );
-
-
-    if (message) {
-      message.textContent =
-        error.message;
-    }
-
-
-  } finally {
-
-    if (submit) {
-      submit.textContent =
-        "Sign in";
-    }
-  }
-}
-
-
-// ============================================================
-// LOAD CURRENT USER
-// ============================================================
-
-async function loadCurrentUser() {
-
-  try {
-
-    const {
-      data,
-      error
-    } =
-      await supabaseClient.auth
-        .getUser();
-
-
-    if (error) {
-
-      currentUser =
-        null;
-
-      currentProfile =
-        null;
+    if (!data?.length) {
+      grid.innerHTML = `
+        <div class="empty-state">
+          <h3>No listings yet</h3>
+          <p>Products you sell will appear here.</p>
+        </div>
+      `;
 
       return;
     }
 
-
-    currentUser =
-      data.user || null;
-
-
-    if (currentUser) {
-      await loadCurrentProfile();
-    } else {
-      currentProfile =
-        null;
-    }
-
-
-  } catch (error) {
-
-    console.error(
-      "Current user error:",
-      error
-    );
-
-    currentUser =
-      null;
-
-    currentProfile =
-      null;
-  }
-}
-
-
-// ============================================================
-// LOAD PROFILE
-// ============================================================
-
-async function loadCurrentProfile() {
-
-  if (!currentUser) {
-    return;
-  }
-
-
-  const {
-    data,
-    error
-  } =
-    await supabaseClient
-      .from("profiles")
-      .select("*")
-      .eq(
-        "id",
-        currentUser.id
-      )
-      .maybeSingle();
-
-
-  if (error) {
-
-    console.error(
-      "Profile error:",
-      error
-    );
-
-    return;
-  }
-
-
-  currentProfile =
-    data;
-}
-
-
-// ============================================================
-// ACCOUNT SCREEN
-// ============================================================
-
-function updateAccountScreen() {
-
-  const loggedOut =
-    $("accountLoggedOut");
-
-  const loggedIn =
-    $("accountLoggedIn");
-
-  const name =
-    $("profileName");
-
-  const email =
-    $("profileEmail");
-
-  const avatar =
-    $("profileAvatar");
-
-
-  if (!currentUser) {
-
-    if (loggedOut) {
-      loggedOut.classList.remove(
-        "hidden"
-      );
-    }
-
-    if (loggedIn) {
-      loggedIn.classList.add(
-        "hidden"
-      );
-    }
-
-    if (name) {
-      name.textContent =
-        "Welcome";
-    }
-
-    if (email) {
-      email.textContent =
-        "Sign in to manage your account.";
-    }
-
-    if (avatar) {
-      avatar.textContent =
-        "M";
-    }
-
-    return;
-  }
-
-
-  if (loggedOut) {
-    loggedOut.classList.add(
-      "hidden"
-    );
-  }
-
-  if (loggedIn) {
-    loggedIn.classList.remove(
-      "hidden"
-    );
-  }
-
-
-  const fullName =
-    currentProfile?.full_name ||
-    currentUser.email ||
-    "Cheal Market User";
-
-
-  if (name) {
-    name.textContent =
-      fullName;
-  }
-
-
-  if (email) {
-    email.textContent =
-      currentUser.email ||
-      "";
-  }
-
-
-  if (avatar) {
-
-    avatar.textContent =
-      fullName
-        .charAt(0)
-        .toUpperCase();
-  }
-}
-
-
-// ============================================================
-// ACCOUNT LOGIN BUTTON
-// ============================================================
-
-function handleAccountLogin() {
-
-  openAuth("login");
-}
-
-
-// ============================================================
-// SETTINGS
-// ============================================================
-
-function openSettings() {
-
-  if (!currentUser) {
-
-    openAuth("login");
-
-    return;
-  }
-
-
-  showMessage(
-    "Account settings will be added here."
-  );
-}
-
-
-// ============================================================
-// LOGOUT
-// ============================================================
-
-async function logout() {
-
-  try {
-
-    const {
-      error
-    } =
-      await supabaseClient.auth
-        .signOut();
-
-
-    if (error) {
-      throw error;
-    }
-
-
-    currentUser =
-      null;
-
-    currentProfile =
-      null;
-
-    currentConversation =
-      null;
-
-
-    if (messageChannel) {
-
-      await supabaseClient
-        .removeChannel(
-          messageChannel
-        );
-
-      messageChannel =
-        null;
-    }
-
-
-    updateAccountScreen();
-
-
-    navigate("home");
-
-
-    showMessage(
-      "You have been signed out."
-    );
-
-
-  } catch (error) {
-
-    console.error(
-      "Logout error:",
-      error
-    );
-
-
-    showMessage(
-      `Logout failed: ${error.message}`
-    );
-  }
-}
-
-
-// ============================================================
-// MY LISTINGS
-// ============================================================
-
-async function loadMyListings() {
-
-  const container =
-    $("myListingsGrid");
-
-
-  if (!container) {
-    return;
-  }
-
-
-  if (!currentUser) {
-
-    container.innerHTML = `
-
-      <div class="empty-state">
-
-        <div class="empty-icon">
-          👤
-        </div>
-
-        <h2>
-          Sign in required
-        </h2>
-
-        <p>
-          Sign in to see your listings.
-        </p>
-
-        <button
-          type="button"
-          class="primary-button"
-          data-action="login"
-        >
-          Sign in
-        </button>
-
-      </div>
-
-    `;
-
-    return;
-  }
-
-
-  container.innerHTML = `
-
-    <div class="loading-card">
-
-      <div class="spinner"></div>
-
-      <p>
-        Loading your listings...
-      </p>
-
-    </div>
-
-  `;
-
-
-  const {
-    data,
-    error
-  } =
-    await supabaseClient
-      .from("products")
-      .select("*")
-      .eq(
-        "seller_id",
-        currentUser.id
-      )
-      .order(
-        "created_at",
-        {
-          ascending: false
-        }
-      );
-
-
-  if (error) {
-
-    container.innerHTML = `
-
-      <div class="empty-state">
-
-        <h2>
-          Unable to load listings
-        </h2>
-
-        <p>
-          ${escapeHTML(
-            error.message
-          )}
-        </p>
-
-      </div>
-
-    `;
-
-    return;
-  }
-
-
-  if (!data?.length) {
-
-    container.innerHTML = `
-
-      <div class="empty-state">
-
-        <div class="empty-icon">
-          📦
-        </div>
-
-        <h2>
-          No listings yet
-        </h2>
-
-        <p>
-          Products you sell will appear here.
-        </p>
-
-        <button
-          type="button"
-          class="primary-button"
-          data-route="sell"
-        >
-          Sell an item
-        </button>
-
-      </div>
-
-    `;
-
-    return;
-  }
-
-
-  container.innerHTML =
-    data
-      .map(product => {
-
-        const images =
-          Array.isArray(
-            product.image_urls
-          )
-            ? product.image_urls
-            : [];
-
-
-        const image =
-          images[0] ||
-          "https://placehold.co/600x450?text=Cheal+Market";
-
-
-        return `
-
-          <article
-            class="product-card"
-          >
-
-            <div
-              class="product-image"
-              data-action="open-product"
-              data-product-id="${product.id}"
-            >
-
-              <img
-                src="${escapeHTML(image)}"
-                alt="${escapeHTML(
-                  product.name
-                )}"
-                loading="lazy"
-              >
-
-            </div>
-
-
-            <div
-              class="product-info"
-              data-action="open-product"
-              data-product-id="${product.id}"
-            >
-
-              <h3>
-                ${escapeHTML(
-                  product.name
-                )}
-              </h3>
-
-              <strong>
-                ${formatPrice(
-                  product.price
-                )}
-              </strong>
-
-              <p>
-                📍 ${escapeHTML(
-                  product.campus ||
-                  "Uganda"
-                )}
-              </p>
-
-              <span>
-                ${escapeHTML(
-                  product.category ||
-                  "Other"
-                )}
-              </span>
-
-            </div>
-
-          </article>
-
-        `;
-      })
+    grid.innerHTML = data
+      .map(renderProductCard)
       .join("");
-}
-
-
-// ============================================================
-// START CHAT WITH SELLER
-// ============================================================
-
-async function startChatWithSeller(
-  productId
-) {
-
-  if (!currentUser) {
-
-    openAuth("login");
-
-    return;
-  }
-
-
-  const product =
-    allProducts.find(
-      item =>
-        Number(item.id) ===
-        Number(productId)
-    );
-
-
-  if (!product) {
-    showMessage(
-      "Product not found."
-    );
-
-    return;
-  }
-
-
-  if (
-    product.seller_id ===
-    currentUser.id
-  ) {
-
-    showMessage(
-      "You cannot chat with yourself."
-    );
-
-    return;
-  }
-
-
-  try {
-
-    const {
-      data,
-      error
-    } =
-      await supabaseClient
-        .from("conversations")
-        .upsert(
-          {
-
-            buyer_id:
-              currentUser.id,
-
-            seller_id:
-              product.seller_id,
-
-            product_id:
-              product.id
-
-          },
-          {
-
-            onConflict:
-              "buyer_id,seller_id,product_id",
-
-            ignoreDuplicates:
-              false
-
-          }
-        )
-        .select()
-        .single();
-
-
-    if (error) {
-      throw error;
-    }
-
-
-    currentConversation =
-      data;
-
-
-    await openConversation(
-      data.id
-    );
-
 
   } catch (error) {
+    console.error(error);
 
-    console.error(
-      "Chat error:",
-      error
-    );
-
-
-    showMessage(
-      `Unable to start chat: ${error.message}`
-    );
+    grid.innerHTML = `
+      <div class="empty-state">
+        <h3>Could not load listings</h3>
+        <p>${escapeHTML(
+          error?.message || ""
+        )}</p>
+      </div>
+    `;
   }
 }
 
 
-// ============================================================
-// LOAD CONVERSATIONS
-// ============================================================
+/* =========================
+   CONVERSATIONS
+   ========================= */
 
 async function loadConversations() {
+  const list = $("conversationList");
 
-  const container =
-    $("conversationList");
-
-
-  if (!container) {
-    return;
-  }
-
+  if (!list) return;
 
   if (!currentUser) {
-
-    container.innerHTML = `
-
+    list.innerHTML = `
       <div class="empty-state">
-
-        <div class="empty-icon">
-          👤
-        </div>
-
-        <h2>
-          Sign in to view messages
-        </h2>
-
-        <p>
-          Your private conversations will appear here.
-        </p>
+        <h3>Login required</h3>
+        <p>Login to view your messages.</p>
 
         <button
           type="button"
-          class="primary-button"
           data-action="login"
         >
-          Sign in
+          Login
         </button>
-
       </div>
-
     `;
 
     return;
   }
 
+  list.innerHTML = `
+    <div class="empty-state">
+      <p>Loading messages...</p>
+    </div>
+  `;
 
-  const {
-    data,
-    error
-  } =
-    await supabaseClient
-      .from("conversations")
-      .select("*")
-      .or(
-        `buyer_id.eq.${currentUser.id},seller_id.eq.${currentUser.id}`
-      )
-      .order(
-        "created_at",
-        {
+  try {
+    const { data, error } =
+      await supabaseClient
+        .from("conversations")
+        .select("*")
+        .or(
+          `buyer_id.eq.${currentUser.id},seller_id.eq.${currentUser.id}`
+        )
+        .order("updated_at", {
           ascending: false
-        }
-      );
+        });
 
+    if (error) {
+      throw error;
+    }
 
-  if (error) {
-
-    console.error(
-      "Conversation error:",
-      error
-    );
-
-
-    container.innerHTML = `
-
-      <div class="empty-state">
-
-        <div class="empty-icon">
-          ⚠️
+    if (!data?.length) {
+      list.innerHTML = `
+        <div class="empty-state">
+          <h3>No messages yet</h3>
+          <p>Your conversations will appear here.</p>
         </div>
+      `;
 
-        <h2>
-          Unable to load messages
-        </h2>
+      return;
+    }
 
-        <p>
-          ${escapeHTML(
-            error.message
-          )}
-        </p>
+    const rows = [];
 
-      </div>
+    for (const conversation of data) {
+      const otherId =
+        String(conversation.buyer_id) ===
+        String(currentUser.id)
+          ? conversation.seller_id
+          : conversation.buyer_id;
 
-    `;
+      let otherName = "User";
 
-    return;
-  }
+      try {
+        const { data: profile } =
+          await supabaseClient
+            .from("profiles")
+            .select("full_name,name")
+            .eq("id", otherId)
+            .maybeSingle();
 
+        otherName =
+          profile?.full_name ||
+          profile?.name ||
+          "User";
 
-  if (!data?.length) {
+      } catch (_) {}
 
-    container.innerHTML = `
+      let productName = "";
 
-      <div class="empty-state">
+      const product =
+        products.find(
+          (item) =>
+            String(item.id) ===
+            String(conversation.product_id)
+        );
 
-        <div class="empty-icon">
-          💬
-        </div>
+      if (product) {
+        productName = product.name;
+      }
 
-        <h2>
-          No conversations yet
-        </h2>
-
-        <p>
-          When you message a seller, your conversation will appear here.
-        </p>
-
+      rows.push(`
         <button
           type="button"
-          class="primary-button"
-          data-route="home"
+          class="conversation-item"
+          data-action="open-conversation"
+          data-conversation-id="${escapeHTML(
+            conversation.id
+          )}"
         >
-          Find products
-        </button>
 
-      </div>
+          <strong>
+            ${escapeHTML(otherName)}
+          </strong>
 
-    `;
-
-    return;
-  }
-
-
-  const rows = [];
-
-
-  for (
-    const conversation of data
-  ) {
-
-    const otherUserId =
-      conversation.buyer_id ===
-      currentUser.id
-
-        ? conversation.seller_id
-
-        : conversation.buyer_id;
-
-
-    const {
-      data: profile
-    } =
-      await supabaseClient
-        .from("profiles")
-        .select(
-          "full_name,campus"
-        )
-        .eq(
-          "id",
-          otherUserId
-        )
-        .maybeSingle();
-
-
-    const product =
-      allProducts.find(
-        item =>
-          Number(item.id) ===
-          Number(
-            conversation.product_id
-          )
-      );
-
-
-    rows.push({
-
-      conversation,
-
-      profile,
-
-      product
-
-    });
-  }
-
-
-  container.innerHTML =
-    rows
-      .map(
-        ({
-          conversation,
-          profile,
-          product
-        }) => {
-
-          const initial =
-            (
-              profile?.full_name ||
-              "U"
-            )
-              .charAt(0)
-              .toUpperCase();
-
-
-          return `
-
-            <button
-              type="button"
-              class="conversation-item"
-              data-action="open-conversation"
-              data-conversation-id="${conversation.id}"
-            >
-
-              <div
-                class="conversation-avatar"
-              >
-                ${escapeHTML(
-                  initial
-                )}
-              </div>
-
-
-              <div>
-
-                <strong>
-                  ${escapeHTML(
-                    profile?.full_name ||
-                    "User"
-                  )}
-                </strong>
-
+          ${
+            productName
+              ? `
                 <span>
-                  ${
-                    product
-                      ? escapeHTML(
-                          product.name
-                        )
-                      : escapeHTML(
-                          profile?.campus ||
-                          ""
-                        )
-                  }
+                  ${escapeHTML(productName)}
                 </span>
+              `
+              : ""
+          }
 
-              </div>
+        </button>
+      `);
+    }
 
-            </button>
+    list.innerHTML = rows.join("");
 
-          `;
-        }
-      )
-      .join("");
+  } catch (error) {
+    console.error(error);
+
+    list.innerHTML = `
+      <div class="empty-state">
+        <h3>Messages unavailable</h3>
+        <p>${escapeHTML(
+          error?.message || ""
+        )}</p>
+      </div>
+    `;
+  }
 }
 
 
-// ============================================================
-// OPEN CONVERSATION
-// ============================================================
+/* =========================
+   START CHAT
+   ========================= */
+
+async function startChat(productId) {
+  if (!currentUser) {
+    openAuth("login");
+    return;
+  }
+
+  const product =
+    products.find(
+      (item) =>
+        String(item.id) ===
+        String(productId)
+    );
+
+  if (!product) {
+    showNotice("Product not found.");
+    return;
+  }
+
+  if (
+    String(product.seller_id) ===
+    String(currentUser.id)
+  ) {
+    showNotice(
+      "You cannot message yourself about your own listing."
+    );
+
+    return;
+  }
+
+  try {
+    let conversation = null;
+
+    const { data: existing } =
+      await supabaseClient
+        .from("conversations")
+        .select("*")
+        .eq("buyer_id", currentUser.id)
+        .eq("seller_id", product.seller_id)
+        .eq("product_id", product.id)
+        .maybeSingle();
+
+    if (existing) {
+      conversation = existing;
+    } else {
+      const { data, error } =
+        await supabaseClient
+          .from("conversations")
+          .insert({
+            id: makeId(),
+            buyer_id: currentUser.id,
+            seller_id: product.seller_id,
+            product_id: product.id
+          })
+          .select()
+          .single();
+
+      if (error) {
+        throw error;
+      }
+
+      conversation = data;
+    }
+
+    await openConversation(
+      conversation.id
+    );
+
+  } catch (error) {
+    console.error(error);
+
+    showNotice(
+      error?.message ||
+      "Could not start conversation."
+    );
+  }
+}
+
+
+/* =========================
+   OPEN CONVERSATION
+   ========================= */
 
 async function openConversation(
   conversationId
 ) {
-
   if (!currentUser) {
-
     openAuth("login");
-
     return;
   }
 
+  try {
+    const { data: conversation, error } =
+      await supabaseClient
+        .from("conversations")
+        .select("*")
+        .eq("id", conversationId)
+        .single();
 
-  const {
-    data,
-    error
-  } =
-    await supabaseClient
-      .from("conversations")
-      .select("*")
-      .eq(
-        "id",
-        conversationId
-      )
-      .single();
+    if (error) {
+      throw error;
+    }
 
+    currentConversation =
+      conversation;
 
-  if (error) {
+    const otherId =
+      String(conversation.buyer_id) ===
+      String(currentUser.id)
+        ? conversation.seller_id
+        : conversation.buyer_id;
 
-    showMessage(
-      `Unable to open conversation: ${error.message}`
-    );
+    let otherName = "User";
 
-    return;
-  }
+    const { data: profile } =
+      await supabaseClient
+        .from("profiles")
+        .select("full_name,name")
+        .eq("id", otherId)
+        .maybeSingle();
 
-
-  currentConversation =
-    data;
-
-
-  const otherUserId =
-    data.buyer_id ===
-    currentUser.id
-
-      ? data.seller_id
-
-      : data.buyer_id;
-
-
-  const {
-    data: profile
-  } =
-    await supabaseClient
-      .from("profiles")
-      .select(
-        "full_name,campus"
-      )
-      .eq(
-        "id",
-        otherUserId
-      )
-      .maybeSingle();
-
-
-  const chatName =
-    $("chatName");
-
-
-  if (chatName) {
-
-    chatName.textContent =
-      profile?.full_name ||
-      "User";
-  }
-
-
-  const chatProduct =
-    $("chatProduct");
-
-
-  if (chatProduct) {
+    if (profile) {
+      otherName =
+        profile.full_name ||
+        profile.name ||
+        "User";
+    }
 
     const product =
-      allProducts.find(
-        item =>
-          Number(item.id) ===
-          Number(
-            data.product_id
-          )
+      products.find(
+        (item) =>
+          String(item.id) ===
+          String(conversation.product_id)
       );
 
+    if ($("chatName")) {
+      $("chatName").textContent =
+        otherName;
+    }
 
-    chatProduct.textContent =
-      product?.name || "";
+    if ($("chatProduct")) {
+      $("chatProduct").textContent =
+        product?.name || "";
+    }
+
+    navigate("chat");
+
+    await loadMessages(
+      conversationId
+    );
+
+    subscribeToMessages(
+      conversationId
+    );
+
+  } catch (error) {
+    console.error(error);
+
+    showNotice(
+      error?.message ||
+      "Could not open conversation."
+    );
   }
-
-
-  await loadMessages(
-    conversationId
-  );
-
-
-  navigate("chat");
-
-
-  subscribeToMessages(
-    conversationId
-  );
 }
 
 
-// ============================================================
-// LOAD MESSAGES
-// ============================================================
+/* =========================
+   MESSAGES
+   ========================= */
 
 async function loadMessages(
   conversationId
 ) {
-
   const container =
     $("chatMessages");
 
-
-  if (!container) {
-    return;
-  }
-
+  if (!container) return;
 
   container.innerHTML = `
-
     <div class="empty-state">
-
-      <div class="spinner"></div>
-
-      <p>
-        Loading messages...
-      </p>
-
+      <p>Loading messages...</p>
     </div>
-
   `;
 
-
-  const {
-    data,
-    error
-  } =
-    await supabaseClient
-      .from("messages")
-      .select("*")
-      .eq(
-        "conversation_id",
-        conversationId
-      )
-      .order(
-        "created_at",
-        {
+  try {
+    const { data, error } =
+      await supabaseClient
+        .from("messages")
+        .select("*")
+        .eq(
+          "conversation_id",
+          conversationId
+        )
+        .order("created_at", {
           ascending: true
-        }
-      );
+        });
 
+    if (error) {
+      throw error;
+    }
 
-  if (error) {
+    renderMessages(data || []);
 
-    console.error(
-      "Messages error:",
-      error
-    );
-
+  } catch (error) {
+    console.error(error);
 
     container.innerHTML = `
-
       <div class="empty-state">
-
-        <h2>
-          Unable to load messages
-        </h2>
-
-        <p>
-          ${escapeHTML(
-            error.message
-          )}
-        </p>
-
+        <p>${escapeHTML(
+          error?.message ||
+          "Could not load messages."
+        )}</p>
       </div>
-
     `;
-
-    return;
   }
-
-
-  renderMessages(
-    data || []
-  );
 }
 
 
-// ============================================================
-// RENDER MESSAGES
-// ============================================================
-
-function renderMessages(
-  messages
-) {
-
+function renderMessages(messages) {
   const container =
     $("chatMessages");
 
-
-  if (!container) {
-    return;
-  }
-
+  if (!container) return;
 
   if (!messages.length) {
-
     container.innerHTML = `
-
       <div class="empty-state">
-
-        <div class="empty-icon">
-          💬
-        </div>
-
-        <p>
-          Start the conversation.
-        </p>
-
+        <h3>Start the conversation</h3>
+        <p>Send the first message.</p>
       </div>
-
     `;
 
     return;
   }
 
+  container.innerHTML = messages
+    .map((message) => {
 
-  container.innerHTML =
-    messages
-      .map(message => {
+      const mine =
+        String(message.sender_id) ===
+        String(currentUser?.id);
 
-        const mine =
-          message.sender_id ===
-          currentUser?.id;
-
-
-        return `
-
-          <div
-            class="
-              message-row
-              ${mine ? "mine" : "theirs"}
-            "
-          >
-
-            <div
-              class="message-bubble"
-            >
-              ${escapeHTML(
-                message.message
-              )}
-            </div>
-
-          </div>
-
-        `;
-      })
-      .join("");
-
+      return `
+        <div
+          class="chat-message ${
+            mine ? "mine" : "theirs"
+          }"
+        >
+          ${escapeHTML(message.content)}
+        </div>
+      `;
+    })
+    .join("");
 
   container.scrollTop =
     container.scrollHeight;
 }
 
 
-// ============================================================
-// SEND MESSAGE
-// ============================================================
-
-async function sendMessage(
-  event
-) {
-
+async function sendMessage(event) {
   event.preventDefault();
 
-
-  if (
-    !currentUser ||
-    !currentConversation
-  ) {
-
-    if (!currentUser) {
-      openAuth("login");
-    }
-
+  if (!currentUser) {
+    openAuth("login");
     return;
   }
 
-
-  const input =
-    $("chatInput");
-
-
-  if (!input) {
+  if (!currentConversation) {
     return;
   }
 
+  const input = $("chatInput");
 
-  const message =
+  if (!input) return;
+
+  const content =
     input.value.trim();
 
+  if (!content) return;
 
-  if (!message) {
-    return;
-  }
-
-
-  const sendButton =
-    event.submitter;
-
-
-  if (sendButton) {
-    sendButton.disabled =
-      true;
-  }
-
+  input.disabled = true;
 
   try {
-
-    const {
-      error
-    } =
+    const { error } =
       await supabaseClient
         .from("messages")
         .insert({
-
+          id: makeId(),
           conversation_id:
             currentConversation.id,
-
           sender_id:
             currentUser.id,
-
-          message
-
+          content
         });
-
 
     if (error) {
       throw error;
     }
 
-
     input.value = "";
-
 
     await loadMessages(
       currentConversation.id
     );
 
-
   } catch (error) {
+    console.error(error);
 
-    console.error(
-      "Send message error:",
-      error
+    showNotice(
+      error?.message ||
+      "Message could not be sent."
     );
-
-
-    showMessage(
-      `Message failed: ${error.message}`
-    );
-
 
   } finally {
-
-    if (sendButton) {
-      sendButton.disabled =
-        false;
-    }
+    input.disabled = false;
+    input.focus();
   }
 }
 
 
-// ============================================================
-// REALTIME CHAT
-// ============================================================
+/* =========================
+   REALTIME CHAT
+   ========================= */
 
 function subscribeToMessages(
   conversationId
 ) {
-
-  if (messageChannel) {
-
-    supabaseClient
-      .removeChannel(
-        messageChannel
-      );
-
-    messageChannel =
-      null;
+  if (realtimeChannel) {
+    supabaseClient.removeChannel(
+      realtimeChannel
+    );
   }
 
-
-  messageChannel =
+  realtimeChannel =
     supabaseClient
       .channel(
-        `cheal-chat-${conversationId}-${Date.now()}`
+        "chat-" + conversationId
       )
       .on(
         "postgres_changes",
         {
-
-          event:
-            "INSERT",
-
-          schema:
-            "public",
-
-          table:
-            "messages",
-
+          event: "INSERT",
+          schema: "public",
+          table: "messages",
           filter:
             `conversation_id=eq.${conversationId}`
-
         },
         async () => {
-
           await loadMessages(
             conversationId
           );
@@ -3550,131 +1886,259 @@ function subscribeToMessages(
 }
 
 
-// ============================================================
-// MENU
-// ============================================================
-
-function openMenu() {
-
-  const overlay =
-    $("menuOverlay");
-
-
-  if (!overlay) {
-    return;
-  }
-
-
-  overlay.classList.remove(
-    "hidden"
-  );
-
-
-  const button =
-    $("menuButton");
-
-
-  if (button) {
-    button.setAttribute(
-      "aria-expanded",
-      "true"
-    );
-  }
-}
-
-
-function closeMenu() {
-
-  const overlay =
-    $("menuOverlay");
-
-
-  if (!overlay) {
-    return;
-  }
-
-
-  overlay.classList.add(
-    "hidden"
-  );
-
-
-  const button =
-    $("menuButton");
-
-
-  if (button) {
-    button.setAttribute(
-      "aria-expanded",
-      "false"
-    );
-  }
-}
-
-
-function toggleMenu() {
-
-  const overlay =
-    $("menuOverlay");
-
-
-  if (
-    overlay?.classList.contains(
-      "hidden"
-    )
-  ) {
-
-    openMenu();
-
-  } else {
-
-    closeMenu();
-  }
-}
-
-
-// ============================================================
-// LOCATION
-// ============================================================
+/* =========================
+   LOCATION
+   ========================= */
 
 function handleLocation() {
-
-  showMessage(
-    "Location selection will be added next. Your current marketplace location is Kampala."
+  showNotice(
+    "Location selection will be added soon. You can currently search products by campus."
   );
 }
 
 
-// ============================================================
-// EVENT DELEGATION
-// ============================================================
-//
-// This is important.
-// Instead of relying on hundreds of individual onclick
-// attributes, one listener handles the touch/click controls.
-// It works on iPhone, Android and desktop.
-// ============================================================
+/* =========================
+   EVENT HANDLERS
+   ========================= */
 
-function setupGlobalEvents() {
+function setupEvents() {
+
+  /* Hash navigation */
+
+  window.addEventListener(
+    "hashchange",
+    handleHashChange
+  );
+
+
+  /* Menu */
+
+  $("menuButton")?.addEventListener(
+    "click",
+    openMenu
+  );
+
+  $("closeMenu")?.addEventListener(
+    "click",
+    closeMenu
+  );
+
+  $("menuOverlay")?.addEventListener(
+    "click",
+    (event) => {
+      if (
+        event.target ===
+        $("menuOverlay")
+      ) {
+        closeMenu();
+      }
+    }
+  );
+
+
+  /* Top account */
+
+  $("topAccountButton")?.addEventListener(
+    "click",
+    () => navigate("account")
+  );
+
+
+  /* Account login */
+
+  $("accountLoginButton")?.addEventListener(
+    "click",
+    () => openAuth("login")
+  );
+
+
+  /* Logout */
+
+  $("logoutButton")?.addEventListener(
+    "click",
+    logout
+  );
+
+
+  /* Auth */
+
+  $("closeAuth")?.addEventListener(
+    "click",
+    closeAuth
+  );
+
+  $("authSwitch")?.addEventListener(
+    "click",
+    () => {
+      openAuth(
+        authMode === "login"
+          ? "signup"
+          : "login"
+      );
+    }
+  );
+
+  $("authForm")?.addEventListener(
+    "submit",
+    handleAuthSubmit
+  );
+
+
+  $("authOverlay")?.addEventListener(
+    "click",
+    (event) => {
+      if (
+        event.target ===
+        $("authOverlay")
+      ) {
+        closeAuth();
+      }
+    }
+  );
+
+
+  /* Search */
+
+  $("searchInput")?.addEventListener(
+    "input",
+    (event) => {
+      handleSearch(event.target.value);
+    }
+  );
+
+
+  $("clearSearch")?.addEventListener(
+    "click",
+    clearSearch
+  );
+
+
+  /* Location */
+
+  $("locationButton")?.addEventListener(
+    "click",
+    handleLocation
+  );
+
+
+  /* Sort */
+
+  $("sortButton")?.addEventListener(
+    "click",
+    changeSort
+  );
+
+
+  /* Sell form */
+
+  $("sellForm")?.addEventListener(
+    "submit",
+    handleSellSubmit
+  );
+
+
+  /* Image input */
+
+  $("productImages")?.addEventListener(
+    "change",
+    handleImageSelection
+  );
+
+
+  /* Chat */
+
+  $("chatForm")?.addEventListener(
+    "submit",
+    sendMessage
+  );
+
+
+  /* Bottom navigation */
+
+  document
+    .querySelectorAll(
+      ".bottom-nav [data-nav]"
+    )
+    .forEach((item) => {
+
+      item.addEventListener(
+        "click",
+        (event) => {
+          event.preventDefault();
+
+          navigate(
+            item.dataset.nav
+          );
+        }
+      );
+
+    });
+
+
+  /* Category buttons */
+
+  document
+    .querySelectorAll(
+      "[data-category]"
+    )
+    .forEach((button) => {
+
+      button.addEventListener(
+        "click",
+        () => {
+          filterCategory(
+            button.dataset.category
+          );
+        }
+      );
+
+    });
+
+
+  /* Settings */
+
+  const settingsButton =
+    Array.from(
+      document.querySelectorAll(
+        "#accountLoggedIn .account-menu-item"
+      )
+    ).find((button) => {
+      return (
+        button
+          .textContent
+          .trim()
+          .toLowerCase()
+          .includes("settings")
+      );
+    });
+
+  settingsButton?.addEventListener(
+    "click",
+    () => {
+      showNotice(
+        "Account settings will be added soon."
+      );
+    }
+  );
+
+
+  /* Global click delegation */
 
   document.addEventListener(
     "click",
-    async event => {
+    (event) => {
 
       const routeElement =
         event.target.closest(
           "[data-route]"
         );
 
-
       if (routeElement) {
-
         event.preventDefault();
 
-        const route =
-          routeElement.dataset.route;
-
-        navigate(route);
+        navigate(
+          routeElement.dataset.route
+        );
 
         return;
       }
@@ -3685,24 +2149,15 @@ function setupGlobalEvents() {
           "[data-action]"
         );
 
-
       if (!actionElement) {
         return;
       }
-
 
       const action =
         actionElement.dataset.action;
 
 
-      // Save
-
-      if (
-        action === "save"
-      ) {
-
-        event.preventDefault();
-
+      if (action === "save") {
         toggleSaved(
           actionElement.dataset.productId
         );
@@ -3711,15 +2166,15 @@ function setupGlobalEvents() {
       }
 
 
-      // Open product
+      if (action === "login") {
+        openAuth("login");
 
-      if (
-        action === "open-product"
-      ) {
+        return;
+      }
 
-        event.preventDefault();
 
-        openProduct(
+      if (action === "chat-seller") {
+        startChat(
           actionElement.dataset.productId
         );
 
@@ -3727,32 +2182,8 @@ function setupGlobalEvents() {
       }
 
 
-      // Chat seller
-
-      if (
-        action === "chat-seller"
-      ) {
-
-        event.preventDefault();
-
-        await startChatWithSeller(
-          actionElement.dataset.productId
-        );
-
-        return;
-      }
-
-
-      // Open conversation
-
-      if (
-        action ===
-        "open-conversation"
-      ) {
-
-        event.preventDefault();
-
-        await openConversation(
+      if (action === "open-conversation") {
+        openConversation(
           actionElement.dataset.conversationId
         );
 
@@ -3760,381 +2191,48 @@ function setupGlobalEvents() {
       }
 
 
-      // Remove image
-
-      if (
-        action ===
-        "remove-image"
-      ) {
-
-        event.preventDefault();
-
+      if (action === "remove-image") {
         removeSelectedImage(
-          actionElement.dataset.imageIndex
+          Number(
+            actionElement.dataset.imageIndex
+          )
         );
 
         return;
       }
 
-
-      // Login
-
-      if (
-        action === "login"
-      ) {
-
-        event.preventDefault();
-
-        openAuth("login");
-
-        return;
-      }
-
     }
   );
 
 
-  // Menu
-
-  const menuButton =
-    $("menuButton");
-
-
-  if (menuButton) {
-
-    menuButton.addEventListener(
-      "click",
-      toggleMenu
-    );
-  }
-
-
-  // Close menu
-
-  const closeMenuButton =
-    $("closeMenu");
-
-
-  if (closeMenuButton) {
-
-    closeMenuButton.addEventListener(
-      "click",
-      closeMenu
-    );
-  }
-
-
-  // Close menu by tapping outside
-
-  const menuOverlay =
-    $("menuOverlay");
-
-
-  if (menuOverlay) {
-
-    menuOverlay.addEventListener(
-      "click",
-      event => {
-
-        if (
-          event.target ===
-          menuOverlay
-        ) {
-          closeMenu();
-        }
-
-      }
-    );
-  }
-
-
-  // Top account
-
-  const topAccount =
-    $("topAccountButton");
-
-
-  if (topAccount) {
-
-    topAccount.addEventListener(
-      "click",
-      () => navigate("account")
-    );
-  }
-
-
-  // Location
-
-  const locationButton =
-    $("locationButton");
-
-
-  if (locationButton) {
-
-    locationButton.addEventListener(
-      "click",
-      handleLocation
-    );
-  }
-
-
-  // Search
-
-  const searchInput =
-    $("searchInput");
-
-
-  if (searchInput) {
-
-    searchInput.addEventListener(
-      "input",
-      searchProducts
-    );
-  }
-
-
-  // Clear search
-
-  const clearButton =
-    $("clearSearch");
-
-
-  if (clearButton) {
-
-    clearButton.addEventListener(
-      "click",
-      clearSearch
-    );
-  }
-
-
-  // Sort
-
-  const sortButton =
-    $("sortButton");
-
-
-  if (sortButton) {
-
-    sortButton.addEventListener(
-      "click",
-      changeSort
-    );
-  }
-
-
-  // Category buttons
-
-  document
-    .querySelectorAll(
-      ".category-card"
-    )
-    .forEach(button => {
-
-      button.addEventListener(
-        "click",
-        () => {
-
-          filterCategory(
-            button.dataset.category
-          );
-
-        }
-      );
-
-    });
-
-
-  // Auth
-
-  const authForm =
-    $("authForm");
-
-
-  if (authForm) {
-
-    authForm.addEventListener(
-      "submit",
-      handleAuthSubmit
-    );
-  }
-
-
-  // Close auth
-
-  const closeAuthButton =
-    $("closeAuth");
-
-
-  if (closeAuthButton) {
-
-    closeAuthButton.addEventListener(
-      "click",
-      closeAuth
-    );
-  }
-
-
-  // Auth switch
-
-  const authSwitch =
-    $("authSwitch");
-
-
-  if (authSwitch) {
-
-    authSwitch.addEventListener(
-      "click",
-      switchAuth
-    );
-  }
-
-
-  // Close auth when tapping outside
-
-  const authOverlay =
-    $("authOverlay");
-
-
-  if (authOverlay) {
-
-    authOverlay.addEventListener(
-      "click",
-      event => {
-
-        if (
-          event.target ===
-          authOverlay
-        ) {
-
-          closeAuth();
-        }
-
-      }
-    );
-  }
-
-
-  // Account login
-
-  const accountLogin =
-    $("accountLoginButton");
-
-
-  if (accountLogin) {
-
-    accountLogin.addEventListener(
-      "click",
-      () => openAuth("login")
-    );
-  }
-
-
-  // Settings
-
-  const settings =
-    $("settingsButton");
-
-
-  if (settings) {
-
-    settings.addEventListener(
-      "click",
-      openSettings
-    );
-  }
-
-
-  // Logout
-
-  const logoutButton =
-    $("logoutButton");
-
-
-  if (logoutButton) {
-
-    logoutButton.addEventListener(
-      "click",
-      logout
-    );
-  }
-
-
-  // Sell form
-
-  const sellForm =
-    $("sellForm");
-
-
-  if (sellForm) {
-
-    sellForm.addEventListener(
-      "submit",
-      submitProduct
-    );
-  }
-
-
-  // Image upload
-
-  const imageInput =
-    $("productImages");
-
-
-  if (imageInput) {
-
-    imageInput.addEventListener(
-      "change",
-      handleImageSelection
-    );
-  }
-
-
-  // Chat form
-
-  const chatForm =
-    $("chatForm");
-
-
-  if (chatForm) {
-
-    chatForm.addEventListener(
-      "submit",
-      sendMessage
-    );
-  }
-}
-
-
-// ============================================================
-// KEYBOARD / ESCAPE
-// ============================================================
-
-function setupEscapeKey() {
+  /* Product cards */
 
   document.addEventListener(
-    "keydown",
-    event => {
+    "click",
+    (event) => {
 
-      if (
-        event.key !==
-        "Escape"
-      ) {
+      const productElement =
+        event.target.closest(
+          ".product-open"
+        );
+
+      if (!productElement) {
         return;
       }
 
+      openProduct(
+        productElement.dataset.productId
+      );
 
-      closeMenu();
-
-      closeAuth();
     }
   );
+
 }
 
 
-// ============================================================
-// AUTH STATE LISTENER
-// ============================================================
+/* =========================
+   AUTH STATE LISTENER
+   ========================= */
 
 function setupAuthListener() {
 
@@ -4142,86 +2240,57 @@ function setupAuthListener() {
     (event, session) => {
 
       currentUser =
-        session?.user ||
-        null;
+        session?.user || null;
 
+      if (currentUser) {
 
-      if (!currentUser) {
-
-        currentProfile =
-          null;
+        setTimeout(() => {
+          loadCurrentProfile();
+        }, 0);
 
       } else {
 
-        // Load profile without blocking
-        // the auth callback.
+        currentProfile = null;
 
-        loadCurrentProfile()
-          .then(() => {
-
-            updateAccountScreen();
-
-          })
-          .catch(error => {
-
-            console.error(
-              "Profile loading error:",
-              error
-            );
-
-          });
       }
 
+      updateAccountUI();
 
-      updateAccountScreen();
     }
   );
+
 }
 
 
-// ============================================================
-// START APPLICATION
-// ============================================================
+/* =========================
+   INITIALIZATION
+   ========================= */
 
-async function startApp() {
+async function initializeApp() {
 
   console.log(
     "Cheal Market starting..."
   );
 
+  console.log(
+    "Supabase URL:",
+    SUPABASE_URL
+  );
 
-  setupGlobalEvents();
+  console.log(
+    "Supabase client:",
+    !!supabaseClient
+  );
 
-  setupEscapeKey();
+  setupEvents();
 
   setupAuthListener();
 
-
   await loadCurrentUser();
-
-
-  updateAccountScreen();
-
-
-  let initialScreen =
-    window.location.hash
-      .replace("#", "")
-      .trim();
-
-
-  if (!initialScreen) {
-    initialScreen =
-      "home";
-  }
-
-
-  showScreen(
-    initialScreen
-  );
-
 
   await loadProducts();
 
+  handleHashChange();
 
   console.log(
     "Cheal Market ready."
@@ -4229,98 +2298,11 @@ async function startApp() {
 }
 
 
-// ============================================================
-// HASH CHANGE
-// ============================================================
-
-window.addEventListener(
-  "hashchange",
-  handleHashChange
-);
-
-
-// ============================================================
-// START WHEN PAGE LOADS
-// ============================================================
+/* =========================
+   START APP
+   ========================= */
 
 document.addEventListener(
   "DOMContentLoaded",
-  startApp
+  initializeApp
 );
-
-
-// ============================================================
-// EXPOSE FUNCTIONS
-// ============================================================
-
-window.navigate =
-  navigate;
-
-window.showScreen =
-  showScreen;
-
-window.openAuth =
-  openAuth;
-
-window.closeAuth =
-  closeAuth;
-
-window.switchAuth =
-  switchAuth;
-
-window.logout =
-  logout;
-
-window.toggleSaved =
-  toggleSaved;
-
-window.openProduct =
-  openProduct;
-
-window.filterCategory =
-  filterCategory;
-
-window.clearSearch =
-  clearSearch;
-
-window.clearFilters =
-  clearFilters;
-
-window.changeSort =
-  changeSort;
-
-window.startChatWithSeller =
-  startChatWithSeller;
-
-window.openConversation =
-  openConversation;
-
-window.openMenu =
-  openMenu;
-
-window.closeMenu =
-  closeMenu;
-
-window.toggleMenu =
-  toggleMenu;
-
-window.loadProducts =
-  loadProducts;
-
-window.loadConversations =
-  loadConversations;
-
-window.loadMyListings =
-  loadMyListings;
-
-window.sendMessage =
-  sendMessage;
-
-window.handleImageSelection =
-  handleImageSelection;
-
-window.removeSelectedImage =
-  removeSelectedImage;
-
-window.updateAccountScreen =
-  updateAccountScreen;
