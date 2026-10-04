@@ -2,96 +2,415 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>CHEAL Market | Student Marketplace</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="theme-color" content="#ffffff">
+  <title>Cheal Market — Buy. Sell. Connect.</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="styles.css">
-  <!-- Supabase JS Client library -->
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <body>
 
-  <!-- Top Navigation Bar -->
-  <header class="navbar">
-    <div class="logo">CHEAL Market</div>
-    <div class="nav-actions">
-      <button id="auth-btn" class="btn-secondary">Sign In</button>
-      <button id="post-btn" class="btn-primary">+ Sell Item</button>
+<div id="app">
+
+  <!-- TOP BAR -->
+  <header class="topbar">
+    <div class="topbar-inner">
+      <button type="button" class="icon-button logo-button" id="menuButton" aria-label="Open menu" aria-controls="menuOverlay" aria-expanded="false">
+        ☰
+      </button>
+
+      <a href="#home" class="brand" id="brandHomeButton" aria-label="Cheal Market Home">
+        <span class="brand-mark">C</span>
+        <span>
+          <strong>Cheal</strong>
+          <small>Market</small>
+        </span>
+      </a>
+
+      <button type="button" class="icon-button" id="topAccountButton" aria-label="Open account">
+        👤
+      </button>
     </div>
   </header>
 
-  <!-- User Status Banner -->
-  <section class="status-banner">
-    <p id="user-status">Browsing as Guest</p>
+  <!-- SEARCH BAR -->
+  <section class="search-section">
+    <div class="search-box">
+      <span aria-hidden="true">⌕</span>
+      <input id="searchInput" type="search" placeholder="Search phones, clothes, books..." autocomplete="off" enterkeyhint="search">
+      <button type="button" id="clearSearch" class="search-clear hidden" aria-label="Clear search">×</button>
+    </div>
+
+    <button type="button" class="location-button" id="locationButton">
+      📍 Kampala
+    </button>
   </section>
 
-  <!-- Navigation Tabs -->
-  <nav class="nav-tabs">
-    <button class="tab-btn active" data-tab="feed">Feed</button>
-    <button class="tab-btn" data-tab="saved">Saved Items</button>
-    <button class="tab-btn" data-tab="chat">Messages</button>
-    <button class="tab-btn" data-tab="profile">Profile</button>
-  </nav>
+  <!-- MAIN CONTENT -->
+  <main id="mainContent">
 
-  <!-- Main Content Feed -->
-  <main class="container">
-    <section id="feed-section" class="tab-content active">
-      <h2>Recent Listings</h2>
-      <div id="products-grid" class="grid">
-        <p>Loading items...</p>
+    <!-- HOME SCREEN -->
+    <section class="screen" id="homeScreen" data-screen="home">
+      <div class="hero">
+        <div>
+          <p class="eyebrow">BUILT FOR CAMPUS LIFE</p>
+          <h1>Buy. Sell.<br><span>Connect.</span></h1>
+          <p class="hero-text">Find affordable products from students around your campus.</p>
+          <div class="hero-actions">
+            <button type="button" class="primary-button" data-route="home">Start Shopping</button>
+            <button type="button" class="secondary-button" data-route="sell">Sell an Item</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- CATEGORIES -->
+      <section class="section">
+        <div class="section-heading">
+          <div>
+            <p class="section-label">EXPLORE</p>
+            <h2>Categories</h2>
+          </div>
+        </div>
+
+        <div class="category-grid">
+          <button type="button" class="category-card" data-category="Phones">
+            <span>📱</span><strong>Phones</strong><small>Phones & accessories</small>
+          </button>
+          <button type="button" class="category-card" data-category="Computers">
+            <span>💻</span><strong>Computers</strong><small>Laptops & computers</small>
+          </button>
+          <button type="button" class="category-card" data-category="Fashion">
+            <span>👕</span><strong>Fashion</strong><small>Clothes & shoes</small>
+          </button>
+          <button type="button" class="category-card" data-category="Books">
+            <span>📚</span><strong>Books</strong><small>Academic materials</small>
+          </button>
+          <button type="button" class="category-card" data-category="Electronics">
+            <span>🎧</span><strong>Electronics</strong><small>Gadgets & devices</small>
+          </button>
+          <button type="button" class="category-card" data-category="Home">
+            <span>🏠</span><strong>Home</strong><small>Furniture & more</small>
+          </button>
+          <button type="button" class="category-card" data-category="Gaming">
+            <span>🎮</span><strong>Gaming</strong><small>Games & accessories</small>
+          </button>
+          <button type="button" class="category-card" data-category="Other">
+            <span>📦</span><strong>Other</strong><small>More products</small>
+          </button>
+        </div>
+      </section>
+
+      <!-- PRODUCTS -->
+      <section class="section products-section">
+        <div class="section-heading">
+          <div>
+            <p class="section-label">MARKETPLACE</p>
+            <h2 id="productSectionTitle">Latest listings</h2>
+          </div>
+          <button type="button" class="text-button" id="sortButton">Latest ▾</button>
+        </div>
+
+        <div id="productGrid" class="product-grid">
+          <div class="loading-card">
+            <div class="spinner"></div>
+            <p>Loading products...</p>
+          </div>
+        </div>
+      </section>
+    </section>
+
+    <!-- SAVED SCREEN -->
+    <section class="screen hidden" id="savedScreen" data-screen="saved">
+      <div class="page-header">
+        <p class="section-label">YOUR MARKET</p>
+        <h1>Saved items</h1>
+        <p>Products you've saved for later.</p>
+      </div>
+
+      <div id="savedGrid" class="product-grid">
+        <div class="empty-state">
+          <div class="empty-icon">♡</div>
+          <h2>No saved items</h2>
+          <p>Tap the heart on a product to save it here.</p>
+          <button type="button" class="primary-button" data-route="home">Browse products</button>
+        </div>
       </div>
     </section>
 
-    <section id="saved-section" class="tab-content" style="display: none;">
-      <h2>Your Saved Items</h2>
-      <div id="saved-grid" class="grid">
-        <p>No saved items yet.</p>
+    <!-- SELL SCREEN -->
+    <section class="screen hidden" id="sellScreen" data-screen="sell">
+      <div class="page-header">
+        <p class="section-label">SELL ON CHEAL</p>
+        <h1>Sell an item</h1>
+        <p>Reach students looking for affordable products.</p>
+      </div>
+
+      <form id="sellForm" class="form-card">
+        <div class="form-group">
+          <label>Product photos</label>
+          <div id="imagePreview" class="image-preview-grid"></div>
+          <label class="upload-box" for="productImages">
+            <span>📸</span>
+            <strong>Add photos</strong>
+            <small>Up to 5 photos · JPG, PNG or WebP</small>
+          </label>
+          <input id="productImages" type="file" accept="image/*" multiple hidden>
+          <p class="field-note">Clear photos help buyers understand what you're selling.</p>
+        </div>
+
+        <div class="form-group">
+          <label for="productName">Product name</label>
+          <input id="productName" type="text" placeholder="e.g. iPhone 13 Pro" autocomplete="off" required>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label for="productPrice">Price (UGX)</label>
+            <input id="productPrice" type="number" min="0" step="1" inputmode="numeric" placeholder="850000" required>
+          </div>
+          <div class="form-group">
+            <label for="productCategory">Category</label>
+            <select id="productCategory" required>
+              <option value="">Choose</option>
+              <option value="Phones">Phones</option>
+              <option value="Computers">Computers</option>
+              <option value="Fashion">Fashion</option>
+              <option value="Books">Books</option>
+              <option value="Electronics">Electronics</option>
+              <option value="Home">Home</option>
+              <option value="Gaming">Gaming</option>
+              <option value="Other">Other</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="productCampus">Campus</label>
+          <input id="productCampus" type="text" placeholder="e.g. KIU" autocomplete="organization" required>
+        </div>
+
+        <div class="form-group">
+          <label for="productDescription">Description</label>
+          <textarea id="productDescription" rows="5" placeholder="Describe the condition, features and anything buyers should know..."></textarea>
+        </div>
+
+        <button type="submit" class="primary-button full-button">Publish listing</button>
+        <p id="sellMessage" class="form-message"></p>
+      </form>
+    </section>
+
+    <!-- MESSAGES SCREEN -->
+    <section class="screen hidden" id="messagesScreen" data-screen="messages">
+      <div class="page-header">
+        <p class="section-label">PRIVATE CHAT</p>
+        <h1>Messages</h1>
+        <p>Chat privately with buyers and sellers.</p>
+      </div>
+
+      <div id="conversationList" class="conversation-list">
+        <div class="empty-state">
+          <div class="empty-icon">💬</div>
+          <h2>No conversations yet</h2>
+          <p>When you message a seller, your conversation will appear here.</p>
+          <button type="button" class="primary-button" data-route="home">Find products</button>
+        </div>
       </div>
     </section>
 
-    <section id="chat-section" class="tab-content" style="display: none;">
-      <h2>Messages & Real-time Chat</h2>
-      <p>Select a seller or listing to start chatting.</p>
-    </section>
-
-    <section id="profile-section" class="tab-content" style="display: none;">
-      <h2>User Profile</h2>
-      <div id="profile-details">
-        <p>Please sign in to view and update your profile details.</p>
+    <!-- CHAT SCREEN -->
+    <section class="screen hidden" id="chatScreen" data-screen="chat">
+      <div class="chat-page">
+        <div class="chat-header">
+          <button type="button" class="back-button" id="chatBackButton" data-route="messages">←</button>
+          <div>
+            <strong id="chatName">Conversation</strong>
+            <small id="chatProduct"></small>
+          </div>
+        </div>
+        <div id="chatMessages" class="chat-messages"></div>
+        <form id="chatForm" class="chat-input-area">
+          <input id="chatInput" type="text" placeholder="Write a message..." autocomplete="off" enterkeyhint="send" required>
+          <button type="submit" aria-label="Send message">➤</button>
+        </form>
       </div>
     </section>
+
+    <!-- ACCOUNT SCREEN -->
+    <section class="screen hidden" id="accountScreen" data-screen="account">
+      <div class="account-header">
+        <div class="profile-avatar" id="profileAvatar">👤</div>
+        <div>
+          <p class="section-label">MY ACCOUNT</p>
+          <h1 id="profileName">Welcome</h1>
+          <p id="profileEmail">Sign in to manage your account.</p>
+        </div>
+      </div>
+
+      <!-- LOGGED OUT VIEW -->
+      <div id="accountLoggedOut" class="account-login-card">
+        <div class="empty-icon">👤</div>
+        <h2>Sign in to Cheal Market</h2>
+        <p>Manage your listings, saved items and messages.</p>
+        <button type="button" class="primary-button" id="accountLoginButton">Sign in</button>
+      </div>
+
+      <!-- LOGGED IN VIEW -->
+      <div id="accountLoggedIn" class="account-menu hidden">
+        <button type="button" class="account-menu-item" data-route="my-listings">
+          <span>📦</span>
+          <div>
+            <strong>My listings</strong>
+            <small>Manage products you've posted</small>
+          </div>
+          <b>›</b>
+        </button>
+
+        <button type="button" class="account-menu-item" data-route="saved">
+          <span>❤️</span>
+          <div>
+            <strong>Saved items</strong>
+            <small>Products you've saved</small>
+          </div>
+          <b>›</b>
+        </button>
+
+        <button type="button" class="account-menu-item" id="settingsButton" data-action="settings">
+          <span>⚙️</span>
+          <div>
+            <strong>Settings</strong>
+            <small>Account preferences</small>
+          </div>
+          <b>›</b>
+        </button>
+
+        <button type="button" class="account-menu-item danger" id="logoutButton">
+          <span>↪</span>
+          <div>
+            <strong>Sign out</strong>
+            <small>Sign out of your account</small>
+          </div>
+          <b>›</b>
+        </button>
+      </div>
+    </section>
+
+    <!-- MY LISTINGS SCREEN -->
+    <section class="screen hidden" id="myListingsScreen" data-screen="my-listings">
+      <div class="page-header">
+        <button type="button" class="back-button" id="myListingsBackButton" data-route="account">← Account</button>
+        <p class="section-label">SELLER CENTER</p>
+        <h1>My listings</h1>
+        <p>Manage the products you've posted.</p>
+      </div>
+
+      <div id="myListingsGrid" class="product-grid">
+        <div class="empty-state">
+          <div class="empty-icon">📦</div>
+          <h2>No listings yet</h2>
+          <p>Products you sell will appear here.</p>
+          <button type="button" class="primary-button" data-route="sell">Sell an item</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- PRODUCT DETAILS SCREEN -->
+    <section class="screen hidden" id="productScreen" data-screen="product">
+      <div id="productDetails"></div>
+    </section>
+
+    <!-- AUTHENTICATION MODAL -->
+    <div id="authOverlay" class="modal-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="authTitle">
+      <div class="auth-modal">
+        <button type="button" id="closeAuth" class="modal-close" aria-label="Close">×</button>
+        <div class="auth-logo">C</div>
+        <h2 id="authTitle">Welcome to Cheal Market</h2>
+        <p id="authSubtitle">Sign in to buy, sell and chat.</p>
+
+        <form id="authForm">
+          <div id="signupFields" class="hidden">
+            <div class="form-group">
+              <label for="authName">Full name</label>
+              <input id="authName" type="text" placeholder="Your name" autocomplete="name">
+            </div>
+            <div class="form-group">
+              <label for="authCampus">Campus</label>
+              <input id="authCampus" type="text" placeholder="e.g. KIU" autocomplete="organization">
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="authEmail">Email</label>
+            <input id="authEmail" type="email" placeholder="you@example.com" autocomplete="email" required>
+          </div>
+
+          <div class="form-group">
+            <label for="authPassword">Password</label>
+            <input id="authPassword" type="password" placeholder="••••••••" minlength="6" autocomplete="current-password" required>
+          </div>
+
+          <button type="submit" class="primary-button full-button">
+            <span id="authSubmitText">Sign in</span>
+          </button>
+          <p id="authMessage" class="form-message"></p>
+        </form>
+
+        <button type="button" id="authSwitch" class="auth-switch">
+          Don't have an account? <strong>Sign up</strong>
+        </button>
+      </div>
+    </div>
+
+    <!-- MENU DRAWER -->
+    <div id="menuOverlay" class="menu-overlay hidden" role="dialog" aria-modal="true" aria-label="Main menu">
+      <aside class="side-menu">
+        <button type="button" id="closeMenu" class="modal-close" aria-label="Close menu">×</button>
+        <div class="side-brand">
+          <span class="brand-mark">C</span>
+          <strong>Cheal Market</strong>
+        </div>
+        <button type="button" data-route="home">🏠 Home</button>
+        <button type="button" data-route="saved">❤️ Saved</button>
+        <button type="button" data-route="sell">➕ Sell</button>
+        <button type="button" data-route="messages">💬 Messages</button>
+        <button type="button" data-route="account">👤 Account</button>
+      </aside>
+    </div>
+
   </main>
 
-  <!-- Auth Modal -->
-  <div id="auth-modal" class="modal" style="display: none;">
-    <div class="modal-content">
-      <span class="close-btn" id="close-auth">&times;</span>
-      <h3>Sign In / Sign Up</h3>
-      <form id="auth-form">
-        <input type="email" id="auth-email" placeholder="Your Email" required />
-        <input type="password" id="auth-password" placeholder="Your Password" required />
-        <div class="auth-actions">
-          <button type="submit" id="login-submit-btn" class="btn-primary">Sign In</button>
-          <button type="button" id="signup-submit-btn" class="btn-secondary">Create Account</button>
-        </div>
-      </form>
-      <p id="auth-error" class="error-msg"></p>
-    </div>
-  </div>
+  <!-- BOTTOM NAVIGATION -->
+  <nav class="bottom-nav" aria-label="Main navigation">
+    <a href="#home" class="nav-item active" data-nav="home" id="navHome">
+      <span>⌂</span>
+      <small>Home</small>
+    </a>
+    <a href="#saved" class="nav-item" data-nav="saved" id="navSaved">
+      <span>♡</span>
+      <small>Saved</small>
+    </a>
+    <a href="#sell" class="nav-item sell-nav" data-nav="sell" id="navSell">
+      <span>＋</span>
+      <small>Sell</small>
+    </a>
+    <a href="#messages" class="nav-item" data-nav="messages" id="navMessages">
+      <span>💬</span>
+      <small>Messages</small>
+    </a>
+    <a href="#account" class="nav-item" data-nav="account" id="navAccount">
+      <span>♙</span>
+      <small>Account</small>
+    </a>
+  </nav>
 
-  <!-- Post Item Modal -->
-  <div id="post-modal" class="modal" style="display: none;">
-    <div class="modal-content">
-      <span class="close-btn" id="close-post">&times;</span>
-      <h3>Post an Item for Sale</h3>
-      <form id="post-product-form">
-        <input type="text" id="product-title" placeholder="Item Title" required />
-        <input type="number" id="product-price" placeholder="Price (UGX)" required />
-        <input type="text" id="product-location" placeholder="Location (e.g. Kampala / Campus)" required />
-        <button type="submit" class="btn-primary">Post Item</button>
-      </form>
-    </div>
-  </div>
+</div>
 
-  <script src="app.js"></script>
+<!-- SUPABASE CLIENT -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<!-- CHEAL MARKET LOGIC -->
+<script src="app.js"></script>
+
 </body>
 </html>
