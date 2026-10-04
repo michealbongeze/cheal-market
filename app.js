@@ -1,18 +1,5 @@
-/* =========================================================
-   CHEAL MARKET
-   Main Application JavaScript
-   ========================================================= */
-
-/* =========================
-   SUPABASE CONFIGURATION
-   ========================= */
-
-const SUPABASE_URL =
-  "https://qwlklqjfbrhythpynghr.supabase.co";
-
-const SUPABASE_PUBLISHABLE_KEY =
-  "sb_publishable_HVAjJNZAQIiyf1aFosvH0A_fnYoFpHx";
-
+const SUPABASE_URL = "https://qwlklqjfbrhythpynghr.supabase.co";
+const SUPABASE_PUBLISHABLE_KEY = "sb_publishable_HVAjJNZAQIiyf1aFosvH0A_fnYoFpHx";
 const BUCKET_NAME = "product-images";
 
 const supabaseClient = window.supabase.createClient(
@@ -20,326 +7,182 @@ const supabaseClient = window.supabase.createClient(
   SUPABASE_PUBLISHABLE_KEY
 );
 
-
-/* =========================
-   APP STATE
-   ========================= */
+/* =========================================================
+   CHEAL MARKET - Application State
+   ========================================================= */
 
 let currentUser = null;
 let currentProfile = null;
-let currentProduct = null;
 let currentConversation = null;
 let realtimeChannel = null;
 
-let products = [];
-let savedProducts = JSON.parse(
-  localStorage.getItem("cheal_saved_products") || "[]"
-);
+const $ = (id) => document.getElementById(id);
+const $$ = (selector) => Array.from(document.querySelectorAll(selector));
 
-let selectedImages = [];
-
-let searchTerm = "";
-let activeCategory = "all";
-
-let sortMode = "latest";
-
-
-/* =========================
-   ROUTES
-   ========================= */
-
-const ROUTES = {
-  home: "homeScreen",
-  saved: "savedScreen",
-  sell: "sellScreen",
-  messages: "messagesScreen",
-  chat: "chatScreen",
-  account: "accountScreen",
-  "my-listings": "myListingsScreen",
-  product: "productScreen"
-};
-
-
-/* =========================
+/* =========================================================
    HELPERS
-   ========================= */
-
-function $(id) {
-  return document.getElementById(id);
-}
-
+   ========================================================= */
 
 function escapeHTML(value) {
-  if (value === null || value === undefined) return "";
-
-  return String(value)
-    .replaceAll("&", "&amp;")
-    .replaceAll("<", "&lt;")
-    .replaceAll(">", "&gt;")
-    .replaceAll('"', "&quot;")
-    .replaceAll("'", "&#039;");
+  return String(value ?? "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
 }
-
 
 function formatPrice(value) {
   const number = Number(value || 0);
-
-  return "UGX " + number.toLocaleString("en-UG");
+  return `UGX ${number.toLocaleString("en-UG")}`;
 }
 
-
-function makeId() {
-  if (window.crypto && crypto.randomUUID) {
-    return crypto.randomUUID();
-  }
-
+function getUserName() {
+  if (!currentUser) return "Guest";
   return (
-    Date.now().toString(36) +
-    Math.random().toString(36).substring(2)
+    currentProfile?.full_name ||
+    currentProfile?.name ||
+    currentUser.user_metadata?.full_name ||
+    currentUser.user_metadata?.name ||
+    currentUser.email?.split("@")[0] ||
+    "User"
   );
 }
 
+function showNotice(message, type = "info") {
+  const existing = $("globalNotice");
+  if (existing) existing.remove();
 
-function getProductImage(product) {
-  if (!product) return "";
+  const notice = document.createElement("div");
+  notice.id = "globalNotice";
+  notice.className = `global-notice ${type}`;
+  notice.textContent = message;
 
-  if (Array.isArray(product.image_urls) && product.image_urls.length) {
-    return product.image_urls[0];
-  }
+  document.body.appendChild(notice);
 
-  if (product.image_url) {
-    return product.image_url;
-  }
-
-  return "";
+  setTimeout(() => {
+    notice.remove();
+  }, 4000);
 }
 
-
-function showNotice(message) {
-  alert(message);
+function closeAllOverlays() {
+  $("authOverlay")?.classList.add("hidden");
+  $("menuOverlay")?.classList.add("hidden");
 }
 
-
-/* =========================
+/* =========================================================
    NAVIGATION
-   ========================= */
+   ========================================================= */
 
-function navigate(route) {
-  if (!ROUTES[route]) {
+const validRoutes = [
+  "home",
+  "saved",
+  "sell",
+  "messages",
+  "chat",
+  "account",
+  "my-listings",
+  "product"
+];
+
+function navigate(route, data = null) {
+  if (!validRoutes.includes(route)) {
     route = "home";
-  }
-
-  if (window.location.hash !== "#" + route) {
-    window.location.hash = route;
-  } else {
-    showScreen(route);
-  }
-}
-
-
-function showScreen(route) {
-  if (!ROUTES[route]) {
-    route = "home";
-  }
-
-  document.querySelectorAll(".screen").forEach((screen) => {
-    screen.classList.add("hidden");
-  });
-
-  const target = $(ROUTES[route]);
-
-  if (target) {
-    target.classList.remove("hidden");
   }
 
   document
-    .querySelectorAll(".bottom-nav [data-nav]")
-    .forEach((item) => {
-      item.classList.remove("active");
+    .querySelectorAll(".screen")
+    .forEach((screen) => screen.classList.add("hidden"));
 
-      if (item.dataset.nav === route) {
-        item.classList.add("active");
-      }
-    });
-
-  const sellButton = document.querySelector(".sell-nav");
-
-  if (sellButton) {
-    sellButton.classList.toggle("active", route === "sell");
+  const screen = $(`${route.replace("-", "")}Screen`);
+  if (screen) {
+    screen.classList.remove("hidden");
+  } else if (route === "home") {
+    $("homeScreen")?.classList.remove("hidden");
   }
 
-  closeMenu();
-
-  window.scrollTo({
-    top: 0,
-    behavior: "smooth"
+  document.querySelectorAll("[data-nav]").forEach((item) => {
+    item.classList.toggle("active", item.dataset.nav === route);
   });
 
-  if (route === "saved") {
-    renderSavedProducts();
-  }
+  if (route === "saved") loadSavedProducts();
+  if (route === "messages") loadConversations();
+  if (route === "account") updateAccountUI();
+  if (route === "my-listings") loadMyListings();
+  if (route === "product" && data) showProductDetails(data);
+  if (route === "chat" && data) openChat(data);
 
-  if (route === "messages") {
-    loadConversations();
-  }
-
-  if (route === "account") {
-    updateAccountUI();
-  }
-
-  if (route === "my-listings") {
-    loadMyListings();
-  }
+  window.scrollTo({ top: 0, behavior: "smooth" });
+  closeAllOverlays();
 }
 
-
-function handleHashChange() {
+function handleHashNavigation() {
   let route = window.location.hash.replace("#", "");
-
-  if (!route) {
-    route = "home";
-  }
-
-  if (!ROUTES[route]) {
-    route = "home";
-  }
-
-  showScreen(route);
+  if (!route) route = "home";
+  navigate(route);
 }
 
+window.addEventListener("hashchange", handleHashNavigation);
 
-/* =========================
-   MENU
-   ========================= */
+/* =========================================================
+   MENU OVERLAY
+   ========================================================= */
 
 function openMenu() {
-  const menu = $("menuOverlay");
-
-  if (!menu) return;
-
-  menu.classList.remove("hidden");
-  menu.classList.add("active");
+  $("menuOverlay")?.classList.remove("hidden");
 }
-
 
 function closeMenu() {
-  const menu = $("menuOverlay");
-
-  if (!menu) return;
-
-  menu.classList.remove("active");
-  menu.classList.add("hidden");
+  $("menuOverlay")?.classList.add("hidden");
 }
 
+/* =========================================================
+   AUTH MODAL & CONTROLS
+   ========================================================= */
 
-/* =========================
-   AUTH MODAL
-   ========================= */
+let authMode = "signin";
 
-let authMode = "login";
-
-
-function openAuth(mode = "login") {
+function openAuth(mode = "signin") {
   authMode = mode;
-
   const overlay = $("authOverlay");
-
   if (!overlay) return;
 
-  const signupFields = $("signupFields");
+  overlay.classList.remove("hidden");
+  updateAuthModal();
+}
+
+function closeAuth() {
+  $("authOverlay")?.classList.add("hidden");
+}
+
+function updateAuthModal() {
   const title = $("authTitle");
   const subtitle = $("authSubtitle");
   const submitText = $("authSubmitText");
   const switchButton = $("authSwitch");
-  const message = $("authMessage");
+  const signupFields = $("signupFields");
 
-  if (message) {
-    message.textContent = "";
-  }
-
-  if (mode === "signup") {
-    if (signupFields) {
-      signupFields.classList.remove("hidden");
-    }
-
-    if (title) {
-      title.textContent = "Create your account";
-    }
-
-    if (subtitle) {
-      subtitle.textContent =
-        "Join Cheal Market and start buying or selling.";
-    }
-
-    if (submitText) {
-      submitText.textContent = "Create Account";
-    }
-
-    if (switchButton) {
-      switchButton.textContent =
-        "Already have an account? Login";
-    }
+  if (authMode === "signup") {
+    if (title) title.textContent = "Create your account";
+    if (subtitle) subtitle.textContent = "Join Cheal Market and start buying or selling.";
+    if (submitText) submitText.textContent = "Create account";
+    if (switchButton) switchButton.textContent = "Already have an account? Sign in";
+    signupFields?.classList.remove("hidden");
   } else {
-    if (signupFields) {
-      signupFields.classList.add("hidden");
-    }
-
-    if (title) {
-      title.textContent = "Welcome back";
-    }
-
-    if (subtitle) {
-      subtitle.textContent =
-        "Login to continue to Cheal Market.";
-    }
-
-    if (submitText) {
-      submitText.textContent = "Login";
-    }
-
-    if (switchButton) {
-      switchButton.textContent =
-        "Don't have an account? Sign up";
-    }
+    if (title) title.textContent = "Welcome back";
+    if (subtitle) subtitle.textContent = "Sign in to continue to Cheal Market.";
+    if (submitText) submitText.textContent = "Sign in";
+    if (switchButton) switchButton.textContent = "Don't have an account? Create one";
+    signupFields?.classList.add("hidden");
   }
 
-  overlay.classList.remove("hidden");
-  overlay.classList.add("active");
-
-  const email = $("authEmail");
-
-  if (email) {
-    setTimeout(() => email.focus(), 100);
-  }
+  const message = $("authMessage");
+  if (message) message.textContent = "";
 }
 
-
-function closeAuth() {
-  const overlay = $("authOverlay");
-
-  if (!overlay) return;
-
-  overlay.classList.remove("active");
-  overlay.classList.add("hidden");
-}
-
-
-function setAuthMessage(message, isError = true) {
-  const element = $("authMessage");
-
-  if (!element) return;
-
-  element.textContent = message;
-
-  element.style.color = isError
-    ? "#d93025"
-    : "#16803c";
-}
-
-
-/* =========================
-   LOGIN / SIGNUP
-   ========================= */
+/* =========================================================
+   AUTHENTICATION LOGIC
+   ========================================================= */
 
 async function handleAuthSubmit(event) {
   event.preventDefault();
@@ -349,139 +192,112 @@ async function handleAuthSubmit(event) {
   const name = $("authName")?.value.trim();
   const campus = $("authCampus")?.value.trim();
 
+  const message = $("authMessage");
+  const submit = $("authSubmitText");
+
   if (!email || !password) {
-    setAuthMessage("Please enter your email and password.");
+    if (message) message.textContent = "Please enter your email and password.";
     return;
   }
 
-  const submitButton = $("authForm")?.querySelector(
-    'button[type="submit"]'
-  );
-
-  if (submitButton) {
-    submitButton.disabled = true;
+  if (authMode === "signup" && !name) {
+    if (message) message.textContent = "Please enter your name.";
+    return;
   }
 
-  setAuthMessage("Please wait...", false);
-
   try {
-    if (authMode === "login") {
-      const { data, error } =
-        await supabaseClient.auth.signInWithPassword({
-          email,
-          password
-        });
+    if (submit) {
+      submit.textContent = authMode === "signup" ? "Creating account..." : "Signing in...";
+    }
 
-      if (error) {
-        throw error;
+    if (authMode === "signup") {
+      const { data, error } = await supabaseClient.auth.signUp({
+        email,
+        password,
+        options: {
+          data: { full_name: name, name, campus }
+        }
+      });
+
+      if (error) throw error;
+
+      currentUser = data.user || null;
+      if (currentUser) {
+        await createProfile(currentUser, name, campus);
       }
 
-      currentUser = data.user;
+      if (message) message.textContent = "Account created successfully.";
 
+      setTimeout(() => {
+        closeAuth();
+        updateAccountUI();
+      }, 800);
+    } else {
+      const { data, error } = await supabaseClient.auth.signInWithPassword({
+        email,
+        password
+      });
+
+      if (error) throw error;
+
+      currentUser = data.user || null;
       await loadCurrentProfile();
 
-      setAuthMessage("Login successful.", false);
+      if (message) message.textContent = "Signed in successfully.";
 
       setTimeout(() => {
         closeAuth();
         updateAccountUI();
         navigate("home");
       }, 500);
-
-    } else {
-      if (!name) {
-        setAuthMessage("Please enter your name.");
-        return;
-      }
-
-      const { data, error } =
-        await supabaseClient.auth.signUp({
-          email,
-          password,
-          options: {
-            data: {
-              full_name: name,
-              campus: campus
-            }
-          }
-        });
-
-      if (error) {
-        throw error;
-      }
-
-      currentUser = data.user;
-
-      if (data.session) {
-        await loadCurrentProfile();
-
-        setAuthMessage(
-          "Account created successfully.",
-          false
-        );
-
-        setTimeout(() => {
-          closeAuth();
-          updateAccountUI();
-          navigate("home");
-        }, 700);
-      } else {
-        setAuthMessage(
-          "Account created. Check your email to confirm your account.",
-          false
-        );
-      }
     }
-
   } catch (error) {
-    console.error("Authentication error:", error);
-
-    setAuthMessage(
-      error?.message || "Authentication failed."
-    );
-
+    console.error(error);
+    if (message) {
+      message.textContent = error?.message || "Something went wrong. Please try again.";
+    }
   } finally {
-    if (submitButton) {
-      submitButton.disabled = false;
+    if (submit) {
+      submit.textContent = authMode === "signup" ? "Create account" : "Sign in";
     }
   }
 }
 
+async function createProfile(user, name, campus) {
+  try {
+    const { error } = await supabaseClient.from("profiles").upsert({
+      id: user.id,
+      full_name: name,
+      name,
+      campus,
+      email: user.email
+    });
 
-/* =========================
-   CURRENT USER
-   ========================= */
+    if (error) console.warn("Profile creation warning:", error.message);
+  } catch (error) {
+    console.warn("Could not create profile:", error);
+  }
+}
 
 async function loadCurrentUser() {
   try {
-    const { data, error } =
-      await supabaseClient.auth.getSession();
-
-    if (error) {
-      console.error(error);
-      return;
-    }
-
-    currentUser = data?.session?.user || null;
+    const { data: { session } } = await supabaseClient.auth.getSession();
+    currentUser = session?.user || null;
 
     if (currentUser) {
       await loadCurrentProfile();
+    } else {
+      currentProfile = null;
     }
 
     updateAccountUI();
-
   } catch (error) {
-    console.error(
-      "Could not load current user:",
-      error
-    );
+    console.error("Could not load current user:", error);
+    currentUser = null;
+    currentProfile = null;
+    updateAccountUI();
   }
 }
-
-
-/* =========================
-   PROFILE
-   ========================= */
 
 async function loadCurrentProfile() {
   if (!currentUser) {
@@ -490,52 +306,28 @@ async function loadCurrentProfile() {
   }
 
   try {
-    const { data, error } =
-      await supabaseClient
-        .from("profiles")
-        .select("*")
-        .eq("id", currentUser.id)
-        .maybeSingle();
+    const { data, error } = await supabaseClient
+      .from("profiles")
+      .select("*")
+      .eq("id", currentUser.id)
+      .maybeSingle();
 
     if (error) {
-      console.warn(
-        "Profile loading error:",
-        error.message
-      );
-
+      console.warn("Could not load profile:", error.message);
       currentProfile = null;
       return;
     }
 
-    currentProfile = data;
-
+    currentProfile = data || null;
   } catch (error) {
-    console.warn(error);
+    console.warn("Profile error:", error);
     currentProfile = null;
   }
 }
 
-
-function getUserName() {
-  return (
-    currentProfile?.full_name ||
-    currentProfile?.name ||
-    currentUser?.user_metadata?.full_name ||
-    currentUser?.user_metadata?.name ||
-    currentUser?.email?.split("@")[0] ||
-    "Cheal Market User"
-  );
-}
-
-
-function getUserCampus() {
-  return (
-    currentProfile?.campus ||
-    currentUser?.user_metadata?.campus ||
-    ""
-  );
-}
-
+/* =========================================================
+   ACCOUNT UI UPDATE & LOGOUT FIX
+   ========================================================= */
 
 function updateAccountUI() {
   const loggedOut = $("accountLoggedOut");
@@ -545,891 +337,516 @@ function updateAccountUI() {
   const emailElement = $("profileEmail");
   const avatar = $("profileAvatar");
 
+  // State: LOGGED OUT
   if (!currentUser) {
-    if (loggedOut) {
-      loggedOut.classList.remove("hidden");
-    }
+    loggedOut?.classList.remove("hidden");
+    loggedIn?.classList.add("hidden");
 
-    if (loggedIn) {
-      loggedIn.classList.add("hidden");
-    }
+    if (nameElement) nameElement.textContent = "";
+    if (emailElement) emailElement.textContent = "";
+    if (avatar) avatar.textContent = "👤";
 
     return;
   }
 
-  if (loggedOut) {
-    loggedOut.classList.add("hidden");
-  }
-
-  if (loggedIn) {
-    loggedIn.classList.remove("hidden");
-  }
+  // State: LOGGED IN
+  loggedOut?.classList.add("hidden");
+  loggedIn?.classList.remove("hidden");
 
   const name = getUserName();
 
-  if (nameElement) {
-    nameElement.textContent = name;
-  }
-
-  if (emailElement) {
-    emailElement.textContent =
-      currentUser.email || "";
-  }
-
-  if (avatar) {
-    avatar.textContent =
-      name.charAt(0).toUpperCase();
-  }
+  if (nameElement) nameElement.textContent = name;
+  if (emailElement) emailElement.textContent = currentUser.email || "";
+  if (avatar) avatar.textContent = name.charAt(0).toUpperCase();
 }
-
-
-/* =========================
-   LOGOUT
-   ========================= */
 
 async function logout() {
   try {
-    await supabaseClient.auth.signOut();
-
+    // 1. Immediately wipe local state
     currentUser = null;
     currentProfile = null;
     currentConversation = null;
 
     if (realtimeChannel) {
-      await supabaseClient.removeChannel(
-        realtimeChannel
-      );
-
+      try {
+        await supabaseClient.removeChannel(realtimeChannel);
+      } catch (err) {
+        console.warn("Realtime cleanup warning:", err);
+      }
       realtimeChannel = null;
     }
 
+    // 2. Immediately purge state from DOM
     updateAccountUI();
-    navigate("home");
 
+    // 3. Clear session on Supabase
+    const { error } = await supabaseClient.auth.signOut();
+    if (error) console.error("Supabase logout error:", error);
+
+    // 4. Final state check, re-render and navigate home
+    currentUser = null;
+    currentProfile = null;
+    updateAccountUI();
+
+    navigate("home");
+    showNotice("You have been signed out.", "success");
   } catch (error) {
     console.error(error);
+    currentUser = null;
+    currentProfile = null;
+    currentConversation = null;
 
-    showNotice(
-      error?.message || "Could not logout."
-    );
+    updateAccountUI();
+    navigate("home");
+    showNotice("You have been signed out.", "success");
   }
 }
 
+function setupAuthListener() {
+  supabaseClient.auth.onAuthStateChange(async (event, session) => {
+    currentUser = session?.user || null;
 
-/* =========================
+    if (!currentUser) {
+      currentProfile = null;
+      currentConversation = null;
+
+      if (realtimeChannel) {
+        try {
+          await supabaseClient.removeChannel(realtimeChannel);
+        } catch (error) {
+          console.warn(error);
+        }
+        realtimeChannel = null;
+      }
+
+      updateAccountUI();
+      return;
+    }
+
+    await loadCurrentProfile();
+    updateAccountUI();
+  });
+}
+
+/* =========================================================
    PRODUCTS
-   ========================= */
+   ========================================================= */
+
+let allProducts = [];
 
 async function loadProducts() {
   try {
-    const { data, error } =
-      await supabaseClient
-        .from("products")
-        .select("*")
-        .order("created_at", {
-          ascending: false
-        });
+    const { data, error } = await supabaseClient
+      .from("products")
+      .select("*")
+      .order("created_at", { ascending: false });
 
-    if (error) {
-      throw error;
-    }
+    if (error) throw error;
 
-    products = data || [];
-
-    renderProducts();
-
+    allProducts = data || [];
+    renderProducts(allProducts);
   } catch (error) {
-    console.error(
-      "Could not load products:",
-      error
-    );
-
-    products = [];
-
-    renderProducts();
-
-    const grid = $("productGrid");
-
-    if (grid) {
-      grid.innerHTML = `
-        <div class="empty-state">
-          <h3>Unable to load products</h3>
-          <p>${escapeHTML(
-            error?.message ||
-            "Please try again later."
-          )}</p>
-        </div>
-      `;
-    }
+    console.error("Could not load products:", error);
+    allProducts = [];
+    renderProducts([]);
+    showNotice("Could not load products.", "error");
   }
 }
 
-
-function getFilteredProducts() {
-  let result = [...products];
-
-  if (activeCategory !== "all") {
-    result = result.filter((product) => {
-      return (
-        String(product.category || "")
-          .toLowerCase() ===
-        activeCategory.toLowerCase()
-      );
-    });
-  }
-
-  if (searchTerm) {
-    const search = searchTerm.toLowerCase();
-
-    result = result.filter((product) => {
-      return [
-        product.name,
-        product.category,
-        product.campus,
-        product.description
-      ]
-        .filter(Boolean)
-        .join(" ")
-        .toLowerCase()
-        .includes(search);
-    });
-  }
-
-  if (sortMode === "price-low") {
-    result.sort(
-      (a, b) =>
-        Number(a.price || 0) -
-        Number(b.price || 0)
-    );
-  }
-
-  if (sortMode === "price-high") {
-    result.sort(
-      (a, b) =>
-        Number(b.price || 0) -
-        Number(a.price || 0)
-    );
-  }
-
-  return result;
-}
-
-
-function renderProducts(list = null) {
+function renderProducts(products) {
   const grid = $("productGrid");
-
   if (!grid) return;
 
-  const items =
-    list || getFilteredProducts();
-
-  if (!items.length) {
+  if (!products.length) {
     grid.innerHTML = `
       <div class="empty-state">
         <h3>No products found</h3>
         <p>Try another search or category.</p>
       </div>
     `;
-
     return;
   }
 
-  grid.innerHTML = items
-    .map(renderProductCard)
-    .join("");
+  grid.innerHTML = products.map((product) => productCardHTML(product)).join("");
 }
 
-
-function renderProductCard(product) {
-  const id = product.id;
-
-  const image =
-    getProductImage(product);
-
-  const saved =
-    savedProducts.includes(id);
+function productCardHTML(product) {
+  const image = product.image_url || product.image || "";
+  const name = product.name || product.title || "Unnamed product";
+  const category = product.category || "Other";
+  const campus = product.campus || "Campus";
 
   return `
-    <article class="product-card">
-
-      <div
-        class="product-open"
-        data-product-id="${escapeHTML(id)}"
-      >
-        <div class="product-image">
-
-          ${
-            image
-              ? `
-                <img
-                  src="${escapeHTML(image)}"
-                  alt="${escapeHTML(product.name)}"
-                >
-              `
-              : `
-                <div class="no-image">
-                  📦
-                </div>
-              `
-          }
-
-        </div>
-
-        <div class="product-info">
-
-          <h3>
-            ${escapeHTML(product.name)}
-          </h3>
-
-          <strong>
-            ${formatPrice(product.price)}
-          </strong>
-
-          <p>
-            ${escapeHTML(product.campus || "Campus")}
-          </p>
-
-        </div>
+    <article class="product-card" data-product-id="${escapeHTML(product.id)}">
+      <div class="product-image-wrap">
+        ${
+          image
+            ? `<img src="${escapeHTML(image)}" alt="${escapeHTML(name)}" class="product-image">`
+            : `<div class="product-image-placeholder">📦</div>`
+        }
       </div>
-
-      <button
-        type="button"
-        class="save-button"
-        data-action="save"
-        data-product-id="${escapeHTML(id)}"
-        aria-label="Save product"
-      >
-        ${saved ? "♥" : "♡"}
-      </button>
-
+      <div class="product-card-body">
+        <h3>${escapeHTML(name)}</h3>
+        <strong>${formatPrice(product.price)}</strong>
+        <p>${escapeHTML(campus)}</p>
+        <span class="product-category">${escapeHTML(category)}</span>
+      </div>
     </article>
   `;
 }
 
+/* =========================================================
+   SEARCH
+   ========================================================= */
 
-/* =========================
-   PRODUCT DETAILS
-   ========================= */
+function setupSearch() {
+  const searchInput = $("searchInput");
+  const clearSearch = $("clearSearch");
 
-function openProduct(productId) {
-  const product =
-    products.find(
-      (item) =>
-        String(item.id) === String(productId)
-    );
+  searchInput?.addEventListener("input", () => {
+    const query = searchInput.value.trim().toLowerCase();
 
-  if (!product) {
-    showNotice("Product not found.");
+    if (clearSearch) {
+      clearSearch.classList.toggle("hidden", !query);
+    }
+
+    if (!query) {
+      renderProducts(allProducts);
+      return;
+    }
+
+    const filtered = allProducts.filter((product) => {
+      const text = [
+        product.name,
+        product.title,
+        product.description,
+        product.category,
+        product.campus
+      ]
+        .filter(Boolean)
+        .join(" ")
+        .toLowerCase();
+
+      return text.includes(query);
+    });
+
+    renderProducts(filtered);
+  });
+
+  clearSearch?.addEventListener("click", () => {
+    if (searchInput) searchInput.value = "";
+    clearSearch.classList.add("hidden");
+    renderProducts(allProducts);
+  });
+}
+
+/* =========================================================
+   SAVED PRODUCTS
+   ========================================================= */
+
+async function getSavedIds() {
+  if (!currentUser) return [];
+
+  try {
+    const { data, error } = await supabaseClient
+      .from("saved_products")
+      .select("product_id")
+      .eq("user_id", currentUser.id);
+
+    if (error) return [];
+    return (data || []).map((row) => row.product_id);
+  } catch {
+    return [];
+  }
+}
+
+async function loadSavedProducts() {
+  const grid = $("savedGrid");
+  if (!grid) return;
+
+  if (!currentUser) {
+    grid.innerHTML = `
+      <div class="empty-state">
+        <h3>Sign in to see saved items</h3>
+        <p>Save products you want to find later.</p>
+        <button class="primary-button" data-action="signin">Sign in</button>
+      </div>
+    `;
     return;
   }
 
-  currentProduct = product;
+  try {
+    const ids = await getSavedIds();
 
+    if (!ids.length) {
+      grid.innerHTML = `
+        <div class="empty-state">
+          <h3>No saved items yet</h3>
+          <p>Products you save will appear here.</p>
+        </div>
+      `;
+      return;
+    }
+
+    const { data, error } = await supabaseClient
+      .from("products")
+      .select("*")
+      .in("id", ids);
+
+    if (error) throw error;
+
+    grid.innerHTML = (data || []).map((product) => productCardHTML(product)).join("");
+  } catch (error) {
+    console.error(error);
+    grid.innerHTML = `<div class="empty-state"><h3>Could not load saved items</h3></div>`;
+  }
+}
+
+async function toggleSaved(productId) {
+  if (!currentUser) {
+    openAuth("signin");
+    return;
+  }
+
+  try {
+    const { data } = await supabaseClient
+      .from("saved_products")
+      .select("id")
+      .eq("user_id", currentUser.id)
+      .eq("product_id", productId)
+      .maybeSingle();
+
+    if (data) {
+      await supabaseClient.from("saved_products").delete().eq("id", data.id);
+      showNotice("Removed from saved items.", "success");
+    } else {
+      const { error } = await supabaseClient.from("saved_products").insert({
+        user_id: currentUser.id,
+        product_id: productId
+      });
+
+      if (error) throw error;
+      showNotice("Product saved.", "success");
+    }
+
+    await loadSavedProducts();
+  } catch (error) {
+    console.error(error);
+    showNotice("Could not update saved item.", "error");
+  }
+}
+
+/* =========================================================
+   PRODUCT DETAILS
+   ========================================================= */
+
+async function showProductDetails(product) {
   const container = $("productDetails");
-
   if (!container) return;
 
-  const image =
-    getProductImage(product);
-
-  const saved =
-    savedProducts.includes(product.id);
+  const image = product.image_url || product.image || "";
 
   container.innerHTML = `
     <div class="product-detail">
-
-      <button
-        type="button"
-        class="back-button"
-        data-route="home"
-      >
-        ← Back
-      </button>
-
+      <button class="back-button" data-action="back-home">← Back</button>
       <div class="product-detail-image">
-
         ${
           image
-            ? `
-              <img
-                src="${escapeHTML(image)}"
-                alt="${escapeHTML(product.name)}"
-              >
-            `
-            : `
-              <div class="no-image">
-                📦
-              </div>
-            `
+            ? `<img src="${escapeHTML(image)}" alt="${escapeHTML(product.name || "Product")}">`
+            : "📦"
         }
-
       </div>
-
-      <div class="product-detail-info">
-
-        <h1>
-          ${escapeHTML(product.name)}
-        </h1>
-
-        <h2>
-          ${formatPrice(product.price)}
-        </h2>
-
-        <p>
-          <strong>Category:</strong>
-          ${escapeHTML(product.category || "Other")}
-        </p>
-
-        <p>
-          <strong>Campus:</strong>
-          ${escapeHTML(product.campus || "Not specified")}
-        </p>
-
-        <p>
-          ${escapeHTML(
-            product.description ||
-            "No description provided."
-          )}
-        </p>
-
+      <div class="product-detail-content">
+        <span class="product-category">${escapeHTML(product.category || "Other")}</span>
+        <h1>${escapeHTML(product.name || product.title || "Product")}</h1>
+        <h2>${formatPrice(product.price)}</h2>
+        <p>${escapeHTML(product.description || "No description provided.")}</p>
+        <p>📍 ${escapeHTML(product.campus || "Campus")}</p>
         <div class="product-actions">
-
-          <button
-            type="button"
-            data-action="save"
-            data-product-id="${escapeHTML(product.id)}"
-          >
-            ${saved ? "♥ Saved" : "♡ Save"}
-          </button>
-
-          <button
-            type="button"
-            data-action="chat-seller"
-            data-product-id="${escapeHTML(product.id)}"
-          >
-            💬 Chat with seller
-          </button>
-
+          <button class="primary-button" data-action="contact-seller" data-product-id="${escapeHTML(product.id)}">💬 Contact seller</button>
+          <button class="secondary-button" data-action="save-product" data-product-id="${escapeHTML(product.id)}">❤️ Save</button>
         </div>
-
       </div>
-
     </div>
   `;
 
   navigate("product");
 }
 
-
-/* =========================
-   SAVED PRODUCTS
-   ========================= */
-
-function saveProductsToStorage() {
-  localStorage.setItem(
-    "cheal_saved_products",
-    JSON.stringify(savedProducts)
-  );
-}
-
-
-function toggleSaved(productId) {
-  const id = String(productId);
-
-  const index = savedProducts.findIndex(
-    (item) => String(item) === id
-  );
-
-  if (index >= 0) {
-    savedProducts.splice(index, 1);
-  } else {
-    savedProducts.push(productId);
-  }
-
-  saveProductsToStorage();
-
-  renderProducts();
-  renderSavedProducts();
-
-  if (
-    currentProduct &&
-    String(currentProduct.id) === id
-  ) {
-    openProduct(id);
-  }
-}
-
-
-function renderSavedProducts() {
-  const grid = $("savedGrid");
-
-  if (!grid) return;
-
-  const saved = products.filter((product) =>
-    savedProducts.some(
-      (id) =>
-        String(id) === String(product.id)
-    )
-  );
-
-  if (!saved.length) {
-    grid.innerHTML = `
-      <div class="empty-state">
-        <h3>No saved products</h3>
-        <p>Products you save will appear here.</p>
-      </div>
-    `;
-
-    return;
-  }
-
-  grid.innerHTML = saved
-    .map(renderProductCard)
-    .join("");
-}
-
-
-/* =========================
-   SEARCH
-   ========================= */
-
-function handleSearch(value) {
-  searchTerm = value.trim();
-
-  const clearButton = $("clearSearch");
-
-  if (clearButton) {
-    clearButton.classList.toggle(
-      "hidden",
-      !searchTerm
-    );
-  }
-
-  renderProducts();
-}
-
-
-function clearSearch() {
-  searchTerm = "";
-  activeCategory = "all";
-
-  const input = $("searchInput");
-
-  if (input) {
-    input.value = "";
-  }
-
-  const clearButton = $("clearSearch");
-
-  if (clearButton) {
-    clearButton.classList.add("hidden");
-  }
-
-  renderProducts();
-}
-
-
-/* =========================
-   CATEGORY
-   ========================= */
-
-function filterCategory(category) {
-  activeCategory =
-    category || "all";
-
-  navigate("home");
-
-  renderProducts();
-}
-
-
-/* =========================
-   SORT
-   ========================= */
-
-function changeSort() {
-  if (sortMode === "latest") {
-    sortMode = "price-low";
-  } else if (sortMode === "price-low") {
-    sortMode = "price-high";
-  } else {
-    sortMode = "latest";
-  }
-
-  const button = $("sortButton");
-
-  if (button) {
-    if (sortMode === "latest") {
-      button.textContent = "Sort";
-    }
-
-    if (sortMode === "price-low") {
-      button.textContent =
-        "Price: Low → High";
-    }
-
-    if (sortMode === "price-high") {
-      button.textContent =
-        "Price: High → Low";
-    }
-  }
-
-  renderProducts();
-}
-
-
-/* =========================
-   IMAGE PREVIEW
-   ========================= */
-
-function handleImageSelection(event) {
-  const files =
-    Array.from(event.target.files || []);
-
-  if (!files.length) return;
-
-  const available =
-    5 - selectedImages.length;
-
-  if (available <= 0) {
-    showNotice(
-      "You can upload a maximum of 5 images."
-    );
-
-    return;
-  }
-
-  selectedImages.push(
-    ...files.slice(0, available)
-  );
-
-  renderImagePreview();
-}
-
-
-function renderImagePreview() {
-  const preview = $("imagePreview");
-
-  if (!preview) return;
-
-  if (!selectedImages.length) {
-    preview.innerHTML = "";
-    return;
-  }
-
-  preview.innerHTML = selectedImages
-    .map((file, index) => {
-
-      const url =
-        URL.createObjectURL(file);
-
-      return `
-        <div class="preview-item">
-
-          <img
-            src="${url}"
-            alt="Preview ${index + 1}"
-          >
-
-          <button
-            type="button"
-            data-action="remove-image"
-            data-image-index="${index}"
-          >
-            ×
-          </button>
-
-        </div>
-      `;
-    })
-    .join("");
-}
-
-
-function removeSelectedImage(index) {
-  selectedImages.splice(index, 1);
-
-  renderImagePreview();
-}
-
-
-/* =========================
-   UPLOAD IMAGES
-   ========================= */
-
-async function uploadProductImages(productId) {
-  if (!selectedImages.length) {
-    return [];
-  }
-
+/* =========================================================
+   SELL PRODUCT & IMAGE UPLOAD
+   ========================================================= */
+
+async function uploadProductImages(files) {
   const urls = [];
 
-  for (const file of selectedImages) {
-    const extension =
-      file.name.split(".").pop() ||
-      "jpg";
+  for (const file of files) {
+    const extension = file.name.split(".").pop();
+    const fileName = `${currentUser.id}/${Date.now()}-${Math.random().toString(36).substring(2)}.${extension}`;
 
-    const fileName =
-      `${productId}/${makeId()}.${extension}`;
+    const { error } = await supabaseClient.storage
+      .from(BUCKET_NAME)
+      .upload(fileName, file, { upsert: false });
 
-    const { error } =
-      await supabaseClient.storage
-        .from(BUCKET_NAME)
-        .upload(fileName, file, {
-          cacheControl: "3600",
-          upsert: false
-        });
+    if (error) throw error;
 
-    if (error) {
-      throw error;
-    }
-
-    const { data } =
-      supabaseClient.storage
-        .from(BUCKET_NAME)
-        .getPublicUrl(fileName);
-
-    if (data?.publicUrl) {
-      urls.push(data.publicUrl);
-    }
+    const { data } = supabaseClient.storage.from(BUCKET_NAME).getPublicUrl(fileName);
+    if (data?.publicUrl) urls.push(data.publicUrl);
   }
 
   return urls;
 }
 
+function setupImagePreview() {
+  const input = $("productImages");
+  const preview = $("imagePreview");
 
-/* =========================
-   SELL PRODUCT
-   ========================= */
+  input?.addEventListener("change", () => {
+    if (!preview) return;
+    preview.innerHTML = "";
+
+    const files = Array.from(input.files || []).slice(0, 5);
+
+    files.forEach((file) => {
+      const reader = new FileReader();
+      reader.onload = () => {
+        const img = document.createElement("img");
+        img.src = reader.result;
+        img.alt = "Product preview";
+        preview.appendChild(img);
+      };
+      reader.readAsDataURL(file);
+    });
+  });
+}
 
 async function handleSellSubmit(event) {
   event.preventDefault();
 
   if (!currentUser) {
-    openAuth("login");
+    openAuth("signin");
     return;
   }
 
-  const name =
-    $("productName")?.value.trim();
-
-  const price =
-    Number($("productPrice")?.value);
-
-  const category =
-    $("productCategory")?.value;
-
-  const campus =
-    $("productCampus")?.value.trim();
-
-  const description =
-    $("productDescription")?.value.trim();
-
-  const message =
-    $("sellMessage");
-
-  if (!name || !price || !category) {
-    if (message) {
-      message.textContent =
-        "Please fill in the product name, price and category.";
-    }
-
-    return;
-  }
+  const name = $("productName")?.value.trim();
+  const price = Number($("productPrice")?.value || 0);
+  const category = $("productCategory")?.value;
+  const campus = $("productCampus")?.value.trim();
+  const description = $("productDescription")?.value.trim();
+  const files = Array.from($("productImages")?.files || []).slice(0, 5);
+  const message = $("sellMessage");
 
   try {
-    if (message) {
-      message.textContent =
-        "Publishing your product...";
+    if (!name || !price || !category) {
+      if (message) message.textContent = "Please fill in all required fields.";
+      return;
     }
 
-    const productId = makeId();
+    if (message) message.textContent = "Uploading product...";
 
-    const imageUrls =
-      await uploadProductImages(productId);
+    let imageUrls = [];
+    if (files.length) {
+      imageUrls = await uploadProductImages(files);
+    }
 
-    const productData = {
-      id: productId,
-      seller_id: currentUser.id,
+    const payload = {
       name,
       price,
       category,
       campus,
       description,
-      image_urls: imageUrls,
-      image_url: imageUrls[0] || null
+      seller_id: currentUser.id,
+      seller_name: getUserName(),
+      image_url: imageUrls[0] || null,
+      images: imageUrls
     };
 
-    const { error } =
-      await supabaseClient
-        .from("products")
-        .insert(productData);
+    const { error } = await supabaseClient.from("products").insert(payload);
+    if (error) throw error;
 
-    if (error) {
-      throw error;
-    }
+    if (message) message.textContent = "Product listed successfully!";
 
-    if (message) {
-      message.textContent =
-        "Product published successfully!";
-    }
-
-    const form = $("sellForm");
-
-    if (form) {
-      form.reset();
-    }
-
-    selectedImages = [];
-
-    renderImagePreview();
+    $("sellForm")?.reset();
+    if ($("imagePreview")) $("imagePreview").innerHTML = "";
 
     await loadProducts();
 
     setTimeout(() => {
       navigate("home");
-    }, 700);
-
+    }, 1000);
   } catch (error) {
-    console.error(
-      "Publishing product failed:",
-      error
-    );
-
+    console.error(error);
     if (message) {
-      message.textContent =
-        error?.message ||
-        "Could not publish product.";
+      message.textContent = error?.message || "Could not list product.";
     }
   }
 }
 
-
-/* =========================
+/* =========================================================
    MY LISTINGS
-   ========================= */
+   ========================================================= */
 
 async function loadMyListings() {
   const grid = $("myListingsGrid");
-
   if (!grid) return;
 
   if (!currentUser) {
-    grid.innerHTML = `
-      <div class="empty-state">
-        <h3>Login required</h3>
-        <p>Please login to view your listings.</p>
-
-        <button
-          type="button"
-          data-action="login"
-        >
-          Login
-        </button>
-      </div>
-    `;
-
+    grid.innerHTML = `<div class="empty-state"><h3>Sign in to view your listings</h3></div>`;
     return;
   }
 
-  grid.innerHTML = `
-    <div class="empty-state">
-      <p>Loading your listings...</p>
-    </div>
-  `;
-
   try {
-    const { data, error } =
-      await supabaseClient
-        .from("products")
-        .select("*")
-        .eq("seller_id", currentUser.id)
-        .order("created_at", {
-          ascending: false
-        });
+    const { data, error } = await supabaseClient
+      .from("products")
+      .select("*")
+      .eq("seller_id", currentUser.id)
+      .order("created_at", { ascending: false });
 
-    if (error) {
-      throw error;
-    }
+    if (error) throw error;
 
     if (!data?.length) {
       grid.innerHTML = `
         <div class="empty-state">
-          <h3>No listings yet</h3>
-          <p>Products you sell will appear here.</p>
+          <h3>You have no listings yet</h3>
+          <p>Sell something to students on campus.</p>
         </div>
       `;
-
       return;
     }
 
-    grid.innerHTML = data
-      .map(renderProductCard)
-      .join("");
-
+    grid.innerHTML = data.map((product) => productCardHTML(product)).join("");
   } catch (error) {
     console.error(error);
-
-    grid.innerHTML = `
-      <div class="empty-state">
-        <h3>Could not load listings</h3>
-        <p>${escapeHTML(
-          error?.message || ""
-        )}</p>
-      </div>
-    `;
+    grid.innerHTML = `<div class="empty-state"><h3>Could not load your listings</h3></div>`;
   }
 }
 
-
-/* =========================
-   CONVERSATIONS
-   ========================= */
+/* =========================================================
+   MESSAGES & CONVERSATIONS
+   ========================================================= */
 
 async function loadConversations() {
   const list = $("conversationList");
-
   if (!list) return;
 
   if (!currentUser) {
     list.innerHTML = `
       <div class="empty-state">
-        <h3>Login required</h3>
-        <p>Login to view your messages.</p>
-
-        <button
-          type="button"
-          data-action="login"
-        >
-          Login
-        </button>
+        <h3>Sign in to view messages</h3>
+        <button class="primary-button" data-action="signin">Sign in</button>
       </div>
     `;
-
     return;
   }
 
-  list.innerHTML = `
-    <div class="empty-state">
-      <p>Loading messages...</p>
-    </div>
-  `;
-
   try {
-    const { data, error } =
-      await supabaseClient
-        .from("conversations")
-        .select("*")
-        .or(
-          `buyer_id.eq.${currentUser.id},seller_id.eq.${currentUser.id}`
-        )
-        .order("updated_at", {
-          ascending: false
-        });
+    const { data, error } = await supabaseClient
+      .from("conversations")
+      .select("*")
+      .or(`buyer_id.eq.${currentUser.id},seller_id.eq.${currentUser.id}`)
+      .order("updated_at", { ascending: false });
 
-    if (error) {
-      throw error;
-    }
+    if (error) throw error;
 
     if (!data?.length) {
       list.innerHTML = `
@@ -1438,871 +855,324 @@ async function loadConversations() {
           <p>Your conversations will appear here.</p>
         </div>
       `;
-
       return;
     }
 
-    const rows = [];
+    list.innerHTML = data
+      .map((conversation) => {
+        const otherName =
+          conversation.buyer_id === currentUser.id
+            ? conversation.seller_name
+            : conversation.buyer_name;
 
-    for (const conversation of data) {
-      const otherId =
-        String(conversation.buyer_id) ===
-        String(currentUser.id)
-          ? conversation.seller_id
-          : conversation.buyer_id;
-
-      let otherName = "User";
-
-      try {
-        const { data: profile } =
-          await supabaseClient
-            .from("profiles")
-            .select("full_name,name")
-            .eq("id", otherId)
-            .maybeSingle();
-
-        otherName =
-          profile?.full_name ||
-          profile?.name ||
-          "User";
-
-      } catch (_) {}
-
-      let productName = "";
-
-      const product =
-        products.find(
-          (item) =>
-            String(item.id) ===
-            String(conversation.product_id)
-        );
-
-      if (product) {
-        productName = product.name;
-      }
-
-      rows.push(`
-        <button
-          type="button"
-          class="conversation-item"
-          data-action="open-conversation"
-          data-conversation-id="${escapeHTML(
-            conversation.id
-          )}"
-        >
-
-          <strong>
-            ${escapeHTML(otherName)}
-          </strong>
-
-          ${
-            productName
-              ? `
-                <span>
-                  ${escapeHTML(productName)}
-                </span>
-              `
-              : ""
-          }
-
-        </button>
-      `);
-    }
-
-    list.innerHTML = rows.join("");
-
+        return `
+          <button class="conversation-item" data-action="open-conversation" data-conversation-id="${escapeHTML(conversation.id)}">
+            <div class="conversation-avatar">${escapeHTML((otherName || "U").charAt(0).toUpperCase())}</div>
+            <div>
+              <strong>${escapeHTML(otherName || "User")}</strong>
+              <p>${escapeHTML(conversation.product_name || "Conversation")}</p>
+            </div>
+          </button>
+        `;
+      })
+      .join("");
   } catch (error) {
     console.error(error);
-
-    list.innerHTML = `
-      <div class="empty-state">
-        <h3>Messages unavailable</h3>
-        <p>${escapeHTML(
-          error?.message || ""
-        )}</p>
-      </div>
-    `;
+    list.innerHTML = `<div class="empty-state"><h3>Messages are not available yet</h3></div>`;
   }
 }
 
+/* =========================================================
+   CHAT
+   ========================================================= */
 
-/* =========================
-   START CHAT
-   ========================= */
+async function openChat(conversation) {
+  currentConversation = conversation;
 
-async function startChat(productId) {
-  if (!currentUser) {
-    openAuth("login");
-    return;
+  const name = $("chatName");
+  const product = $("chatProduct");
+
+  if (name) {
+    name.textContent =
+      conversation.other_name ||
+      conversation.seller_name ||
+      conversation.buyer_name ||
+      "Chat";
   }
 
-  const product =
-    products.find(
-      (item) =>
-        String(item.id) ===
-        String(productId)
-    );
+  if (product) product.textContent = conversation.product_name || "";
 
-  if (!product) {
-    showNotice("Product not found.");
-    return;
-  }
-
-  if (
-    String(product.seller_id) ===
-    String(currentUser.id)
-  ) {
-    showNotice(
-      "You cannot message yourself about your own listing."
-    );
-
-    return;
-  }
-
-  try {
-    let conversation = null;
-
-    const { data: existing } =
-      await supabaseClient
-        .from("conversations")
-        .select("*")
-        .eq("buyer_id", currentUser.id)
-        .eq("seller_id", product.seller_id)
-        .eq("product_id", product.id)
-        .maybeSingle();
-
-    if (existing) {
-      conversation = existing;
-    } else {
-      const { data, error } =
-        await supabaseClient
-          .from("conversations")
-          .insert({
-            id: makeId(),
-            buyer_id: currentUser.id,
-            seller_id: product.seller_id,
-            product_id: product.id
-          })
-          .select()
-          .single();
-
-      if (error) {
-        throw error;
-      }
-
-      conversation = data;
-    }
-
-    await openConversation(
-      conversation.id
-    );
-
-  } catch (error) {
-    console.error(error);
-
-    showNotice(
-      error?.message ||
-      "Could not start conversation."
-    );
-  }
+  await loadChatMessages(conversation.id);
+  setupRealtimeChat(conversation.id);
+  navigate("chat");
 }
 
-
-/* =========================
-   OPEN CONVERSATION
-   ========================= */
-
-async function openConversation(
-  conversationId
-) {
-  if (!currentUser) {
-    openAuth("login");
-    return;
-  }
-
-  try {
-    const { data: conversation, error } =
-      await supabaseClient
-        .from("conversations")
-        .select("*")
-        .eq("id", conversationId)
-        .single();
-
-    if (error) {
-      throw error;
-    }
-
-    currentConversation =
-      conversation;
-
-    const otherId =
-      String(conversation.buyer_id) ===
-      String(currentUser.id)
-        ? conversation.seller_id
-        : conversation.buyer_id;
-
-    let otherName = "User";
-
-    const { data: profile } =
-      await supabaseClient
-        .from("profiles")
-        .select("full_name,name")
-        .eq("id", otherId)
-        .maybeSingle();
-
-    if (profile) {
-      otherName =
-        profile.full_name ||
-        profile.name ||
-        "User";
-    }
-
-    const product =
-      products.find(
-        (item) =>
-          String(item.id) ===
-          String(conversation.product_id)
-      );
-
-    if ($("chatName")) {
-      $("chatName").textContent =
-        otherName;
-    }
-
-    if ($("chatProduct")) {
-      $("chatProduct").textContent =
-        product?.name || "";
-    }
-
-    navigate("chat");
-
-    await loadMessages(
-      conversationId
-    );
-
-    subscribeToMessages(
-      conversationId
-    );
-
-  } catch (error) {
-    console.error(error);
-
-    showNotice(
-      error?.message ||
-      "Could not open conversation."
-    );
-  }
-}
-
-
-/* =========================
-   MESSAGES
-   ========================= */
-
-async function loadMessages(
-  conversationId
-) {
-  const container =
-    $("chatMessages");
-
+async function loadChatMessages(conversationId) {
+  const container = $("chatMessages");
   if (!container) return;
 
-  container.innerHTML = `
-    <div class="empty-state">
-      <p>Loading messages...</p>
-    </div>
-  `;
-
   try {
-    const { data, error } =
-      await supabaseClient
-        .from("messages")
-        .select("*")
-        .eq(
-          "conversation_id",
-          conversationId
-        )
-        .order("created_at", {
-          ascending: true
-        });
+    const { data, error } = await supabaseClient
+      .from("messages")
+      .select("*")
+      .eq("conversation_id", conversationId)
+      .order("created_at", { ascending: true });
 
-    if (error) {
-      throw error;
-    }
+    if (error) throw error;
 
-    renderMessages(data || []);
+    container.innerHTML = (data || [])
+      .map((message) => {
+        const mine = message.sender_id === currentUser?.id;
+        return `
+          <div class="chat-message ${mine ? "mine" : "theirs"}">
+            <div class="message-bubble">${escapeHTML(message.content)}</div>
+          </div>
+        `;
+      })
+      .join("");
 
+    container.scrollTop = container.scrollHeight;
   } catch (error) {
     console.error(error);
-
-    container.innerHTML = `
-      <div class="empty-state">
-        <p>${escapeHTML(
-          error?.message ||
-          "Could not load messages."
-        )}</p>
-      </div>
-    `;
   }
 }
 
-
-function renderMessages(messages) {
-  const container =
-    $("chatMessages");
-
-  if (!container) return;
-
-  if (!messages.length) {
-    container.innerHTML = `
-      <div class="empty-state">
-        <h3>Start the conversation</h3>
-        <p>Send the first message.</p>
-      </div>
-    `;
-
-    return;
+function setupRealtimeChat(conversationId) {
+  if (realtimeChannel) {
+    supabaseClient.removeChannel(realtimeChannel);
   }
 
-  container.innerHTML = messages
-    .map((message) => {
-
-      const mine =
-        String(message.sender_id) ===
-        String(currentUser?.id);
-
-      return `
-        <div
-          class="chat-message ${
-            mine ? "mine" : "theirs"
-          }"
-        >
-          ${escapeHTML(message.content)}
-        </div>
-      `;
-    })
-    .join("");
-
-  container.scrollTop =
-    container.scrollHeight;
+  realtimeChannel = supabaseClient
+    .channel(`conversation-${conversationId}`)
+    .on(
+      "postgres_changes",
+      {
+        event: "INSERT",
+        schema: "public",
+        table: "messages",
+        filter: `conversation_id=eq.${conversationId}`
+      },
+      () => {
+        loadChatMessages(conversationId);
+      }
+    )
+    .subscribe();
 }
-
 
 async function sendMessage(event) {
   event.preventDefault();
 
-  if (!currentUser) {
-    openAuth("login");
-    return;
-  }
-
-  if (!currentConversation) {
-    return;
-  }
+  if (!currentUser || !currentConversation) return;
 
   const input = $("chatInput");
-
-  if (!input) return;
-
-  const content =
-    input.value.trim();
+  const content = input?.value.trim();
 
   if (!content) return;
 
-  input.disabled = true;
-
   try {
-    const { error } =
-      await supabaseClient
-        .from("messages")
-        .insert({
-          id: makeId(),
-          conversation_id:
-            currentConversation.id,
-          sender_id:
-            currentUser.id,
-          content
-        });
+    const { error } = await supabaseClient.from("messages").insert({
+      conversation_id: currentConversation.id,
+      sender_id: currentUser.id,
+      content
+    });
 
-    if (error) {
-      throw error;
-    }
+    if (error) throw error;
 
     input.value = "";
-
-    await loadMessages(
-      currentConversation.id
-    );
-
+    await loadChatMessages(currentConversation.id);
   } catch (error) {
     console.error(error);
-
-    showNotice(
-      error?.message ||
-      "Message could not be sent."
-    );
-
-  } finally {
-    input.disabled = false;
-    input.focus();
+    showNotice("Could not send message.", "error");
   }
 }
 
+/* =========================================================
+   CONTACT SELLER
+   ========================================================= */
 
-/* =========================
-   REALTIME CHAT
-   ========================= */
-
-function subscribeToMessages(
-  conversationId
-) {
-  if (realtimeChannel) {
-    supabaseClient.removeChannel(
-      realtimeChannel
-    );
+async function contactSeller(product) {
+  if (!currentUser) {
+    openAuth("signin");
+    return;
   }
 
-  realtimeChannel =
-    supabaseClient
-      .channel(
-        "chat-" + conversationId
-      )
-      .on(
-        "postgres_changes",
-        {
-          event: "INSERT",
-          schema: "public",
-          table: "messages",
-          filter:
-            `conversation_id=eq.${conversationId}`
-        },
-        async () => {
-          await loadMessages(
-            conversationId
-          );
-        }
-      )
-      .subscribe();
+  if (product.seller_id === currentUser.id) {
+    showNotice("This is your own listing.", "info");
+    return;
+  }
+
+  try {
+    const { data: existing } = await supabaseClient
+      .from("conversations")
+      .select("*")
+      .eq("product_id", product.id)
+      .or(`buyer_id.eq.${currentUser.id},seller_id.eq.${currentUser.id}`)
+      .maybeSingle();
+
+    if (existing) {
+      openChat({ ...existing, other_name: product.seller_name });
+      return;
+    }
+
+    const { data, error } = await supabaseClient
+      .from("conversations")
+      .insert({
+        product_id: product.id,
+        product_name: product.name || product.title,
+        buyer_id: currentUser.id,
+        buyer_name: getUserName(),
+        seller_id: product.seller_id,
+        seller_name: product.seller_name
+      })
+      .select()
+      .single();
+
+    if (error) throw error;
+
+    openChat({ ...data, other_name: product.seller_name });
+  } catch (error) {
+    console.error(error);
+    showNotice("Could not start conversation.", "error");
+  }
 }
 
+/* =========================================================
+   GLOBAL CLICK HANDLER
+   ========================================================= */
 
-/* =========================
-   LOCATION
-   ========================= */
+document.addEventListener("click", async (event) => {
+  const routeElement = event.target.closest("[data-route]");
+  if (routeElement) {
+    event.preventDefault();
+    navigate(routeElement.dataset.route);
+    return;
+  }
 
-function handleLocation() {
-  showNotice(
-    "Location selection will be added soon. You can currently search products by campus."
-  );
-}
+  const navElement = event.target.closest("[data-nav]");
+  if (navElement) {
+    event.preventDefault();
+    navigate(navElement.dataset.nav);
+    return;
+  }
 
+  const actionElement = event.target.closest("[data-action]");
+  if (!actionElement) return;
 
-/* =========================
-   EVENT HANDLERS
-   ========================= */
+  const action = actionElement.dataset.action;
 
-function setupEvents() {
+  if (action === "signin") {
+    openAuth("signin");
+    return;
+  }
+  if (action === "signup") {
+    openAuth("signup");
+    return;
+  }
+  if (action === "logout") {
+    await logout();
+    return;
+  }
+  if (action === "open-menu") {
+    openMenu();
+    return;
+  }
+  if (action === "close-menu") {
+    closeMenu();
+    return;
+  }
+  if (action === "close-auth") {
+    closeAuth();
+    return;
+  }
+  if (action === "back-home") {
+    navigate("home");
+    return;
+  }
 
-  /* Hash navigation */
+  if (action === "save-product") {
+    const id = actionElement.dataset.productId;
+    const product = allProducts.find((item) => String(item.id) === String(id));
+    if (product) await toggleSaved(product.id);
+    return;
+  }
 
-  window.addEventListener(
-    "hashchange",
-    handleHashChange
-  );
+  if (action === "contact-seller") {
+    const id = actionElement.dataset.productId;
+    const product = allProducts.find((item) => String(item.id) === String(id));
+    if (product) await contactSeller(product);
+    return;
+  }
 
+  if (action === "open-conversation") {
+    const id = actionElement.dataset.conversationId;
+    try {
+      const { data, error } = await supabaseClient
+        .from("conversations")
+        .select("*")
+        .eq("id", id)
+        .single();
 
-  /* Menu */
-
-  $("menuButton")?.addEventListener(
-    "click",
-    openMenu
-  );
-
-  $("closeMenu")?.addEventListener(
-    "click",
-    closeMenu
-  );
-
-  $("menuOverlay")?.addEventListener(
-    "click",
-    (event) => {
-      if (
-        event.target ===
-        $("menuOverlay")
-      ) {
-        closeMenu();
-      }
+      if (error) throw error;
+      openChat(data);
+    } catch (error) {
+      console.error(error);
     }
-  );
-
-
-  /* Top account */
-
-  $("topAccountButton")?.addEventListener(
-    "click",
-    () => navigate("account")
-  );
-
-
-  /* Account login */
-
-  $("accountLoginButton")?.addEventListener(
-    "click",
-    () => openAuth("login")
-  );
-
-
-  /* Logout */
-
-  $("logoutButton")?.addEventListener(
-    "click",
-    logout
-  );
-
-
-  /* Auth */
-
-  $("closeAuth")?.addEventListener(
-    "click",
-    closeAuth
-  );
-
-  $("authSwitch")?.addEventListener(
-    "click",
-    () => {
-      openAuth(
-        authMode === "login"
-          ? "signup"
-          : "login"
-      );
-    }
-  );
-
-  $("authForm")?.addEventListener(
-    "submit",
-    handleAuthSubmit
-  );
-
-
-  $("authOverlay")?.addEventListener(
-    "click",
-    (event) => {
-      if (
-        event.target ===
-        $("authOverlay")
-      ) {
-        closeAuth();
-      }
-    }
-  );
-
-
-  /* Search */
-
-  $("searchInput")?.addEventListener(
-    "input",
-    (event) => {
-      handleSearch(event.target.value);
-    }
-  );
-
-
-  $("clearSearch")?.addEventListener(
-    "click",
-    clearSearch
-  );
-
-
-  /* Location */
-
-  $("locationButton")?.addEventListener(
-    "click",
-    handleLocation
-  );
-
-
-  /* Sort */
-
-  $("sortButton")?.addEventListener(
-    "click",
-    changeSort
-  );
-
-
-  /* Sell form */
-
-  $("sellForm")?.addEventListener(
-    "submit",
-    handleSellSubmit
-  );
-
-
-  /* Image input */
-
-  $("productImages")?.addEventListener(
-    "change",
-    handleImageSelection
-  );
-
-
-  /* Chat */
-
-  $("chatForm")?.addEventListener(
-    "submit",
-    sendMessage
-  );
-
-
-  /* Bottom navigation */
-
-  document
-    .querySelectorAll(
-      ".bottom-nav [data-nav]"
-    )
-    .forEach((item) => {
-
-      item.addEventListener(
-        "click",
-        (event) => {
-          event.preventDefault();
-
-          navigate(
-            item.dataset.nav
-          );
-        }
-      );
-
-    });
-
-
-  /* Category buttons */
-
-  document
-    .querySelectorAll(
-      "[data-category]"
-    )
-    .forEach((button) => {
-
-      button.addEventListener(
-        "click",
-        () => {
-          filterCategory(
-            button.dataset.category
-          );
-        }
-      );
-
-    });
-
-
-  /* Settings */
-
-  const settingsButton =
-    Array.from(
-      document.querySelectorAll(
-        "#accountLoggedIn .account-menu-item"
-      )
-    ).find((button) => {
-      return (
-        button
-          .textContent
-          .trim()
-          .toLowerCase()
-          .includes("settings")
-      );
-    });
-
-  settingsButton?.addEventListener(
-    "click",
-    () => {
-      showNotice(
-        "Account settings will be added soon."
-      );
-    }
-  );
-
-
-  /* Global click delegation */
-
-  document.addEventListener(
-    "click",
-    (event) => {
-
-      const routeElement =
-        event.target.closest(
-          "[data-route]"
-        );
-
-      if (routeElement) {
-        event.preventDefault();
-
-        navigate(
-          routeElement.dataset.route
-        );
-
-        return;
-      }
-
-
-      const actionElement =
-        event.target.closest(
-          "[data-action]"
-        );
-
-      if (!actionElement) {
-        return;
-      }
-
-      const action =
-        actionElement.dataset.action;
-
-
-      if (action === "save") {
-        toggleSaved(
-          actionElement.dataset.productId
-        );
-
-        return;
-      }
-
-
-      if (action === "login") {
-        openAuth("login");
-
-        return;
-      }
-
-
-      if (action === "chat-seller") {
-        startChat(
-          actionElement.dataset.productId
-        );
-
-        return;
-      }
-
-
-      if (action === "open-conversation") {
-        openConversation(
-          actionElement.dataset.conversationId
-        );
-
-        return;
-      }
-
-
-      if (action === "remove-image") {
-        removeSelectedImage(
-          Number(
-            actionElement.dataset.imageIndex
-          )
-        );
-
-        return;
-      }
-
-    }
-  );
-
-
-  /* Product cards */
-
-  document.addEventListener(
-    "click",
-    (event) => {
-
-      const productElement =
-        event.target.closest(
-          ".product-open"
-        );
-
-      if (!productElement) {
-        return;
-      }
-
-      openProduct(
-        productElement.dataset.productId
-      );
-
-    }
-  );
-
-}
-
-
-/* =========================
-   AUTH STATE LISTENER
-   ========================= */
-
-function setupAuthListener() {
-
-  supabaseClient.auth.onAuthStateChange(
-    (event, session) => {
-
-      currentUser =
-        session?.user || null;
-
-      if (currentUser) {
-
-        setTimeout(() => {
-          loadCurrentProfile();
-        }, 0);
-
-      } else {
-
-        currentProfile = null;
-
-      }
-
-      updateAccountUI();
-
-    }
-  );
-
-}
-
-
-/* =========================
+    return;
+  }
+});
+
+/* =========================================================
+   PRODUCT CARD CLICK
+   ========================================================= */
+
+document.addEventListener("click", (event) => {
+  const card = event.target.closest(".product-card");
+  if (!card) return;
+
+  if (event.target.closest("button, a, input")) return;
+
+  const id = card.dataset.productId;
+  const product = allProducts.find((item) => String(item.id) === String(id));
+  if (product) showProductDetails(product);
+});
+
+/* =========================================================
+   EVENT LISTENERS
+   ========================================================= */
+
+$("authForm")?.addEventListener("submit", handleAuthSubmit);
+$("sellForm")?.addEventListener("submit", handleSellSubmit);
+$("chatForm")?.addEventListener("submit", sendMessage);
+
+$("authSwitch")?.addEventListener("click", () => {
+  authMode = authMode === "signin" ? "signup" : "signin";
+  updateAuthModal();
+});
+
+$("closeAuth")?.addEventListener("click", closeAuth);
+$("closeMenu")?.addEventListener("click", closeMenu);
+$("menuButton")?.addEventListener("click", openMenu);
+$("topAccountButton")?.addEventListener("click", () => navigate("account"));
+$("accountLoginButton")?.addEventListener("click", () => openAuth("signin"));
+$("logoutButton")?.addEventListener("click", logout);
+
+setupImagePreview();
+setupSearch();
+
+$("locationButton")?.addEventListener("click", () => {
+  showNotice("Location filtering will be available soon.", "info");
+});
+
+/* =========================================================
    INITIALIZATION
-   ========================= */
+   ========================================================= */
 
 async function initializeApp() {
-
-  console.log(
-    "Cheal Market starting..."
-  );
-
-  console.log(
-    "Supabase URL:",
-    SUPABASE_URL
-  );
-
-  console.log(
-    "Supabase client:",
-    !!supabaseClient
-  );
-
-  setupEvents();
-
-  setupAuthListener();
-
+  updateAccountUI();
   await loadCurrentUser();
-
+  setupAuthListener();
   await loadProducts();
-
-  handleHashChange();
-
-  console.log(
-    "Cheal Market ready."
-  );
+  handleHashNavigation();
 }
 
-
-/* =========================
-   START APP
-   ========================= */
-
-document.addEventListener(
-  "DOMContentLoaded",
-  initializeApp
-);
+initializeApp();
