@@ -1,10 +1,11 @@
 // ==========================================
-// 1. SUPABASE CLIENT INITIALIZATION WITH SAFARI FIX
+// 1. SUPABASE CLIENT INITIALIZATION
 // ==========================================
+// Project ID: michealbongeze | Anon Key: Sb_publishable_HVAjJNZAQIiyf1aFosvH0A_fnYoFpHx
 const SUPABASE_URL = 'https://michealbongeze.supabase.co'
 const SUPABASE_ANON_KEY = 'Sb_publishable_HVAjJNZAQIiyf1aFosvH0A_fnYoFpHx'
 
-// Note: flowType 'implicit' prevents mobile Safari PKCE preflight errors ("Load failed")
+// Note: flowType 'implicit' prevents iOS Safari WebKit PKCE fetch blocks ("Load failed")
 const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
   auth: {
     persistSession: true,
@@ -15,153 +16,108 @@ const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
 })
 
 // ==========================================
-// 2. GLOBAL STATE & DOM ELEMENTS
+// 2. STATE MANAGEMENT & DOM INITIALIZATION
 // ==========================================
 let currentUser = null
 
 document.addEventListener('DOMContentLoaded', () => {
-  // Navigation & Modals
+  // Elements matching your original CHEAL Market setup
   const authModal = document.getElementById('auth-modal')
   const postModal = document.getElementById('post-modal')
-  const authBtn = document.getElementById('auth-btn')
-  const postBtn = document.getElementById('post-btn')
-  const closeAuth = document.getElementById('close-auth')
-  const closePost = document.getElementById('close-post')
-  const userStatus = document.getElementById('user-status')
-
-  // Forms
-  const authForm = document.getElementById('auth-form')
-  const signupSubmitBtn = document.getElementById('signup-submit-btn')
+  const openAuthBtn = document.getElementById('open-auth-btn') || document.getElementById('auth-btn')
+  const openPostBtn = document.getElementById('open-post-btn') || document.getElementById('post-btn')
+  const closeBtns = document.querySelectorAll('.close-btn, #close-auth, #close-post')
+  
+  const loginForm = document.getElementById('login-form') || document.getElementById('auth-form')
   const postProductForm = document.getElementById('post-product-form')
   const authError = document.getElementById('auth-error')
-  const productsGrid = document.getElementById('products-grid')
+  const productsContainer = document.getElementById('products-container') || document.getElementById('products-grid')
 
-  // Tab Switching
-  const tabBtns = document.querySelectorAll('.tab-btn')
-  const tabContents = document.querySelectorAll('.tab-content')
-
-  // ==========================================
-  // 3. AUTHENTICATION STATE & UI UPDATES
-  // ==========================================
+  // Listen to Auth State Changes
   supabase.auth.onAuthStateChange((event, session) => {
     currentUser = session ? session.user : null
-    updateUI()
+    updateAuthUI()
     fetchProducts()
   })
 
-  function updateUI() {
-    if (currentUser) {
-      if (userStatus) userStatus.textContent = `Logged in as: ${currentUser.email}`
-      if (authBtn) authBtn.textContent = 'Sign Out'
-    } else {
-      if (userStatus) userStatus.textContent = 'Browsing as Guest'
-      if (authBtn) authBtn.textContent = 'Sign In'
-    }
-  }
-
   // ==========================================
-  // 4. TAB NAVIGATION
+  // 3. INTERACTIVE BUTTON & MODAL CONTROLS
   // ==========================================
-  tabBtns.forEach(btn => {
-    btn.addEventListener('click', () => {
-      const targetTab = btn.getAttribute('data-tab')
-
-      tabBtns.forEach(b => b.classList.remove('active'))
-      btn.classList.add('active')
-
-      tabContents.forEach(content => {
-        if (content.id === `${targetTab}-section`) {
-          content.style.display = 'block'
-        } else {
-          content.style.display = 'none'
-        }
-      })
-    })
-  })
-
-  // ==========================================
-  // 5. MODAL CONTROLS
-  // ==========================================
-  if (authBtn) {
-    authBtn.addEventListener('click', async () => {
+  if (openAuthBtn) {
+    openAuthBtn.addEventListener('click', async () => {
       if (currentUser) {
         await supabase.auth.signOut()
-      } else {
-        if (authModal) authModal.style.display = 'flex'
+      } else if (authModal) {
+        authModal.style.display = 'flex'
       }
     })
   }
 
-  if (postBtn) {
-    postBtn.addEventListener('click', () => {
+  if (openPostBtn) {
+    openPostBtn.addEventListener('click', () => {
       if (!currentUser) {
-        alert('Please sign in to post an item.')
+        alert('Please sign in to post an item on CHEAL Market.')
         if (authModal) authModal.style.display = 'flex'
-      } else {
-        if (postModal) postModal.style.display = 'flex'
+      } else if (postModal) {
+        postModal.style.display = 'flex'
       }
     })
   }
 
-  if (closeAuth) closeAuth.addEventListener('click', () => authModal.style.display = 'none')
-  if (closePost) closePost.addEventListener('click', () => postModal.style.display = 'none')
+  closeBtns.forEach(btn => {
+    btn.addEventListener('click', () => {
+      if (authModal) authModal.style.display = 'none'
+      if (postModal) postModal.style.display = 'none'
+    })
+  })
 
   window.addEventListener('click', (e) => {
     if (e.target === authModal) authModal.style.display = 'none'
     if (e.target === postModal) postModal.style.display = 'none'
   })
 
+  function updateAuthUI() {
+    const userStatus = document.getElementById('user-account-status') || document.getElementById('user-status')
+    if (userStatus) {
+      userStatus.textContent = currentUser ? `Logged in as: ${currentUser.email}` : 'Browsing as Guest'
+    }
+    if (openAuthBtn) {
+      openAuthBtn.textContent = currentUser ? 'Sign Out' : 'Sign In'
+    }
+  }
+
   // ==========================================
-  // 6. LOGIN & SIGNUP HANDLERS
+  // 4. AUTHENTICATION (SIGN IN & SIGN UP)
   // ==========================================
-  if (authForm) {
-    authForm.addEventListener('submit', async (e) => {
+  if (loginForm) {
+    loginForm.addEventListener('submit', async (e) => {
       e.preventDefault()
       if (authError) authError.textContent = ''
 
-      const email = document.getElementById('auth-email').value.trim()
-      const password = document.getElementById('auth-password').value
+      const emailInput = document.getElementById('email') || document.getElementById('auth-email')
+      const passwordInput = document.getElementById('password') || document.getElementById('auth-password')
 
-      const { data, error } = await supabase.auth.signInWithPassword({ email, password })
+      if (!emailInput || !passwordInput) return
+
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email: emailInput.value.trim(),
+        password: passwordInput.value
+      })
 
       if (error) {
         if (authError) authError.textContent = error.message
       } else {
         if (authModal) authModal.style.display = 'none'
-        authForm.reset()
-      }
-    })
-  }
-
-  if (signupSubmitBtn) {
-    signupSubmitBtn.addEventListener('click', async () => {
-      if (authError) authError.textContent = ''
-
-      const email = document.getElementById('auth-email').value.trim()
-      const password = document.getElementById('auth-password').value
-
-      if (!email || !password) {
-        if (authError) authError.textContent = 'Please enter an email and password.'
-        return
-      }
-
-      const { data, error } = await supabase.auth.signUp({ email, password })
-
-      if (error) {
-        if (authError) authError.textContent = error.message
-      } else {
-        alert('Account created! Please check your email for confirmation.')
-        if (authModal) authModal.style.display = 'none'
-        authForm.reset()
+        loginForm.reset()
       }
     })
   }
 
   // ==========================================
-  // 7. PRODUCT FETCHING & POSTING
+  // 5. PRODUCT FEED & SUBMISSIONS
   // ==========================================
   async function fetchProducts() {
-    if (!productsGrid) return
+    if (!productsContainer) return
 
     const { data: products, error } = await supabase
       .from('products')
@@ -169,7 +125,7 @@ document.addEventListener('DOMContentLoaded', () => {
       .order('created_at', { ascending: false })
 
     if (error) {
-      productsGrid.innerHTML = `<p class="error-msg">Error loading products: ${error.message}</p>`
+      console.error('Error fetching products:', error.message)
       return
     }
 
@@ -177,23 +133,23 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   function renderProducts(products) {
-    if (!productsGrid) return
-    productsGrid.innerHTML = ''
+    if (!productsContainer) return
+    productsContainer.innerHTML = ''
 
     if (!products || products.length === 0) {
-      productsGrid.innerHTML = '<p>No items posted yet.</p>'
+      productsContainer.innerHTML = '<p class="no-items">No items posted yet.</p>'
       return
     }
 
-    products.forEach(item => {
+    products.forEach(product => {
       const card = document.createElement('div')
-      card.className = 'card'
+      card.className = 'product-card card'
       card.innerHTML = `
-        <h3>${item.title || 'Untitled Item'}</h3>
-        <p class="price">UGX ${item.price || '0'}</p>
-        <p class="location">📍 ${item.location || 'Uganda'}</p>
+        <h3>${product.title || 'Untitled Item'}</h3>
+        <p class="price">UGX ${product.price || 0}</p>
+        <p class="location">📍 ${product.location || 'Kampala'}</p>
       `
-      productsGrid.appendChild(card)
+      productsContainer.appendChild(card)
     })
   }
 
@@ -216,7 +172,7 @@ document.addEventListener('DOMContentLoaded', () => {
       ])
 
       if (error) {
-        alert('Failed to post item: ' + error.message)
+        alert('Failed to post product: ' + error.message)
       } else {
         postProductForm.reset()
         if (postModal) postModal.style.display = 'none'
