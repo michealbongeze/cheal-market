@@ -1,11 +1,10 @@
 // ==========================================
 // 1. SUPABASE CLIENT INITIALIZATION
 // ==========================================
-// Replace with your actual Supabase URL and Anon Key from Project Settings -> API
-const SUPABASE_URL = 'https://YOUR_PROJECT_ID.supabase.co'
-const SUPABASE_ANON_KEY = 'YOUR_ANON_KEY'
+const SUPABASE_URL = 'https://michealbongeze.supabase.co'
+const SUPABASE_ANON_KEY = 'Sb_publishable_HVAjJNZAQIiyf1aFosvH0A_fnYoFpHx'
 
-// Initialize Supabase with implicit flow to avoid iOS Safari fetch preflight blocks
+// Initialize Supabase with implicit flow to fix iOS Safari network errors
 const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
   auth: {
     persistSession: true,
