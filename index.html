@@ -2,1534 +2,498 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta
-    name="viewport"
-    content="width=device-width, initial-scale=1.0, viewport-fit=cover"
-  >
-
-  <meta name="theme-color" content="#10b981">
-
-  <!-- =========================================================
-       APP ICON & PWA METADATA (Home Screen Support)
-  ========================================================== -->
-  <link rel="icon" type="image/png" sizes="32x32" href="logo.png">
-  <link rel="apple-touch-icon" sizes="180x180" href="logo.png">
-  <meta name="apple-mobile-web-app-title" content="Cheal Market">
-  <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-status-bar-style" content="default">
-
-  <title>CHEAL Market — Buy. Sell. Connect.</title>
-
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-
-  <link
-    href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap"
-    rel="stylesheet"
-  >
-
-  <link rel="stylesheet" href="styles.css">
-
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CHEAL Market - Buy & Sell Anything</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   <style>
-    /* Styled CHEAL Branding */
-    .brand-cheal {
-      display: inline-flex;
-      align-items: center;
-      gap: 10px;
-      text-decoration: none;
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+    body {
+      font-family: 'Inter', sans-serif;
+      -webkit-tap-highlight-color: transparent;
     }
-
-    .brand-badge {
-      background: linear-gradient(135deg, #10b981 0%, #059669 100%);
-      color: #ffffff;
-      font-weight: 900;
-      font-size: 1.1rem;
-      letter-spacing: 0.5px;
-      padding: 6px 12px;
-      border-radius: 10px;
-      box-shadow: 0 4px 12px rgba(16, 185, 129, 0.25);
-      display: inline-block;
-      line-height: 1;
+    .modal {
+      transition: opacity 0.25s ease;
     }
-
-    .brand-text-wrapper {
-      display: flex;
-      flex-direction: column;
-      line-height: 1.1;
+    .modal-active {
+      overflow-x: hidden;
+      overflow-y: auto;
     }
-
-    .brand-title-cheal {
-      font-weight: 900;
-      font-size: 1.25rem;
-      letter-spacing: 1.5px;
-      color: #0f172a;
-      text-transform: uppercase;
-      background: linear-gradient(135deg, #0f172a 0%, #10b981 100%);
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
+    /* Hide scrollbar for category list on mobile */
+    .no-scrollbar::-webkit-scrollbar {
+      display: none;
     }
-
-    .brand-subtitle-market {
-      font-weight: 700;
-      font-size: 0.7rem;
-      letter-spacing: 2px;
-      color: #10b981;
-      text-transform: uppercase;
+    .no-scrollbar {
+      -ms-overflow-style: none;
+      scrollbar-width: none;
     }
   </style>
 </head>
+<body class="bg-gray-50 text-gray-800 pb-20 md:pb-6">
 
-<body>
-
-<div id="app">
-
-  <!-- =========================================================
-       TOP BAR
-  ========================================================== -->
-
-  <header class="topbar">
-
-    <div class="topbar-inner">
-
-      <button
-        type="button"
-        class="icon-button logo-button"
-        id="menuButton"
-        aria-label="Open menu"
-        aria-controls="menuOverlay"
-        aria-expanded="false"
-      >
-        ☰
-      </button>
-
-
-      <!-- REDESIGNED CHEAL LOGO -->
-      <a
-        href="#home"
-        class="brand brand-cheal"
-        id="brandHomeButton"
-        aria-label="CHEAL Market Home"
-      >
-        <span class="brand-badge">CHEAL</span>
-        <span class="brand-text-wrapper">
-          <strong class="brand-title-cheal">CHEAL</strong>
-          <small class="brand-subtitle-market">MARKET</small>
-        </span>
+  <!-- Top Navigation Header -->
+  <header class="sticky top-0 z-30 bg-white border-b border-gray-200 shadow-sm">
+    <div class="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between gap-3">
+      <!-- Logo -->
+      <a href="#" class="flex items-center gap-2 text-indigo-600 font-bold text-xl tracking-tight shrink-0">
+        <i class="fa-solid me-1 fa-store text-2xl"></i>
+        <span>CHEAL<span class="text-gray-900">Market</span></span>
       </a>
 
+      <!-- Search Input -->
+      <div class="flex-1 max-w-md relative hidden sm:block">
+        <input type="text" id="search-input" placeholder="Search electronics, vehicles, fashion..." class="w-full bg-gray-100 pl-10 pr-4 py-2 rounded-full text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 border border-transparent transition">
+        <i class="fa-solid fa-magnifying-glass absolute left-3.5 top-2.5 text-gray-400 text-sm"></i>
+      </div>
 
-      <button
-        type="button"
-        class="icon-button"
-        id="topAccountButton"
-        aria-label="Open account"
-      >
-        👤
-      </button>
+      <!-- User Action Buttons -->
+      <div class="flex items-center gap-2">
+        <button id="post-item-btn" class="bg-indigo-600 hover:bg-indigo-700 text-white font-medium text-xs sm:text-sm px-3 sm:px-4 py-2 rounded-full flex items-center gap-1.5 shadow-sm transition">
+          <i class="fa-solid fa-plus"></i>
+          <span>Post Item</span>
+        </button>
 
+        <div id="auth-buttons-container">
+          <button id="open-login-btn" class="border border-gray-300 hover:bg-gray-100 text-gray-700 font-medium text-xs sm:text-sm px-3 sm:px-4 py-2 rounded-full transition">
+            Sign In
+          </button>
+        </div>
+      </div>
     </div>
 
+    <!-- Mobile Search Bar -->
+    <div class="px-4 pb-3 sm:hidden">
+      <div class="relative w-full">
+        <input type="text" id="mobile-search-input" placeholder="Search products..." class="w-full bg-gray-100 pl-10 pr-4 py-2 rounded-full text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 border border-transparent">
+        <i class="fa-solid fa-magnifying-glass absolute left-3.5 top-2.5 text-gray-400 text-sm"></i>
+      </div>
+    </div>
   </header>
 
-
-  <!-- =========================================================
-       SEARCH
-  ========================================================== -->
-
-  <section class="search-section">
-
-    <div class="search-box">
-
-      <span aria-hidden="true">⌕</span>
-
-      <input
-        id="searchInput"
-        type="search"
-        placeholder="Search phones, clothes, books..."
-        autocomplete="off"
-        enterkeyhint="search"
-      >
-
-      <button
-        type="button"
-        id="clearSearch"
-        class="search-clear hidden"
-        aria-label="Clear search"
-      >
-        ×
+  <!-- Hero / Banner Section -->
+  <section class="bg-gradient-to-r from-indigo-900 via-indigo-800 to-indigo-900 text-white py-8 px-4 mb-6">
+    <div class="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-6">
+      <div class="text-center md:text-left">
+        <h1 class="text-2xl sm:text-4xl font-extrabold mb-2">Buy & Sell Quickly in Uganda</h1>
+        <p class="text-indigo-200 text-sm sm:text-base max-w-xl">Find great deals on phones, vehicles, real estate, and more in your local area with CHEAL Market.</p>
+      </div>
+      <button id="hero-post-btn" class="bg-emerald-500 hover:bg-emerald-600 text-white font-semibold px-6 py-3 rounded-full text-sm sm:text-base shadow-md transition shrink-0">
+        <i class="fa-solid fa-camera mr-2"></i>Start Selling Now
       </button>
-
     </div>
-
-
-    <button
-      type="button"
-      class="location-button"
-      id="locationButton"
-    >
-      📍 Kampala
-    </button>
-
   </section>
 
-
-  <!-- =========================================================
-       MAIN CONTENT
-  ========================================================== -->
-
-  <main id="mainContent">
-
-
-    <!-- =======================================================
-         HOME
-    ======================================================== -->
-
-    <section
-      class="screen"
-      id="homeScreen"
-      data-screen="home"
-    >
-
-      <!-- HERO -->
-
-      <div class="hero">
-
-        <div>
-
-          <p class="eyebrow">
-            BUILT FOR CAMPUS LIFE
-          </p>
-
-          <h1>
-            Buy. Sell.<br>
-            <span>Connect.</span>
-          </h1>
-
-          <p class="hero-text">
-            Find affordable products from students around your campus.
-          </p>
-
-
-          <div class="hero-actions">
-
-            <button
-              type="button"
-              class="primary-button"
-              data-route="home"
-            >
-              Start Shopping
-            </button>
-
-
-            <button
-              type="button"
-              class="secondary-button"
-              data-route="sell"
-            >
-              Sell an Item
-            </button>
-
-          </div>
-
-        </div>
-
-      </div>
-
-
-      <!-- CATEGORIES -->
-
-      <section class="section">
-
-        <div class="section-heading">
-
-          <div>
-
-            <p class="section-label">
-              EXPLORE
-            </p>
-
-            <h2>
-              Categories
-            </h2>
-
-          </div>
-
-        </div>
-
-
-        <div class="category-grid">
-
-
-          <button
-            type="button"
-            class="category-card"
-            data-category="Phones"
-          >
-            <span>📱</span>
-            <strong>Phones</strong>
-            <small>Phones & accessories</small>
-          </button>
-
-
-          <button
-            type="button"
-            class="category-card"
-            data-category="Computers"
-          >
-            <span>💻</span>
-            <strong>Computers</strong>
-            <small>Laptops & computers</small>
-          </button>
-
-
-          <button
-            type="button"
-            class="category-card"
-            data-category="Fashion"
-          >
-            <span>👕</span>
-            <strong>Fashion</strong>
-            <small>Clothes & shoes</small>
-          </button>
-
-
-          <button
-            type="button"
-            class="category-card"
-            data-category="Books"
-          >
-            <span>📚</span>
-            <strong>Books</strong>
-            <small>Academic materials</small>
-          </button>
-
-
-          <button
-            type="button"
-            class="category-card"
-            data-category="Electronics"
-          >
-            <span>🎧</span>
-            <strong>Electronics</strong>
-            <small>Gadgets & devices</small>
-          </button>
-
-
-          <button
-            type="button"
-            class="category-card"
-            data-category="Home"
-          >
-            <span>🏠</span>
-            <strong>Home</strong>
-            <small>Furniture & more</small>
-          </button>
-
-
-          <button
-            type="button"
-            class="category-card"
-            data-category="Gaming"
-          >
-            <span>🎮</span>
-            <strong>Gaming</strong>
-            <small>Games & accessories</small>
-          </button>
-
-
-          <button
-            type="button"
-            class="category-card"
-            data-category="Other"
-          >
-            <span>📦</span>
-            <strong>Other</strong>
-            <small>More products</small>
-          </button>
-
-        </div>
-
-      </section>
-
-
-      <!-- PRODUCTS -->
-
-      <section class="section products-section">
-
-        <div class="section-heading">
-
-          <div>
-
-            <p class="section-label">
-              MARKETPLACE
-            </p>
-
-            <h2 id="productSectionTitle">
-              Latest listings
-            </h2>
-
-          </div>
-
-
-          <button
-            type="button"
-            class="text-button"
-            id="sortButton"
-          >
-            Latest ▾
-          </button>
-
-        </div>
-
-
-        <div
-          id="productGrid"
-          class="product-grid"
-        >
-
-          <div class="loading-card">
-
-            <div class="spinner"></div>
-
-            <p>
-              Loading products...
-            </p>
-
-          </div>
-
-        </div>
-
-      </section>
-
-    </section>
-
-
-    <!-- =======================================================
-         SAVED
-    ======================================================== -->
-
-    <section
-      class="screen hidden"
-      id="savedScreen"
-      data-screen="saved"
-    >
-
-      <div class="page-header">
-
-        <p class="section-label">
-          YOUR MARKET
-        </p>
-
-        <h1>
-          Saved items
-        </h1>
-
-        <p>
-          Products you've saved for later.
-        </p>
-
-      </div>
-
-
-      <div
-        id="savedGrid"
-        class="product-grid"
-      >
-
-        <div class="empty-state">
-
-          <div class="empty-icon">
-            ♡
-          </div>
-
-          <h2>
-            No saved items
-          </h2>
-
-          <p>
-            Tap the heart on a product to save it here.
-          </p>
-
-          <button
-            type="button"
-            class="primary-button"
-            data-route="home"
-          >
-            Browse products
-          </button>
-
-        </div>
-
-      </div>
-
-    </section>
-
-
-    <!-- =======================================================
-         SELL
-    ======================================================== -->
-
-    <section
-      class="screen hidden"
-      id="sellScreen"
-      data-screen="sell"
-    >
-
-      <div class="page-header">
-
-        <p class="section-label">
-          SELL ON CHEAL
-        </p>
-
-        <h1>
-          Sell an item
-        </h1>
-
-        <p>
-          Reach students looking for affordable products.
-        </p>
-
-      </div>
-
-
-      <form
-        id="sellForm"
-        class="form-card"
-      >
-
-
-        <!-- PRODUCT PHOTOS -->
-
-        <div class="form-group">
-
-          <label>
-            Product photos
-          </label>
-
-
-          <div
-            id="imagePreview"
-            class="image-preview-grid"
-          ></div>
-
-
-          <label
-            class="upload-box"
-            for="productImages"
-          >
-
-            <span>
-              📸
-            </span>
-
-            <strong>
-              Add photos
-            </strong>
-
-            <small>
-              Up to 5 photos · JPG, PNG or WebP
-            </small>
-
-          </label>
-
-
-          <input
-            id="productImages"
-            type="file"
-            accept="image/*"
-            multiple
-            hidden
-          >
-
-
-          <p class="field-note">
-            Clear photos help buyers understand what you're selling.
-          </p>
-
-        </div>
-
-
-        <!-- PRODUCT NAME -->
-
-        <div class="form-group">
-
-          <label for="productName">
-            Product name
-          </label>
-
-          <input
-            id="productName"
-            type="text"
-            placeholder="e.g. iPhone 13 Pro"
-            autocomplete="off"
-            required
-          >
-
-        </div>
-
-
-        <!-- PRICE + CATEGORY -->
-
-        <div class="form-row">
-
-
-          <div class="form-group">
-
-            <label for="productPrice">
-              Price (UGX)
-            </label>
-
-            <input
-              id="productPrice"
-              type="number"
-              min="0"
-              step="1"
-              inputmode="numeric"
-              placeholder="850000"
-              required
-            >
-
-          </div>
-
-
-          <div class="form-group">
-
-            <label for="productCategory">
-              Category
-            </label>
-
-            <select
-              id="productCategory"
-              required
-            >
-
-              <option value="">
-                Choose
-              </option>
-
-              <option value="Phones">
-                Phones
-              </option>
-
-              <option value="Computers">
-                Computers
-              </option>
-
-              <option value="Fashion">
-                Fashion
-              </option>
-
-              <option value="Books">
-                Books
-              </option>
-
-              <option value="Electronics">
-                Electronics
-              </option>
-
-              <option value="Home">
-                Home
-              </option>
-
-              <option value="Gaming">
-                Gaming
-              </option>
-
-              <option value="Other">
-                Other
-              </option>
-
-            </select>
-
-          </div>
-
-        </div>
-
-
-        <!-- CAMPUS -->
-
-        <div class="form-group">
-
-          <label for="productCampus">
-            Campus
-          </label>
-
-          <input
-            id="productCampus"
-            type="text"
-            placeholder="e.g. KIU"
-            autocomplete="organization"
-            required
-          >
-
-        </div>
-
-
-        <!-- DESCRIPTION -->
-
-        <div class="form-group">
-
-          <label for="productDescription">
-            Description
-          </label>
-
-          <textarea
-            id="productDescription"
-            rows="5"
-            placeholder="Describe the condition, features and anything buyers should know..."
-          ></textarea>
-
-        </div>
-
-
-        <button
-          type="submit"
-          class="primary-button full-button"
-        >
-          Publish listing
+  <!-- Categories Scrollbar -->
+  <main class="max-w-7xl mx-auto px-4">
+    <div class="mb-6">
+      <h2 class="text-lg font-bold text-gray-900 mb-3">Browse Categories</h2>
+      <div class="flex items-center gap-3 overflow-x-auto no-scrollbar pb-2">
+        <button class="category-filter-btn active bg-indigo-600 text-white px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap shadow-sm transition" data-category="all">
+          ✨ All Categories
         </button>
-
-
-        <p
-          id="sellMessage"
-          class="form-message"
-        ></p>
-
-      </form>
-
-    </section>
-
-
-    <!-- =======================================================
-         MESSAGES
-    ======================================================== -->
-
-    <section
-      class="screen hidden"
-      id="messagesScreen"
-      data-screen="messages"
-    >
-
-      <div class="page-header">
-
-        <p class="section-label">
-          PRIVATE CHAT
-        </p>
-
-        <h1>
-          Messages
-        </h1>
-
-        <p>
-          Chat privately with buyers and sellers.
-        </p>
-
-      </div>
-
-
-      <div
-        id="conversationList"
-        class="conversation-list"
-      >
-
-        <div class="empty-state">
-
-          <div class="empty-icon">
-            💬
-          </div>
-
-          <h2>
-            No conversations yet
-          </h2>
-
-          <p>
-            When you message a seller, your conversation will appear here.
-          </p>
-
-          <button
-            type="button"
-            class="primary-button"
-            data-route="home"
-          >
-            Find products
-          </button>
-
-        </div>
-
-      </div>
-
-    </section>
-
-
-    <!-- =======================================================
-         CHAT
-    ======================================================== -->
-
-    <section
-      class="screen hidden"
-      id="chatScreen"
-      data-screen="chat"
-    >
-
-      <div class="chat-page">
-
-
-        <div class="chat-header">
-
-          <button
-            type="button"
-            class="back-button"
-            id="chatBackButton"
-            data-route="messages"
-          >
-            ←
-          </button>
-
-
-          <div>
-
-            <strong id="chatName">
-              Conversation
-            </strong>
-
-            <small id="chatProduct"></small>
-
-          </div>
-
-        </div>
-
-
-        <div
-          id="chatMessages"
-          class="chat-messages"
-        ></div>
-
-
-        <form
-          id="chatForm"
-          class="chat-input-area"
-        >
-
-          <input
-            id="chatInput"
-            type="text"
-            placeholder="Write a message..."
-            autocomplete="off"
-            enterkeyhint="send"
-            required
-          >
-
-
-          <button
-            type="submit"
-            aria-label="Send message"
-          >
-            ➤
-          </button>
-
-        </form>
-
-      </div>
-
-    </section>
-
-
-    <!-- =======================================================
-         ACCOUNT
-    ======================================================== -->
-
-    <section
-      class="screen hidden"
-      id="accountScreen"
-      data-screen="account"
-    >
-
-      <div class="account-header">
-
-        <div
-          class="profile-avatar"
-          id="profileAvatar"
-          style="overflow: hidden; display: flex; align-items: center; justify-content: center; position: relative;"
-        >
-          <span id="profileAvatarInitial">M</span>
-          <img id="profileAvatarImg" src="" alt="Profile Photo" class="hidden" style="width: 100%; height: 100%; object-fit: cover;">
-        </div>
-
-
-        <div>
-
-          <p class="section-label">
-            MY ACCOUNT
-          </p>
-
-          <h1 id="profileName">
-            Welcome
-          </h1>
-
-          <p id="profileEmail">
-            Sign in to manage your account.
-          </p>
-
-        </div>
-
-      </div>
-
-
-      <!-- LOGGED OUT -->
-
-      <div
-        id="accountLoggedOut"
-        class="account-login-card"
-      >
-
-        <div class="empty-icon">
-          👤
-        </div>
-
-        <h2>
-          Sign in to CHEAL Market
-        </h2>
-
-        <p>
-          Manage your listings, saved items and messages.
-        </p>
-
-
-        <button
-          type="button"
-          class="primary-button"
-          id="accountLoginButton"
-        >
-          Sign in
+        <button class="category-filter-btn bg-white border border-gray-200 hover:bg-gray-100 text-gray-700 px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap shadow-sm transition" data-category="electronics">
+          📱 Electronics
         </button>
-
+        <button class="category-filter-btn bg-white border border-gray-200 hover:bg-gray-100 text-gray-700 px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap shadow-sm transition" data-category="vehicles">
+          🚗 Vehicles
+        </button>
+        <button class="category-filter-btn bg-white border border-gray-200 hover:bg-gray-100 text-gray-700 px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap shadow-sm transition" data-category="fashion">
+          👗 Fashion
+        </button>
+        <button class="category-filter-btn bg-white border border-gray-200 hover:bg-gray-100 text-gray-700 px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap shadow-sm transition" data-category="realestate">
+          🏠 Real Estate
+        </button>
       </div>
-
-
-      <!-- LOGGED IN -->
-
-      <div
-        id="accountLoggedIn"
-        class="account-menu hidden"
-      >
-
-        <!-- Profile Photo & Phone Edit Box -->
-        <div class="form-card" style="margin-bottom: 20px; text-align: left;">
-          
-          <div class="form-group">
-            <label>Profile Picture</label>
-            <div style="display: flex; align-items: center; gap: 12px; margin-top: 6px;">
-              <label for="avatarInput" class="secondary-button" style="cursor: pointer; padding: 8px 16px; font-size: 14px; margin: 0;">
-                📷 Choose Photo
-              </label>
-              <input type="file" id="avatarInput" accept="image/*" style="display: none;">
-              <small id="avatarFileName" style="color: #6b7280;">No new file selected</small>
-            </div>
-          </div>
-
-          <div class="form-group" style="margin-top: 12px;">
-            <label for="profilePhone">Phone / WhatsApp Number</label>
-            <input
-              id="profilePhone"
-              type="tel"
-              placeholder="e.g. +256 700 000 000"
-              autocomplete="tel"
-            >
-          </div>
-
-          <button
-            type="button"
-            id="saveProfileInfoBtn"
-            class="primary-button full-button"
-            style="margin-top: 8px;"
-          >
-            Save Profile Info
-          </button>
-
-          <p id="profileSaveMessage" class="form-message" style="margin-top: 8px;"></p>
-
-        </div>
-
-
-        <button
-          type="button"
-          class="account-menu-item"
-          data-route="my-listings"
-        >
-
-          <span>
-            📦
-          </span>
-
-          <div>
-
-            <strong>
-              My listings
-            </strong>
-
-            <small>
-              Manage products you've posted
-            </small>
-
-          </div>
-
-          <b>
-            ›
-          </b>
-
-        </button>
-
-
-        <button
-          type="button"
-          class="account-menu-item"
-          data-route="saved"
-        >
-
-          <span>
-            ❤️
-          </span>
-
-          <div>
-
-            <strong>
-              Saved items
-            </strong>
-
-            <small>
-              Products you've saved
-            </small>
-
-          </div>
-
-          <b>
-            ›
-          </b>
-
-        </button>
-
-
-        <button
-          type="button"
-          class="account-menu-item"
-          id="settingsButton"
-          data-action="settings"
-        >
-
-          <span>
-            ⚙️
-          </span>
-
-          <div>
-
-            <strong>
-              Settings
-            </strong>
-
-            <small>
-              Account preferences
-            </small>
-
-          </div>
-
-          <b>
-            ›
-          </b>
-
-        </button>
-
-
-        <button
-          type="button"
-          class="account-menu-item danger"
-          id="logoutButton"
-        >
-
-          <span>
-            ↪
-          </span>
-
-          <div>
-
-            <strong>
-              Sign out
-            </strong>
-
-            <small>
-              Sign out of your account
-            </small>
-
-          </div>
-
-          <b>
-            ›
-          </b>
-
-        </button>
-
-      </div>
-
-    </section>
-
-
-    <!-- =======================================================
-         MY LISTINGS
-    ======================================================== -->
-
-    <section
-      class="screen hidden"
-      id="myListingsScreen"
-      data-screen="my-listings"
-    >
-
-      <div class="page-header">
-
-
-        <button
-          type="button"
-          class="back-button"
-          id="myListingsBackButton"
-          data-route="account"
-        >
-          ← Account
-        </button>
-
-
-        <p class="section-label">
-          SELLER CENTER
-        </p>
-
-        <h1>
-          My listings
-        </h1>
-
-        <p>
-          Manage the products you've posted.
-        </p>
-
-      </div>
-
-
-      <div
-        id="myListingsGrid"
-        class="product-grid"
-      >
-
-        <div class="empty-state">
-
-          <div class="empty-icon">
-            📦
-          </div>
-
-          <h2>
-            No listings yet
-          </h2>
-
-          <p>
-            Products you sell will appear here.
-          </p>
-
-          <button
-            type="button"
-            class="primary-button"
-            data-route="sell"
-          >
-            Sell an item
-          </button>
-
-        </div>
-
-      </div>
-
-    </section>
-
-
-    <!-- =======================================================
-         PRODUCT DETAILS
-    ======================================================== -->
-
-    <section
-      class="screen hidden"
-      id="productScreen"
-      data-screen="product"
-    >
-
-      <div id="productDetails"></div>
-
-    </section>
-
-
-    <!-- =======================================================
-         AUTHENTICATION
-    ======================================================== -->
-
-    <div
-      id="authOverlay"
-      class="modal-overlay hidden"
-      role="dialog"
-      aria-modal="true"
-      aria-labelledby="authTitle"
-    >
-
-      <div class="auth-modal">
-
-
-        <button
-          type="button"
-          id="closeAuth"
-          class="modal-close"
-          aria-label="Close"
-        >
-          ×
-        </button>
-
-
-        <div class="auth-logo" style="width: auto; padding: 0 16px; border-radius: 12px; font-weight: 900; font-size: 1.2rem;">
-          CHEAL
-        </div>
-
-
-        <h2 id="authTitle">
-          Welcome to CHEAL Market
-        </h2>
-
-
-        <p id="authSubtitle">
-          Sign in to buy, sell and chat.
-        </p>
-
-
-        <form id="authForm">
-
-
-          <!-- SIGNUP FIELDS -->
-
-          <div
-            id="signupFields"
-            class="hidden"
-          >
-
-            <div class="form-group">
-
-              <label for="authName">
-                Full name
-              </label>
-
-              <input
-                id="authName"
-                type="text"
-                placeholder="Your name"
-                autocomplete="name"
-              >
-
-            </div>
-
-
-            <div class="form-group">
-
-              <label for="authCampus">
-                Campus
-              </label>
-
-              <input
-                id="authCampus"
-                type="text"
-                placeholder="e.g. KIU"
-                autocomplete="organization"
-              >
-
-            </div>
-
-          </div>
-
-
-          <!-- EMAIL -->
-
-          <div class="form-group">
-
-            <label for="authEmail">
-              Email
-            </label>
-
-            <input
-              id="authEmail"
-              type="email"
-              placeholder="you@example.com"
-              autocomplete="email"
-              required
-            >
-
-          </div>
-
-
-          <!-- PASSWORD -->
-
-          <div class="form-group">
-
-            <label for="authPassword">
-              Password
-            </label>
-
-            <input
-              id="authPassword"
-              type="password"
-              placeholder="••••••••"
-              minlength="6"
-              autocomplete="current-password"
-              required
-            >
-
-          </div>
-
-
-          <div style="text-align: right; margin-bottom: 12px;">
-            <button
-              type="button"
-              id="forgotPasswordBtn"
-              style="background: none; border: none; color: #10b981; font-size: 13px; font-weight: 600; cursor: pointer; text-decoration: underline;"
-            >
-              Forgot password?
-            </button>
-          </div>
-
-
-          <button
-            type="submit"
-            class="primary-button full-button"
-          >
-
-            <span id="authSubmitText">
-              Sign in
-            </span>
-
-          </button>
-
-
-          <p
-            id="authMessage"
-            class="form-message"
-          ></p>
-
-        </form>
-
-
-        <button
-          type="button"
-          id="authSwitch"
-          class="auth-switch"
-        >
-
-          Don't have an account?
-          <strong>
-            Sign up
-          </strong>
-
-        </button>
-
-      </div>
-
     </div>
 
-
-    <!-- =======================================================
-         MENU DRAWER
-    ======================================================== -->
-
-    <div
-      id="menuOverlay"
-      class="menu-overlay hidden"
-      role="dialog"
-      aria-modal="true"
-      aria-label="Main menu"
-    >
-
-      <aside class="side-menu">
-
-
-        <button
-          type="button"
-          id="closeMenu"
-          class="modal-close"
-          aria-label="Close menu"
-        >
-          ×
-        </button>
-
-
-        <div class="side-brand brand-cheal" style="margin-bottom: 20px;">
-
-          <span class="brand-badge">CHEAL</span>
-
-          <strong style="font-size: 1.2rem; font-weight: 800; color: #0f172a;">
-            CHEAL Market
-          </strong>
-
-        </div>
-
-
-        <button
-          type="button"
-          data-route="home"
-        >
-          🏠 Home
-        </button>
-
-
-        <button
-          type="button"
-          data-route="saved"
-        >
-          ❤️ Saved
-        </button>
-
-
-        <button
-          type="button"
-          data-route="sell"
-        >
-          ➕ Sell
-        </button>
-
-
-        <button
-          type="button"
-          data-route="messages"
-        >
-          💬 Messages
-        </button>
-
-
-        <button
-          type="button"
-          data-route="account"
-        >
-          👤 Account
-        </button>
-
-
-      </aside>
-
+    <!-- Products Grid -->
+    <div class="mb-8">
+      <div class="flex items-center justify-between mb-4">
+        <h2 class="text-xl font-bold text-gray-900" id="section-title">Fresh Listings</h2>
+        <span class="text-xs text-gray-500" id="item-count">Showing all items</span>
+      </div>
+      <div id="products-grid" class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-6">
+        <!-- JS dynamically populates items or fallback listings -->
+      </div>
     </div>
-
   </main>
 
+  <!-- Auth Modal (Sign In / Sign Up) -->
+  <div id="auth-modal" class="modal fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 opacity-0 pointer-events-none transition-opacity duration-300 p-4">
+    <div class="bg-white rounded-2xl max-w-md w-full p-6 shadow-xl relative transform transition-transform">
+      <button id="close-auth-modal" class="absolute top-4 right-4 text-gray-400 hover:text-gray-600 text-lg w-8 h-8 rounded-full flex items-center justify-center">
+        <i class="fa-solid fa-xmark"></i>
+      </button>
 
-  <!-- =========================================================
-       BOTTOM NAVIGATION
-  ========================================================== -->
+      <!-- Tab Switchers -->
+      <div class="flex border-b border-gray-200 mb-5">
+        <button id="tab-login" class="flex-1 py-2 font-semibold text-indigo-600 border-b-2 border-indigo-600 text-sm">Sign In</button>
+        <button id="tab-signup" class="flex-1 py-2 font-semibold text-gray-400 border-b-2 border-transparent text-sm">Sign Up</button>
+      </div>
 
-  <nav
-    class="bottom-nav"
-    aria-label="Main navigation"
-  >
+      <div id="auth-error-msg" class="hidden mb-4 p-3 bg-red-50 border border-red-200 text-red-600 text-xs rounded-lg"></div>
 
+      <!-- Login Form -->
+      <form id="login-form" class="space-y-4">
+        <div>
+          <label class="block text-xs font-medium text-gray-700 mb-1">Email Address</label>
+          <input type="email" id="login-email" required placeholder="user@example.com" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+        </div>
+        <div>
+          <label class="block text-xs font-medium text-gray-700 mb-1">Password</label>
+          <input type="password" id="login-password" required placeholder="••••••••" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+        </div>
+        <button type="submit" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-medium py-2.5 rounded-lg text-sm transition shadow-sm">
+          Sign In
+        </button>
+      </form>
 
-    <a
-      href="#home"
-      class="nav-item active"
-      data-nav="home"
-      id="navHome"
-    >
+      <!-- Signup Form -->
+      <form id="signup-form" class="space-y-4 hidden">
+        <div>
+          <label class="block text-xs font-medium text-gray-700 mb-1">Email Address</label>
+          <input type="email" id="signup-email" required placeholder="user@example.com" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+        </div>
+        <div>
+          <label class="block text-xs font-medium text-gray-700 mb-1">Create Password</label>
+          <input type="password" id="signup-password" required minlength="6" placeholder="At least 6 characters" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+        </div>
+        <button type="submit" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-medium py-2.5 rounded-lg text-sm transition shadow-sm">
+          Create Account
+        </button>
+      </form>
+    </div>
+  </div>
 
-      <span>
-        ⌂
-      </span>
+  <!-- Post Product Modal -->
+  <div id="post-modal" class="modal fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 opacity-0 pointer-events-none transition-opacity duration-300 p-4">
+    <div class="bg-white rounded-2xl max-w-lg w-full p-6 shadow-xl relative">
+      <button id="close-post-modal" class="absolute top-4 right-4 text-gray-400 hover:text-gray-600 text-lg w-8 h-8 rounded-full flex items-center justify-center">
+        <i class="fa-solid fa-xmark"></i>
+      </button>
 
-      <small>
-        Home
-      </small>
+      <h3 class="text-lg font-bold text-gray-900 mb-4">Post a New Item</h3>
+      
+      <form id="post-form" class="space-y-4">
+        <div>
+          <label class="block text-xs font-medium text-gray-700 mb-1">Product Title</label>
+          <input type="text" id="post-title" required placeholder="e.g. iPhone 13 Pro 128GB" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+        </div>
+        
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block text-xs font-medium text-gray-700 mb-1">Price (UGX)</label>
+            <input type="number" id="post-price" required placeholder="2500000" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+          </div>
+          <div>
+            <label class="block text-xs font-medium text-gray-700 mb-1">Category</label>
+            <select id="post-category" required class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none bg-white">
+              <option value="electronics">Electronics</option>
+              <option value="vehicles">Vehicles</option>
+              <option value="fashion">Fashion</option>
+              <option value="realestate">Real Estate</option>
+            </select>
+          </div>
+        </div>
 
-    </a>
+        <div>
+          <label class="block text-xs font-medium text-gray-700 mb-1">Location</label>
+          <input type="text" id="post-location" required placeholder="e.g. Kampala, Ntinda" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+        </div>
 
+        <div>
+          <label class="block text-xs font-medium text-gray-700 mb-1">Image URL (Optional)</label>
+          <input type="url" id="post-image" placeholder="https://example.com/image.jpg" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+        </div>
 
-    <a
-      href="#saved"
-      class="nav-item"
-      data-nav="saved"
-      id="navSaved"
-    >
+        <button type="submit" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-medium py-2.5 rounded-lg text-sm transition shadow-sm">
+          Publish Listing
+        </button>
+      </form>
+    </div>
+  </div>
 
-      <span>
-        ♡
-      </span>
+  <script>
+    // ===================================================
+    // 1. SUPABASE CLIENT & IMPLICIT FLOW CONFIGURATION
+    // ===================================================
+    const SUPABASE_URL = 'https://michealbongeze.supabase.co'
+    const SUPABASE_ANON_KEY = 'Sb_publishable_HVAjJNZAQIiyf1aFosvH0A_fnYoFpHx'
 
-      <small>
-        Saved
-      </small>
+    // Critical fix: flowType 'implicit' overrides PKCE cross-origin fetch issues on Mobile Safari
+    const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+      auth: {
+        persistSession: true,
+        autoRefreshToken: true,
+        detectSessionInUrl: true,
+        flowType: 'implicit'
+      }
+    });
 
-    </a>
+    // Sample fallback items when Supabase table is empty
+    const mockProducts = [
+      { id: '1', title: 'iPhone 14 Pro Max 256GB', price: 3800000, category: 'electronics', location: 'Kampala Central', image_url: 'https://images.unsplash.com/photo-1663499482523-1c0c1bae4ce1?auto=format&fit=crop&w=400&q=80' },
+      { id: '2', title: 'Toyota RAV4 2018 Clean', price: 65000000, category: 'vehicles', location: 'Nakawa', image_url: 'https://images.unsplash.com/photo-1568605117036-5fe5e7bab0b7?auto=format&fit=crop&w=400&q=80' },
+      { id: '3', title: 'Designer Leather Jacket', price: 180000, category: 'fashion', location: 'Ntinda', image_url: 'https://images.unsplash.com/photo-1551028719-00167b16eac5?auto=format&fit=crop&w=400&q=80' },
+      { id: '4', title: '2 Bedroom Apartment Rent', price: 1200000, category: 'realestate', location: 'Kira', image_url: 'https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?auto=format&fit=crop&w=400&q=80' }
+    ];
 
+    let currentCategory = 'all';
+    let searchQuery = '';
+    let currentUser = null;
 
-    <a
-      href="#sell"
-      class="nav-item sell-nav"
-      data-nav="sell"
-      id="navSell"
-    >
+    // DOM Elements
+    const authModal = document.getElementById('auth-modal');
+    const postModal = document.getElementById('post-modal');
+    const openLoginBtn = document.getElementById('open-login-btn');
+    const postItemBtn = document.getElementById('post-item-btn');
+    const heroPostBtn = document.getElementById('hero-post-btn');
+    const closeAuthBtn = document.getElementById('close-auth-modal');
+    const closePostBtn = document.getElementById('close-post-modal');
+    const tabLogin = document.getElementById('tab-login');
+    const tabSignup = document.getElementById('tab-signup');
+    const loginForm = document.getElementById('login-form');
+    const signupForm = document.getElementById('signup-form');
+    const postForm = document.getElementById('post-form');
+    const authErrorMsg = document.getElementById('auth-error-msg');
+    const productsGrid = document.getElementById('products-grid');
+    const searchInput = document.getElementById('search-input');
+    const mobileSearchInput = document.getElementById('mobile-search-input');
+    const authButtonsContainer = document.getElementById('auth-buttons-container');
 
-      <span>
-        ＋
-      </span>
+    // ===================================================
+    // 2. MODAL CONTROLLERS & EVEN LISTENERS
+    // ===================================================
+    function openModal(modal) {
+      modal.classList.remove('opacity-0', 'pointer-events-none');
+      document.body.classList.add('modal-active');
+    }
 
-      <small>
-        Sell
-      </small>
+    function closeModal(modal) {
+      modal.classList.add('opacity-0', 'pointer-events-none');
+      document.body.classList.remove('modal-active');
+      authErrorMsg.classList.add('hidden');
+    }
 
-    </a>
+    openLoginBtn?.addEventListener('click', () => openModal(authModal));
+    closeAuthBtn?.addEventListener('click', () => closeModal(authModal));
+    closePostBtn?.addEventListener('click', () => closeModal(postModal));
 
+    [postItemBtn, heroPostBtn].forEach(btn => {
+      btn?.addEventListener('click', () => {
+        if (!currentUser) {
+          openModal(authModal);
+        } else {
+          openModal(postModal);
+        }
+      });
+    });
 
-    <a
-      href="#messages"
-      class="nav-item"
-      data-nav="messages"
-      id="navMessages"
-    >
+    // Tab Switcher between Login & Signup
+    tabLogin.addEventListener('click', () => {
+      tabLogin.classList.add('text-indigo-600', 'border-indigo-600');
+      tabLogin.classList.remove('text-gray-400', 'border-transparent');
+      tabSignup.classList.remove('text-indigo-600', 'border-indigo-600');
+      tabSignup.classList.add('text-gray-400', 'border-transparent');
+      loginForm.classList.remove('hidden');
+      signupForm.classList.add('hidden');
+    });
 
-      <span>
-        💬
-      </span>
+    tabSignup.addEventListener('click', () => {
+      tabSignup.classList.add('text-indigo-600', 'border-indigo-600');
+      tabSignup.classList.remove('text-gray-400', 'border-transparent');
+      tabLogin.classList.remove('text-indigo-600', 'border-indigo-600');
+      tabLogin.classList.add('text-gray-400', 'border-transparent');
+      signupForm.classList.remove('hidden');
+      loginForm.classList.add('hidden');
+    });
 
-      <small>
-        Messages
-      </small>
+    // ===================================================
+    // 3. AUTHENTICATION (SUPABASE)
+    // ===================================================
+    supabaseClient.auth.onAuthStateChange((event, session) => {
+      currentUser = session ? session.user : null;
+      renderAuthUI();
+    });
 
-    </a>
+    function renderAuthUI() {
+      if (currentUser) {
+        authButtonsContainer.innerHTML = `
+          <div class="flex items-center gap-2">
+            <span class="text-xs font-semibold text-gray-700 hidden md:inline-block">${currentUser.email.split('@')[0]}</span>
+            <button id="logout-btn" class="border border-red-200 text-red-600 hover:bg-red-50 text-xs px-3 py-2 rounded-full font-medium transition">
+              Sign Out
+            </button>
+          </div>
+        `;
+        document.getElementById('logout-btn')?.addEventListener('click', async () => {
+          await supabaseClient.auth.signOut();
+        });
+      } else {
+        authButtonsContainer.innerHTML = `
+          <button id="open-login-btn" class="border border-gray-300 hover:bg-gray-100 text-gray-700 font-medium text-xs sm:text-sm px-3 sm:px-4 py-2 rounded-full transition">
+            Sign In
+          </button>
+        `;
+        document.getElementById('open-login-btn')?.addEventListener('click', () => openModal(authModal));
+      }
+    }
 
+    loginForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      authErrorMsg.classList.add('hidden');
+      
+      const email = document.getElementById('login-email').value;
+      const password = document.getElementById('login-password').value;
 
-    <a
-      href="#account"
-      class="nav-item"
-      data-nav="account"
-      id="navAccount"
-    >
+      const { data, error } = await supabaseClient.auth.signInWithPassword({ email, password });
 
-      <span>
-        ♙
-      </span>
+      if (error) {
+        authErrorMsg.textContent = error.message;
+        authErrorMsg.classList.remove('hidden');
+      } else {
+        closeModal(authModal);
+        loginForm.reset();
+      }
+    });
 
-      <small>
-        Account
-      </small>
+    signupForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      authErrorMsg.classList.add('hidden');
 
-    </a>
+      const email = document.getElementById('signup-email').value;
+      const password = document.getElementById('signup-password').value;
 
-  </nav>
+      const { data, error } = await supabaseClient.auth.signUp({ email, password });
 
-</div>
+      if (error) {
+        authErrorMsg.textContent = error.message;
+        authErrorMsg.classList.remove('hidden');
+      } else {
+        alert('Registration successful! Check your email to confirm registration.');
+        closeModal(authModal);
+        signupForm.reset();
+      }
+    });
 
+    // ===================================================
+    // 4. PRODUCT FETCHING & FILTERING
+    // ===================================================
+    async function loadProducts() {
+      let items = [];
 
-<!-- =========================================================
-     SUPABASE
-========================================================== -->
+      try {
+        const { data, error } = await supabaseClient.from('products').select('*').order('created_at', { ascending: false });
+        if (!error && data && data.length > 0) {
+          items = data;
+        } else {
+          items = mockProducts;
+        }
+      } catch (err) {
+        items = mockProducts;
+      }
 
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+      renderProducts(items);
+    }
 
+    function renderProducts(items) {
+      const filtered = items.filter(item => {
+        const matchesCategory = currentCategory === 'all' || item.category === currentCategory;
+        const matchesSearch = item.title.toLowerCase().includes(searchQuery.toLowerCase()) || 
+                              item.location.toLowerCase().includes(searchQuery.toLowerCase());
+        return matchesCategory && matchesSearch;
+      });
 
-<!-- =========================================================
-     CHEAL MARKET JAVASCRIPT
-========================================================== -->
+      document.getElementById('item-count').textContent = `Showing ${filtered.length} items`;
+      productsGrid.innerHTML = '';
 
-<script src="app.js"></script>
+      if (filtered.length === 0) {
+        productsGrid.innerHTML = `
+          <div class="col-span-full text-center py-12 text-gray-500">
+            <i class="fa-solid fa-box-open text-4xl mb-3 text-gray-300"></i>
+            <p>No listings found matching your search.</p>
+          </div>
+        `;
+        return;
+      }
 
+      filtered.forEach(item => {
+        const card = document.createElement('div');
+        card.className = 'bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden hover:shadow-md transition flex flex-col cursor-pointer';
+        card.innerHTML = `
+          <div class="h-36 sm:h-48 w-full bg-gray-100 relative overflow-hidden">
+            <img src="${item.image_url || 'https://via.placeholder.com/300'}" alt="${item.title}" class="w-full h-full object-cover">
+            <span class="absolute top-2 right-2 bg-black bg-opacity-60 text-white text-[10px] font-bold uppercase px-2 py-0.5 rounded-full">
+              ${item.category}
+            </span>
+          </div>
+          <div class="p-3 sm:p-4 flex-1 flex flex-col justify-between">
+            <div>
+              <h3 class="font-semibold text-xs sm:text-sm text-gray-900 line-clamp-2 mb-1">${item.title}</h3>
+              <p class="text-indigo-600 font-extrabold text-sm sm:text-base mb-2">UGX ${Number(item.price).toLocaleString()}</p>
+            </div>
+            <p class="text-gray-400 text-[11px] flex items-center gap-1">
+              <i class="fa-solid fa-location-dot"></i>
+              <span>${item.location}</span>
+            </p>
+          </div>
+        `;
+        productsGrid.appendChild(card);
+      });
+    }
+
+    // Category Buttons Listener
+    document.querySelectorAll('.category-filter-btn').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        document.querySelectorAll('.category-filter-btn').forEach(b => {
+          b.classList.remove('bg-indigo-600', 'text-white');
+          b.classList.add('bg-white', 'text-gray-700', 'border', 'border-gray-200');
+        });
+
+        const target = e.currentTarget;
+        target.classList.add('bg-indigo-600', 'text-white');
+        target.classList.remove('bg-white', 'text-gray-700', 'border', 'border-gray-200');
+
+        currentCategory = target.getAttribute('data-category');
+        loadProducts();
+      });
+    });
+
+    // Search Listeners
+    [searchInput, mobileSearchInput].forEach(input => {
+      input?.addEventListener('input', (e) => {
+        searchQuery = e.target.value;
+        loadProducts();
+      });
+    });
+
+    // Handle New Product Post Submission
+    postForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+
+      const title = document.getElementById('post-title').value;
+      const price = parseFloat(document.getElementById('post-price').value);
+      const category = document.getElementById('post-category').value;
+      const location = document.getElementById('post-location').value;
+      const image_url = document.getElementById('post-image').value;
+
+      const newProduct = { title, price, category, location, image_url, user_id: currentUser?.id };
+
+      const { error } = await supabaseClient.from('products').insert([newProduct]);
+
+      if (error) {
+        alert('Could not submit product: ' + error.message);
+      } else {
+        alert('Product listed successfully!');
+        closeModal(postModal);
+        postForm.reset();
+        loadProducts();
+      }
+    });
+
+    // Initial Load
+    loadProducts();
+  </script>
 </body>
 </html>
