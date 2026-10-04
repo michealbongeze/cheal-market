@@ -4,18 +4,21 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
   <title>Cheal Market</title>
+  
+  <!-- Supabase JS SDK -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
   <style>
     :root {
       --primary: #1e564d;
       --primary-light: #e8f3f1;
       --accent: #2a7a6d;
-      --bg: #f8f9fa;
+      --bg: #ffffff;
       --card-bg: #ffffff;
       --text: #1a1a1a;
       --text-muted: #666666;
       --border: #e2e8f0;
       --radius: 12px;
-      --shadow: 0 4px 12px rgba(0,0,0,0.05);
     }
 
     * {
@@ -32,7 +35,7 @@
       padding-bottom: 70px;
     }
 
-    /* TOP BAR */
+    /* TOP HEADER */
     .top-bar {
       position: sticky;
       top: 0;
@@ -41,7 +44,6 @@
       align-items: center;
       justify-content: space-between;
       padding: 12px 16px;
-      border-bottom: 1px solid var(--border);
       z-index: 100;
     }
 
@@ -49,7 +51,6 @@
       display: flex;
       align-items: center;
       gap: 10px;
-      cursor: pointer;
     }
 
     .brand-logo {
@@ -81,13 +82,12 @@
       border: none;
       font-size: 20px;
       cursor: pointer;
-      padding: 8px;
-      border-radius: 50%;
+      padding: 4px;
     }
 
-    /* SEARCH BAR */
+    /* SEARCH & LOCATION */
     .search-container {
-      padding: 12px 16px 4px 16px;
+      padding: 4px 16px;
     }
 
     .search-box {
@@ -96,8 +96,7 @@
       background: white;
       border: 1px solid var(--border);
       border-radius: 24px;
-      padding: 8px 16px;
-      box-shadow: var(--shadow);
+      padding: 10px 16px;
     }
 
     .search-box input {
@@ -109,22 +108,34 @@
     }
 
     .location-tag {
-      padding: 6px 16px;
+      padding: 8px 16px;
       font-size: 12px;
       color: var(--text-muted);
+      display: flex;
+      align-items: center;
+      gap: 4px;
     }
 
     /* HERO BANNER */
     .hero-banner {
-      margin: 8px 16px 16px 16px;
-      background: linear-gradient(135deg, #1e564d 0%, #2a7a6d 100%);
+      margin: 4px 16px 16px 16px;
+      background: #2a5b52;
       color: white;
       padding: 20px;
       border-radius: 16px;
     }
 
+    .hero-banner .tagline {
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 0.5px;
+      margin-bottom: 6px;
+      opacity: 0.9;
+    }
+
     .hero-banner h2 {
       font-size: 22px;
+      font-weight: 800;
       line-height: 1.2;
       margin-bottom: 8px;
     }
@@ -133,6 +144,7 @@
       font-size: 13px;
       opacity: 0.9;
       margin-bottom: 16px;
+      line-height: 1.4;
     }
 
     .hero-btns {
@@ -142,40 +154,42 @@
 
     .btn-white {
       background: white;
-      color: var(--primary);
+      color: var(--text);
       border: none;
-      padding: 10px 16px;
+      padding: 10px 18px;
       border-radius: 20px;
-      font-weight: 600;
+      font-weight: 700;
       font-size: 13px;
       cursor: pointer;
     }
 
     .btn-outline-light {
-      background: rgba(255, 255, 255, 0.15);
+      background: rgba(255, 255, 255, 0.2);
       color: white;
-      border: 1px solid rgba(255, 255, 255, 0.3);
-      padding: 10px 16px;
+      border: 1px solid rgba(255, 255, 255, 0.4);
+      padding: 10px 18px;
       border-radius: 20px;
       font-weight: 600;
       font-size: 13px;
       cursor: pointer;
     }
 
-    /* CATEGORIES */
-    .section-title {
-      font-size: 16px;
-      font-weight: 700;
-      padding: 0 16px;
-      margin-bottom: 10px;
-    }
-
+    /* CATEGORIES SECTION */
     .section-subtitle {
       font-size: 11px;
+      font-weight: 700;
       text-transform: uppercase;
       color: var(--text-muted);
       letter-spacing: 0.5px;
       padding: 0 16px;
+      margin-top: 8px;
+    }
+
+    .section-title {
+      font-size: 18px;
+      font-weight: 800;
+      padding: 0 16px;
+      margin-bottom: 12px;
     }
 
     .category-grid {
@@ -186,14 +200,14 @@
     }
 
     .category-card {
-      min-width: 100px;
+      flex: 1;
       background: white;
       border: 1px solid var(--border);
-      border-radius: var(--radius);
-      padding: 12px;
+      border-radius: 12px;
+      padding: 16px 12px;
       text-align: center;
       cursor: pointer;
-      flex-shrink: 0;
+      min-width: 90px;
     }
 
     .category-card.active {
@@ -203,15 +217,15 @@
 
     .category-icon {
       font-size: 24px;
-      margin-bottom: 4px;
+      margin-bottom: 6px;
     }
 
     .category-name {
       font-size: 12px;
-      font-weight: 600;
+      font-weight: 700;
     }
 
-    /* PRODUCT GRID */
+    /* PRODUCT LISTINGS */
     .product-grid {
       display: grid;
       grid-template-columns: repeat(2, 1fr);
@@ -232,7 +246,7 @@
     .product-image-wrap {
       width: 100%;
       height: 120px;
-      background: #eee;
+      background: #f0f0f0;
       position: relative;
     }
 
@@ -246,7 +260,7 @@
       position: absolute;
       top: 8px;
       right: 8px;
-      background: rgba(255, 255, 255, 0.85);
+      background: rgba(255, 255, 255, 0.9);
       border: none;
       width: 28px;
       height: 28px;
@@ -271,6 +285,7 @@
 
     .product-title {
       font-size: 13px;
+      font-weight: 600;
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
@@ -287,7 +302,7 @@
       color: var(--text-muted);
     }
 
-    /* BOTTOM NAV */
+    /* BOTTOM NAVIGATION */
     .bottom-nav {
       position: fixed;
       bottom: 0;
@@ -326,17 +341,16 @@
 
     .nav-sell-btn {
       position: relative;
-      top: -12px;
-      background: var(--primary);
+      top: -10px;
+      background: #2a5b52;
       color: white;
-      width: 48px;
-      height: 48px;
-      border-radius: 16px;
+      width: 44px;
+      height: 44px;
+      border-radius: 12px;
       display: flex;
       align-items: center;
       justify-content: center;
-      font-size: 20px;
-      box-shadow: 0 4px 10px rgba(30, 86, 77, 0.3);
+      font-size: 22px;
     }
 
     .hidden {
@@ -375,7 +389,7 @@
 
     .empty-state {
       text-align: center;
-      padding: 30px 16px;
+      padding: 20px 16px;
       grid-column: span 2;
       color: var(--text-muted);
       font-size: 13px;
@@ -384,7 +398,7 @@
 </head>
 <body>
 
-  <!-- TOP BAR -->
+  <!-- TOP HEADER -->
   <header class="top-bar">
     <button class="icon-btn" onclick="navigateTo('home')">☰</button>
     <div class="brand" onclick="navigateTo('home')">
@@ -407,7 +421,7 @@
     <div class="location-tag">📍 Kampala</div>
 
     <div class="hero-banner">
-      <div style="font-size: 10px; font-weight: bold; letter-spacing: 1px; margin-bottom: 4px;">BUILT FOR CAMPUS LIFE</div>
+      <div class="tagline">BUILT FOR CAMPUS LIFE</div>
       <h2>Buy. Sell. Connect.</h2>
       <p>Find affordable products from students around your campus.</p>
       <div class="hero-btns">
@@ -500,7 +514,7 @@
     </button>
     <button class="nav-item" onclick="navigateTo('sell', this)">
       <div class="nav-sell-btn">+</div>
-      <span style="margin-top:4px;">Sell</span>
+      <span style="margin-top:2px;">Sell</span>
     </button>
     <button class="nav-item" onclick="navigateTo('account', this)">
       <span class="icon">👤</span>
@@ -509,27 +523,10 @@
   </nav>
 
   <script>
-    // LOCAL STORAGE IN-MEMORY DATABASE
-    const INITIAL_PRODUCTS = [
-      { id: '1', name: 'iPhone 11 64GB Black', price: 650000, category: 'Phones', campus: 'KIU Main Campus', image: 'https://images.unsplash.com/photo-1565849904461-04a58ad377e0?w=400' },
-      { id: '2', name: 'HP EliteBook 840 G3', price: 850000, category: 'Computers', campus: 'Makerere University', image: 'https://images.unsplash.com/photo-1496181133206-80ce9b88a853?w=400' },
-      { id: '3', name: 'Nike Air Force 1 (Size 42)', price: 120000, category: 'Fashion', campus: 'MUBS Nakawa', image: 'https://images.unsplash.com/photo-1595950653106-6c9ebd614d3a?w=400' }
-    ];
+    const SUPABASE_URL = 'https://qwklkqjfbrhythpynghr.supabase.co';
+    const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InF3bGtscWpmYnJoeXRocHluZ2hyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTEwMjg3MzEsImV4cCI6MjEwNjYwNDczMX0.BUscEhVhQd0bNS8VHHHlJUxudmsF0tXpx5PC9_oQ2-I';
 
-    function getProducts() {
-      const stored = localStorage.getItem('cheal_products');
-      if (!stored) {
-        localStorage.setItem('cheal_products', JSON.stringify(INITIAL_PRODUCTS));
-        return INITIAL_PRODUCTS;
-      }
-      return JSON.parse(stored);
-    }
-
-    function saveProduct(item) {
-      const products = getProducts();
-      products.unshift(item);
-      localStorage.setItem('cheal_products', JSON.stringify(products));
-    }
+    const supabase = window.supabase ? window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY) : null;
 
     let savedIds = new Set(JSON.parse(localStorage.getItem('cheal_saved_ids') || '[]'));
     let activeCategory = null;
@@ -545,8 +542,8 @@
         btnEl.classList.add('active');
       }
 
-      if (screenName === 'home') renderHome();
-      if (screenName === 'saved') renderSaved();
+      if (screenName === 'home') fetchProducts();
+      if (screenName === 'saved') fetchSavedProducts();
 
       window.scrollTo({ top: 0, behavior: 'smooth' });
     }
@@ -560,63 +557,83 @@
         document.querySelectorAll('.category-card').forEach(c => c.classList.remove('active'));
         cardEl.classList.add('active');
       }
-      renderHome();
+      fetchProducts();
     }
 
     function handleSearch(val) {
       searchQuery = val.trim().toLowerCase();
-      renderHome();
+      fetchProducts();
     }
 
-    function renderHome() {
+    async function fetchProducts() {
       const grid = document.getElementById('productGrid');
-      let items = getProducts();
+      if (!grid) return;
 
-      if (activeCategory) {
-        items = items.filter(p => p.category === activeCategory);
-      }
-
-      if (searchQuery) {
-        items = items.filter(p => p.name.toLowerCase().includes(searchQuery));
-      }
-
-      if (items.length === 0) {
-        grid.innerHTML = '<div class="empty-state">No items found.</div>';
+      if (!supabase) {
+        grid.innerHTML = '<div class="empty-state">Database connection unavailable.</div>';
         return;
       }
 
-      renderGrid(items, grid);
+      grid.innerHTML = '<div class="empty-state">Loading listings...</div>';
+
+      let query = supabase.from('products').select('*').order('created_at', { ascending: false });
+
+      if (activeCategory) {
+        query = query.eq('category', activeCategory);
+      }
+
+      const { data: products, error } = await query;
+
+      if (error) {
+        grid.innerHTML = `<div class="empty-state" style="color:red;">Error loading items: ${error.message}</div>`;
+        return;
+      }
+
+      let filtered = products || [];
+      if (searchQuery) {
+        filtered = filtered.filter(p => (p.name || p.title || '').toLowerCase().includes(searchQuery));
+      }
+
+      if (filtered.length === 0) {
+        grid.innerHTML = '<div class="empty-state">No listings found. Add one using the + Sell tab!</div>';
+        return;
+      }
+
+      renderGrid(filtered, grid);
     }
 
-    function renderSaved() {
+    async function fetchSavedProducts() {
       const grid = document.getElementById('savedGrid');
-      const items = getProducts().filter(p => savedIds.has(String(p.id)));
-
-      if (items.length === 0) {
+      if (savedIds.size === 0 || !supabase) {
         grid.innerHTML = '<div class="empty-state">No saved items yet.</div>';
         return;
       }
 
-      renderGrid(items, grid);
+      const { data: products } = await supabase.from('products').select('*').in('id', Array.from(savedIds));
+      renderGrid(products || [], grid);
     }
 
     function renderGrid(items, targetGrid) {
       targetGrid.innerHTML = '';
       items.forEach(item => {
         const isSaved = savedIds.has(String(item.id));
+        const title = item.name || item.title || 'Untitled Item';
+        const price = item.price ? `UGX ${Number(item.price).toLocaleString()}` : 'Contact';
+        const image = item.image_url || 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=400';
+
         const card = document.createElement('div');
         card.className = 'product-card-item';
         card.innerHTML = `
           <div class="product-image-wrap">
-            <img src="${item.image}" alt="${item.name}" />
+            <img src="${image}" alt="${title}" />
             <button type="button" class="save-btn ${isSaved ? 'saved' : ''}" onclick="toggleSave('${item.id}', this)">
               ${isSaved ? '♥' : '♡'}
             </button>
           </div>
           <div class="product-details">
-            <strong class="product-title">${item.name}</strong>
-            <p class="product-price">UGX ${Number(item.price).toLocaleString()}</p>
-            <small class="product-campus">📍 ${item.campus}</small>
+            <strong class="product-title">${title}</strong>
+            <p class="product-price">${price}</p>
+            <small class="product-campus">📍 ${item.campus || 'Kampala'}</small>
           </div>
         `;
         targetGrid.appendChild(card);
@@ -637,29 +654,36 @@
       localStorage.setItem('cheal_saved_ids', JSON.stringify(Array.from(savedIds)));
     }
 
-    document.getElementById('sellForm').addEventListener('submit', (e) => {
+    document.getElementById('sellForm').addEventListener('submit', async (e) => {
       e.preventDefault();
-      const newItem = {
-        id: Date.now().toString(),
-        name: document.getElementById('productName').value,
-        price: Number(document.getElementById('productPrice').value),
-        category: document.getElementById('productCategory').value,
-        campus: document.getElementById('productCampus').value,
-        image: 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=400'
-      };
+      if (!supabase) return;
 
-      saveProduct(newItem);
-      document.getElementById('sellMessage').style.color = 'green';
-      document.getElementById('sellMessage').textContent = 'Item posted successfully!';
-      document.getElementById('sellForm').reset();
+      const name = document.getElementById('productName').value;
+      const price = parseFloat(document.getElementById('productPrice').value);
+      const category = document.getElementById('productCategory').value;
+      const campus = document.getElementById('productCampus').value;
+      const description = document.getElementById('productDescription').value;
 
-      setTimeout(() => {
-        document.getElementById('sellMessage').textContent = '';
-        navigateTo('home');
-      }, 1000);
+      const { error } = await supabase.from('products').insert([
+        { name, price, category, campus, description }
+      ]);
+
+      const msg = document.getElementById('sellMessage');
+      if (error) {
+        msg.style.color = 'red';
+        msg.textContent = error.message;
+      } else {
+        msg.style.color = 'green';
+        msg.textContent = 'Item posted successfully!';
+        document.getElementById('sellForm').reset();
+        setTimeout(() => {
+          msg.textContent = '';
+          navigateTo('home');
+        }, 1200);
+      }
     });
 
-    document.addEventListener('DOMContentLoaded', renderHome);
+    document.addEventListener('DOMContentLoaded', fetchProducts);
   </script>
 </body>
 </html>
