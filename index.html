@@ -3,497 +3,95 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>CHEAL Market - Buy & Sell Anything</title>
-  <script src="https://cdn.tailwindcss.com"></script>
+  <title>CHEAL Market | Student Marketplace</title>
+  <link rel="stylesheet" href="styles.css">
+  <!-- Supabase JS Client library -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-  <style>
-    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
-    body {
-      font-family: 'Inter', sans-serif;
-      -webkit-tap-highlight-color: transparent;
-    }
-    .modal {
-      transition: opacity 0.25s ease;
-    }
-    .modal-active {
-      overflow-x: hidden;
-      overflow-y: auto;
-    }
-    /* Hide scrollbar for category list on mobile */
-    .no-scrollbar::-webkit-scrollbar {
-      display: none;
-    }
-    .no-scrollbar {
-      -ms-overflow-style: none;
-      scrollbar-width: none;
-    }
-  </style>
 </head>
-<body class="bg-gray-50 text-gray-800 pb-20 md:pb-6">
+<body>
 
-  <!-- Top Navigation Header -->
-  <header class="sticky top-0 z-30 bg-white border-b border-gray-200 shadow-sm">
-    <div class="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between gap-3">
-      <!-- Logo -->
-      <a href="#" class="flex items-center gap-2 text-indigo-600 font-bold text-xl tracking-tight shrink-0">
-        <i class="fa-solid me-1 fa-store text-2xl"></i>
-        <span>CHEAL<span class="text-gray-900">Market</span></span>
-      </a>
-
-      <!-- Search Input -->
-      <div class="flex-1 max-w-md relative hidden sm:block">
-        <input type="text" id="search-input" placeholder="Search electronics, vehicles, fashion..." class="w-full bg-gray-100 pl-10 pr-4 py-2 rounded-full text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 border border-transparent transition">
-        <i class="fa-solid fa-magnifying-glass absolute left-3.5 top-2.5 text-gray-400 text-sm"></i>
-      </div>
-
-      <!-- User Action Buttons -->
-      <div class="flex items-center gap-2">
-        <button id="post-item-btn" class="bg-indigo-600 hover:bg-indigo-700 text-white font-medium text-xs sm:text-sm px-3 sm:px-4 py-2 rounded-full flex items-center gap-1.5 shadow-sm transition">
-          <i class="fa-solid fa-plus"></i>
-          <span>Post Item</span>
-        </button>
-
-        <div id="auth-buttons-container">
-          <button id="open-login-btn" class="border border-gray-300 hover:bg-gray-100 text-gray-700 font-medium text-xs sm:text-sm px-3 sm:px-4 py-2 rounded-full transition">
-            Sign In
-          </button>
-        </div>
-      </div>
-    </div>
-
-    <!-- Mobile Search Bar -->
-    <div class="px-4 pb-3 sm:hidden">
-      <div class="relative w-full">
-        <input type="text" id="mobile-search-input" placeholder="Search products..." class="w-full bg-gray-100 pl-10 pr-4 py-2 rounded-full text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 border border-transparent">
-        <i class="fa-solid fa-magnifying-glass absolute left-3.5 top-2.5 text-gray-400 text-sm"></i>
-      </div>
+  <!-- Top Navigation Bar -->
+  <header class="navbar">
+    <div class="logo">CHEAL Market</div>
+    <div class="nav-actions">
+      <button id="auth-btn" class="btn-secondary">Sign In</button>
+      <button id="post-btn" class="btn-primary">+ Sell Item</button>
     </div>
   </header>
 
-  <!-- Hero / Banner Section -->
-  <section class="bg-gradient-to-r from-indigo-900 via-indigo-800 to-indigo-900 text-white py-8 px-4 mb-6">
-    <div class="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-6">
-      <div class="text-center md:text-left">
-        <h1 class="text-2xl sm:text-4xl font-extrabold mb-2">Buy & Sell Quickly in Uganda</h1>
-        <p class="text-indigo-200 text-sm sm:text-base max-w-xl">Find great deals on phones, vehicles, real estate, and more in your local area with CHEAL Market.</p>
-      </div>
-      <button id="hero-post-btn" class="bg-emerald-500 hover:bg-emerald-600 text-white font-semibold px-6 py-3 rounded-full text-sm sm:text-base shadow-md transition shrink-0">
-        <i class="fa-solid fa-camera mr-2"></i>Start Selling Now
-      </button>
-    </div>
+  <!-- User Status Banner -->
+  <section class="status-banner">
+    <p id="user-status">Browsing as Guest</p>
   </section>
 
-  <!-- Categories Scrollbar -->
-  <main class="max-w-7xl mx-auto px-4">
-    <div class="mb-6">
-      <h2 class="text-lg font-bold text-gray-900 mb-3">Browse Categories</h2>
-      <div class="flex items-center gap-3 overflow-x-auto no-scrollbar pb-2">
-        <button class="category-filter-btn active bg-indigo-600 text-white px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap shadow-sm transition" data-category="all">
-          ✨ All Categories
-        </button>
-        <button class="category-filter-btn bg-white border border-gray-200 hover:bg-gray-100 text-gray-700 px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap shadow-sm transition" data-category="electronics">
-          📱 Electronics
-        </button>
-        <button class="category-filter-btn bg-white border border-gray-200 hover:bg-gray-100 text-gray-700 px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap shadow-sm transition" data-category="vehicles">
-          🚗 Vehicles
-        </button>
-        <button class="category-filter-btn bg-white border border-gray-200 hover:bg-gray-100 text-gray-700 px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap shadow-sm transition" data-category="fashion">
-          👗 Fashion
-        </button>
-        <button class="category-filter-btn bg-white border border-gray-200 hover:bg-gray-100 text-gray-700 px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap shadow-sm transition" data-category="realestate">
-          🏠 Real Estate
-        </button>
-      </div>
-    </div>
+  <!-- Navigation Tabs -->
+  <nav class="nav-tabs">
+    <button class="tab-btn active" data-tab="feed">Feed</button>
+    <button class="tab-btn" data-tab="saved">Saved Items</button>
+    <button class="tab-btn" data-tab="chat">Messages</button>
+    <button class="tab-btn" data-tab="profile">Profile</button>
+  </nav>
 
-    <!-- Products Grid -->
-    <div class="mb-8">
-      <div class="flex items-center justify-between mb-4">
-        <h2 class="text-xl font-bold text-gray-900" id="section-title">Fresh Listings</h2>
-        <span class="text-xs text-gray-500" id="item-count">Showing all items</span>
+  <!-- Main Content Feed -->
+  <main class="container">
+    <section id="feed-section" class="tab-content active">
+      <h2>Recent Listings</h2>
+      <div id="products-grid" class="grid">
+        <p>Loading items...</p>
       </div>
-      <div id="products-grid" class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-6">
-        <!-- JS dynamically populates items or fallback listings -->
+    </section>
+
+    <section id="saved-section" class="tab-content" style="display: none;">
+      <h2>Your Saved Items</h2>
+      <div id="saved-grid" class="grid">
+        <p>No saved items yet.</p>
       </div>
-    </div>
+    </section>
+
+    <section id="chat-section" class="tab-content" style="display: none;">
+      <h2>Messages & Real-time Chat</h2>
+      <p>Select a seller or listing to start chatting.</p>
+    </section>
+
+    <section id="profile-section" class="tab-content" style="display: none;">
+      <h2>User Profile</h2>
+      <div id="profile-details">
+        <p>Please sign in to view and update your profile details.</p>
+      </div>
+    </section>
   </main>
 
-  <!-- Auth Modal (Sign In / Sign Up) -->
-  <div id="auth-modal" class="modal fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 opacity-0 pointer-events-none transition-opacity duration-300 p-4">
-    <div class="bg-white rounded-2xl max-w-md w-full p-6 shadow-xl relative transform transition-transform">
-      <button id="close-auth-modal" class="absolute top-4 right-4 text-gray-400 hover:text-gray-600 text-lg w-8 h-8 rounded-full flex items-center justify-center">
-        <i class="fa-solid fa-xmark"></i>
-      </button>
-
-      <!-- Tab Switchers -->
-      <div class="flex border-b border-gray-200 mb-5">
-        <button id="tab-login" class="flex-1 py-2 font-semibold text-indigo-600 border-b-2 border-indigo-600 text-sm">Sign In</button>
-        <button id="tab-signup" class="flex-1 py-2 font-semibold text-gray-400 border-b-2 border-transparent text-sm">Sign Up</button>
-      </div>
-
-      <div id="auth-error-msg" class="hidden mb-4 p-3 bg-red-50 border border-red-200 text-red-600 text-xs rounded-lg"></div>
-
-      <!-- Login Form -->
-      <form id="login-form" class="space-y-4">
-        <div>
-          <label class="block text-xs font-medium text-gray-700 mb-1">Email Address</label>
-          <input type="email" id="login-email" required placeholder="user@example.com" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+  <!-- Auth Modal -->
+  <div id="auth-modal" class="modal" style="display: none;">
+    <div class="modal-content">
+      <span class="close-btn" id="close-auth">&times;</span>
+      <h3>Sign In / Sign Up</h3>
+      <form id="auth-form">
+        <input type="email" id="auth-email" placeholder="Your Email" required />
+        <input type="password" id="auth-password" placeholder="Your Password" required />
+        <div class="auth-actions">
+          <button type="submit" id="login-submit-btn" class="btn-primary">Sign In</button>
+          <button type="button" id="signup-submit-btn" class="btn-secondary">Create Account</button>
         </div>
-        <div>
-          <label class="block text-xs font-medium text-gray-700 mb-1">Password</label>
-          <input type="password" id="login-password" required placeholder="••••••••" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none">
-        </div>
-        <button type="submit" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-medium py-2.5 rounded-lg text-sm transition shadow-sm">
-          Sign In
-        </button>
       </form>
+      <p id="auth-error" class="error-msg"></p>
+    </div>
+  </div>
 
-      <!-- Signup Form -->
-      <form id="signup-form" class="space-y-4 hidden">
-        <div>
-          <label class="block text-xs font-medium text-gray-700 mb-1">Email Address</label>
-          <input type="email" id="signup-email" required placeholder="user@example.com" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none">
-        </div>
-        <div>
-          <label class="block text-xs font-medium text-gray-700 mb-1">Create Password</label>
-          <input type="password" id="signup-password" required minlength="6" placeholder="At least 6 characters" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none">
-        </div>
-        <button type="submit" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-medium py-2.5 rounded-lg text-sm transition shadow-sm">
-          Create Account
-        </button>
+  <!-- Post Item Modal -->
+  <div id="post-modal" class="modal" style="display: none;">
+    <div class="modal-content">
+      <span class="close-btn" id="close-post">&times;</span>
+      <h3>Post an Item for Sale</h3>
+      <form id="post-product-form">
+        <input type="text" id="product-title" placeholder="Item Title" required />
+        <input type="number" id="product-price" placeholder="Price (UGX)" required />
+        <input type="text" id="product-location" placeholder="Location (e.g. Kampala / Campus)" required />
+        <button type="submit" class="btn-primary">Post Item</button>
       </form>
     </div>
   </div>
 
-  <!-- Post Product Modal -->
-  <div id="post-modal" class="modal fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 opacity-0 pointer-events-none transition-opacity duration-300 p-4">
-    <div class="bg-white rounded-2xl max-w-lg w-full p-6 shadow-xl relative">
-      <button id="close-post-modal" class="absolute top-4 right-4 text-gray-400 hover:text-gray-600 text-lg w-8 h-8 rounded-full flex items-center justify-center">
-        <i class="fa-solid fa-xmark"></i>
-      </button>
-
-      <h3 class="text-lg font-bold text-gray-900 mb-4">Post a New Item</h3>
-      
-      <form id="post-form" class="space-y-4">
-        <div>
-          <label class="block text-xs font-medium text-gray-700 mb-1">Product Title</label>
-          <input type="text" id="post-title" required placeholder="e.g. iPhone 13 Pro 128GB" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none">
-        </div>
-        
-        <div class="grid grid-cols-2 gap-3">
-          <div>
-            <label class="block text-xs font-medium text-gray-700 mb-1">Price (UGX)</label>
-            <input type="number" id="post-price" required placeholder="2500000" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none">
-          </div>
-          <div>
-            <label class="block text-xs font-medium text-gray-700 mb-1">Category</label>
-            <select id="post-category" required class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none bg-white">
-              <option value="electronics">Electronics</option>
-              <option value="vehicles">Vehicles</option>
-              <option value="fashion">Fashion</option>
-              <option value="realestate">Real Estate</option>
-            </select>
-          </div>
-        </div>
-
-        <div>
-          <label class="block text-xs font-medium text-gray-700 mb-1">Location</label>
-          <input type="text" id="post-location" required placeholder="e.g. Kampala, Ntinda" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none">
-        </div>
-
-        <div>
-          <label class="block text-xs font-medium text-gray-700 mb-1">Image URL (Optional)</label>
-          <input type="url" id="post-image" placeholder="https://example.com/image.jpg" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none">
-        </div>
-
-        <button type="submit" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-medium py-2.5 rounded-lg text-sm transition shadow-sm">
-          Publish Listing
-        </button>
-      </form>
-    </div>
-  </div>
-
-  <script>
-    // ===================================================
-    // 1. SUPABASE CLIENT & IMPLICIT FLOW CONFIGURATION
-    // ===================================================
-    const SUPABASE_URL = 'https://michealbongeze.supabase.co'
-    const SUPABASE_ANON_KEY = 'Sb_publishable_HVAjJNZAQIiyf1aFosvH0A_fnYoFpHx'
-
-    // Critical fix: flowType 'implicit' overrides PKCE cross-origin fetch issues on Mobile Safari
-    const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
-      auth: {
-        persistSession: true,
-        autoRefreshToken: true,
-        detectSessionInUrl: true,
-        flowType: 'implicit'
-      }
-    });
-
-    // Sample fallback items when Supabase table is empty
-    const mockProducts = [
-      { id: '1', title: 'iPhone 14 Pro Max 256GB', price: 3800000, category: 'electronics', location: 'Kampala Central', image_url: 'https://images.unsplash.com/photo-1663499482523-1c0c1bae4ce1?auto=format&fit=crop&w=400&q=80' },
-      { id: '2', title: 'Toyota RAV4 2018 Clean', price: 65000000, category: 'vehicles', location: 'Nakawa', image_url: 'https://images.unsplash.com/photo-1568605117036-5fe5e7bab0b7?auto=format&fit=crop&w=400&q=80' },
-      { id: '3', title: 'Designer Leather Jacket', price: 180000, category: 'fashion', location: 'Ntinda', image_url: 'https://images.unsplash.com/photo-1551028719-00167b16eac5?auto=format&fit=crop&w=400&q=80' },
-      { id: '4', title: '2 Bedroom Apartment Rent', price: 1200000, category: 'realestate', location: 'Kira', image_url: 'https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?auto=format&fit=crop&w=400&q=80' }
-    ];
-
-    let currentCategory = 'all';
-    let searchQuery = '';
-    let currentUser = null;
-
-    // DOM Elements
-    const authModal = document.getElementById('auth-modal');
-    const postModal = document.getElementById('post-modal');
-    const openLoginBtn = document.getElementById('open-login-btn');
-    const postItemBtn = document.getElementById('post-item-btn');
-    const heroPostBtn = document.getElementById('hero-post-btn');
-    const closeAuthBtn = document.getElementById('close-auth-modal');
-    const closePostBtn = document.getElementById('close-post-modal');
-    const tabLogin = document.getElementById('tab-login');
-    const tabSignup = document.getElementById('tab-signup');
-    const loginForm = document.getElementById('login-form');
-    const signupForm = document.getElementById('signup-form');
-    const postForm = document.getElementById('post-form');
-    const authErrorMsg = document.getElementById('auth-error-msg');
-    const productsGrid = document.getElementById('products-grid');
-    const searchInput = document.getElementById('search-input');
-    const mobileSearchInput = document.getElementById('mobile-search-input');
-    const authButtonsContainer = document.getElementById('auth-buttons-container');
-
-    // ===================================================
-    // 2. MODAL CONTROLLERS & EVEN LISTENERS
-    // ===================================================
-    function openModal(modal) {
-      modal.classList.remove('opacity-0', 'pointer-events-none');
-      document.body.classList.add('modal-active');
-    }
-
-    function closeModal(modal) {
-      modal.classList.add('opacity-0', 'pointer-events-none');
-      document.body.classList.remove('modal-active');
-      authErrorMsg.classList.add('hidden');
-    }
-
-    openLoginBtn?.addEventListener('click', () => openModal(authModal));
-    closeAuthBtn?.addEventListener('click', () => closeModal(authModal));
-    closePostBtn?.addEventListener('click', () => closeModal(postModal));
-
-    [postItemBtn, heroPostBtn].forEach(btn => {
-      btn?.addEventListener('click', () => {
-        if (!currentUser) {
-          openModal(authModal);
-        } else {
-          openModal(postModal);
-        }
-      });
-    });
-
-    // Tab Switcher between Login & Signup
-    tabLogin.addEventListener('click', () => {
-      tabLogin.classList.add('text-indigo-600', 'border-indigo-600');
-      tabLogin.classList.remove('text-gray-400', 'border-transparent');
-      tabSignup.classList.remove('text-indigo-600', 'border-indigo-600');
-      tabSignup.classList.add('text-gray-400', 'border-transparent');
-      loginForm.classList.remove('hidden');
-      signupForm.classList.add('hidden');
-    });
-
-    tabSignup.addEventListener('click', () => {
-      tabSignup.classList.add('text-indigo-600', 'border-indigo-600');
-      tabSignup.classList.remove('text-gray-400', 'border-transparent');
-      tabLogin.classList.remove('text-indigo-600', 'border-indigo-600');
-      tabLogin.classList.add('text-gray-400', 'border-transparent');
-      signupForm.classList.remove('hidden');
-      loginForm.classList.add('hidden');
-    });
-
-    // ===================================================
-    // 3. AUTHENTICATION (SUPABASE)
-    // ===================================================
-    supabaseClient.auth.onAuthStateChange((event, session) => {
-      currentUser = session ? session.user : null;
-      renderAuthUI();
-    });
-
-    function renderAuthUI() {
-      if (currentUser) {
-        authButtonsContainer.innerHTML = `
-          <div class="flex items-center gap-2">
-            <span class="text-xs font-semibold text-gray-700 hidden md:inline-block">${currentUser.email.split('@')[0]}</span>
-            <button id="logout-btn" class="border border-red-200 text-red-600 hover:bg-red-50 text-xs px-3 py-2 rounded-full font-medium transition">
-              Sign Out
-            </button>
-          </div>
-        `;
-        document.getElementById('logout-btn')?.addEventListener('click', async () => {
-          await supabaseClient.auth.signOut();
-        });
-      } else {
-        authButtonsContainer.innerHTML = `
-          <button id="open-login-btn" class="border border-gray-300 hover:bg-gray-100 text-gray-700 font-medium text-xs sm:text-sm px-3 sm:px-4 py-2 rounded-full transition">
-            Sign In
-          </button>
-        `;
-        document.getElementById('open-login-btn')?.addEventListener('click', () => openModal(authModal));
-      }
-    }
-
-    loginForm.addEventListener('submit', async (e) => {
-      e.preventDefault();
-      authErrorMsg.classList.add('hidden');
-      
-      const email = document.getElementById('login-email').value;
-      const password = document.getElementById('login-password').value;
-
-      const { data, error } = await supabaseClient.auth.signInWithPassword({ email, password });
-
-      if (error) {
-        authErrorMsg.textContent = error.message;
-        authErrorMsg.classList.remove('hidden');
-      } else {
-        closeModal(authModal);
-        loginForm.reset();
-      }
-    });
-
-    signupForm.addEventListener('submit', async (e) => {
-      e.preventDefault();
-      authErrorMsg.classList.add('hidden');
-
-      const email = document.getElementById('signup-email').value;
-      const password = document.getElementById('signup-password').value;
-
-      const { data, error } = await supabaseClient.auth.signUp({ email, password });
-
-      if (error) {
-        authErrorMsg.textContent = error.message;
-        authErrorMsg.classList.remove('hidden');
-      } else {
-        alert('Registration successful! Check your email to confirm registration.');
-        closeModal(authModal);
-        signupForm.reset();
-      }
-    });
-
-    // ===================================================
-    // 4. PRODUCT FETCHING & FILTERING
-    // ===================================================
-    async function loadProducts() {
-      let items = [];
-
-      try {
-        const { data, error } = await supabaseClient.from('products').select('*').order('created_at', { ascending: false });
-        if (!error && data && data.length > 0) {
-          items = data;
-        } else {
-          items = mockProducts;
-        }
-      } catch (err) {
-        items = mockProducts;
-      }
-
-      renderProducts(items);
-    }
-
-    function renderProducts(items) {
-      const filtered = items.filter(item => {
-        const matchesCategory = currentCategory === 'all' || item.category === currentCategory;
-        const matchesSearch = item.title.toLowerCase().includes(searchQuery.toLowerCase()) || 
-                              item.location.toLowerCase().includes(searchQuery.toLowerCase());
-        return matchesCategory && matchesSearch;
-      });
-
-      document.getElementById('item-count').textContent = `Showing ${filtered.length} items`;
-      productsGrid.innerHTML = '';
-
-      if (filtered.length === 0) {
-        productsGrid.innerHTML = `
-          <div class="col-span-full text-center py-12 text-gray-500">
-            <i class="fa-solid fa-box-open text-4xl mb-3 text-gray-300"></i>
-            <p>No listings found matching your search.</p>
-          </div>
-        `;
-        return;
-      }
-
-      filtered.forEach(item => {
-        const card = document.createElement('div');
-        card.className = 'bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden hover:shadow-md transition flex flex-col cursor-pointer';
-        card.innerHTML = `
-          <div class="h-36 sm:h-48 w-full bg-gray-100 relative overflow-hidden">
-            <img src="${item.image_url || 'https://via.placeholder.com/300'}" alt="${item.title}" class="w-full h-full object-cover">
-            <span class="absolute top-2 right-2 bg-black bg-opacity-60 text-white text-[10px] font-bold uppercase px-2 py-0.5 rounded-full">
-              ${item.category}
-            </span>
-          </div>
-          <div class="p-3 sm:p-4 flex-1 flex flex-col justify-between">
-            <div>
-              <h3 class="font-semibold text-xs sm:text-sm text-gray-900 line-clamp-2 mb-1">${item.title}</h3>
-              <p class="text-indigo-600 font-extrabold text-sm sm:text-base mb-2">UGX ${Number(item.price).toLocaleString()}</p>
-            </div>
-            <p class="text-gray-400 text-[11px] flex items-center gap-1">
-              <i class="fa-solid fa-location-dot"></i>
-              <span>${item.location}</span>
-            </p>
-          </div>
-        `;
-        productsGrid.appendChild(card);
-      });
-    }
-
-    // Category Buttons Listener
-    document.querySelectorAll('.category-filter-btn').forEach(btn => {
-      btn.addEventListener('click', (e) => {
-        document.querySelectorAll('.category-filter-btn').forEach(b => {
-          b.classList.remove('bg-indigo-600', 'text-white');
-          b.classList.add('bg-white', 'text-gray-700', 'border', 'border-gray-200');
-        });
-
-        const target = e.currentTarget;
-        target.classList.add('bg-indigo-600', 'text-white');
-        target.classList.remove('bg-white', 'text-gray-700', 'border', 'border-gray-200');
-
-        currentCategory = target.getAttribute('data-category');
-        loadProducts();
-      });
-    });
-
-    // Search Listeners
-    [searchInput, mobileSearchInput].forEach(input => {
-      input?.addEventListener('input', (e) => {
-        searchQuery = e.target.value;
-        loadProducts();
-      });
-    });
-
-    // Handle New Product Post Submission
-    postForm.addEventListener('submit', async (e) => {
-      e.preventDefault();
-
-      const title = document.getElementById('post-title').value;
-      const price = parseFloat(document.getElementById('post-price').value);
-      const category = document.getElementById('post-category').value;
-      const location = document.getElementById('post-location').value;
-      const image_url = document.getElementById('post-image').value;
-
-      const newProduct = { title, price, category, location, image_url, user_id: currentUser?.id };
-
-      const { error } = await supabaseClient.from('products').insert([newProduct]);
-
-      if (error) {
-        alert('Could not submit product: ' + error.message);
-      } else {
-        alert('Product listed successfully!');
-        closeModal(postModal);
-        postForm.reset();
-        loadProducts();
-      }
-    });
-
-    // Initial Load
-    loadProducts();
-  </script>
+  <script src="app.js"></script>
 </body>
 </html>
